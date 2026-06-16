@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>DC Valuation – Daily Case Entry</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --purple:       #7B1FA2;
+    --purple-dark:  #4A0072;
+    --purple-deep:  #2d0045;
+    --purple-light: #9C27B0;
+    --purple-tint:  #F3E5F5;
+    --purple-mid:   #CE93D8;
+    --white:        #ffffff;
+    --text:         #1a1a2e;
+    --text-muted:   #6b5c7a;
+    --border:       #e0cce8;
+    --surface:      #faf7fc;
+    --radius:       12px;
+    --radius-lg:    16px;
+  }
+
+  body {
+    font-family: 'DM Sans', -apple-system, sans-serif;
+    background: var(--surface);
+    min-height: 100vh;
+    padding-bottom: 80px;
+    color: var(--text);
+  }
+
+  /* ── Header ── */
+  .header {
+    background: var(--purple);
+    padding: 22px 20px 20px;
+    position: sticky; top: 0; z-index: 20;
+  }
+  .header-inner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  /* DC logo mark — SVG inline */
+  .logo-svg { flex-shrink: 0; }
+
+  .brand-text h1 {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--white);
+    letter-spacing: 0.1px;
+    line-height: 1.2;
+  }
+  .brand-text .tagline {
+    font-family: 'DM Serif Display', serif;
+    font-style: italic;
+    font-size: 11px;
+    color: rgba(255,255,255,0.65);
+    letter-spacing: 0.3px;
+    margin-top: 1px;
+  }
+  .date-pill {
+    margin-top: 12px;
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.9);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: 99px;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    margin: 14px 14px 0;
+    padding: 18px 16px;
+    border: 1px solid var(--border);
+  }
+  .card-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--purple);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--purple-tint);
+  }
+
+  /* ── Form elements ── */
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 7px;
+    margin-top: 14px;
+  }
+  label:first-of-type { margin-top: 0; }
+  .req { color: var(--purple); }
+
+  input[type="date"],
+  input[type="number"],
+  input[type="text"],
+  select, textarea {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    background: var(--white);
+    -webkit-appearance: none;
+    appearance: none;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--purple);
+    box-shadow: 0 0 0 3px rgba(123,31,162,0.12);
+  }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237B1FA2' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 13px center;
+    padding-right: 38px;
+    cursor: pointer;
+  }
+  textarea { resize: none; min-height: 72px; font-size: 14px; line-height: 1.5; }
+
+  /* ── Bank rows ── */
+  .bank-group { margin-bottom: 12px; }
+  .bank-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .bank-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--purple-light);
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+  }
+  .remove-link {
+    font-size: 12px;
+    color: #c62828;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+  }
+  .bank-row-grid {
+    display: grid;
+    grid-template-columns: 1fr 88px;
+    gap: 10px;
+    align-items: center;
+  }
+  .bank-divider {
+    height: 1px;
+    background: var(--purple-tint);
+    margin: 12px 0 0;
+  }
+
+  .add-btn {
+    width: 100%;
+    padding: 11px;
+    border: 1.5px dashed var(--purple-mid);
+    border-radius: 10px;
+    background: var(--purple-tint);
+    color: var(--purple);
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: background 0.15s;
+  }
+  .add-btn:active { background: #e1bee7; }
+
+  /* ── Status chips ── */
+  .status-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .chip {
+    padding: 10px 6px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--text-muted);
+    background: var(--white);
+    text-align: center;
+    transition: all 0.12s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .chip .chip-icon { font-size: 18px; display: block; margin-bottom: 3px; }
+  .chip.sel-received  { background: #E8EAF6; border-color: #3949AB; color: #1A237E; }
+  .chip.sel-progress  { background: #FFF8E1; border-color: #F9A825; color: #6D4C00; }
+  .chip.sel-submitted { background: #E8F5E9; border-color: #2E7D32; color: #1B5E20; }
+
+  /* ── Submit ── */
+  .submit-btn {
+    width: 100%;
+    padding: 15px;
+    background: var(--purple);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius);
+    font-size: 16px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    letter-spacing: 0.2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .submit-btn:active { background: var(--purple-dark); transform: scale(0.99); }
+  .submit-btn:disabled { background: #b0a0b8; cursor: not-allowed; transform: none; }
+  .hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 8px;
+  }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--purple-deep);
+    color: var(--white);
+    padding: 12px 22px;
+    border-radius: 99px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    box-shadow: 0 4px 20px rgba(74,0,114,0.35);
+    transition: transform 0.3s cubic-bezier(.34,1.56,.64,1);
+    white-space: nowrap;
+    z-index: 200;
+  }
+  .toast.show  { transform: translateX(-50%) translateY(0); }
+  .toast.ok    { background: #1B5E20; }
+  .toast.err   { background: #B71C1C; }
+
+  /* ── Gear / Settings sheet ── */
+  .gear-btn {
+    position: fixed;
+    bottom: 22px; right: 16px;
+    width: 46px; height: 46px;
+    background: var(--purple);
+    border: none; border-radius: 50%;
+    color: var(--white);
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 3px 12px rgba(123,31,162,0.4);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 50;
+  }
+  .overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(45,0,69,0.5);
+    z-index: 100; align-items: flex-end;
+  }
+  .overlay.open { display: flex; }
+  .sheet {
+    background: var(--white);
+    border-radius: 20px 20px 0 0;
+    padding: 8px 18px 44px;
+    width: 100%;
+    max-height: 88vh;
+    overflow-y: auto;
+  }
+  .drag { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 12px auto 18px; }
+  .sheet h2 { font-size: 15px; font-weight: 600; color: var(--purple); margin-bottom: 3px; }
+  .sheet .sub { font-size: 12px; color: var(--text-muted); margin-bottom: 18px; }
+  .save-btn {
+    width: 100%; padding: 13px;
+    background: var(--purple); color: var(--white);
+    border: none; border-radius: 10px;
+    font-size: 15px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer; margin-top: 6px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-inner">
+    <!-- DC logo: near-complete circle with gap at 3 o'clock, two floating dots -->
+    <svg class="logo-svg" width="52" height="44" viewBox="0 0 52 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="DC Valuation logo">
+      <path d="M 33.86 14 A 16 16 0 1 0 33.86 30" stroke="white" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+      <circle cx="36" cy="18.5" r="1.5" fill="white"/>
+      <circle cx="36" cy="25.5" r="1.5" fill="white"/>
+      <text x="18" y="28" text-anchor="middle" font-family="DM Sans,Arial,sans-serif" font-size="13" font-weight="600" fill="white">DC</text>
+    </svg>
+
+    <div class="brand-text">
+      <h1>dc valuation &amp; advisory</h1>
+      <div class="tagline">data · numbers · decisions</div>
+    </div>
+  </div>
+  <div class="date-pill" id="todayLabel">Daily Case Entry</div>
+</div>
+
+<!-- Entry Details -->
+<div class="card">
+  <div class="card-title">Entry Details</div>
+  <label>Date <span class="req">*</span></label>
+  <input type="date" id="entryDate">
+  <label>Staff Name <span class="req">*</span></label>
+  <input type="text" id="staffName" placeholder="Your name">
+</div>
+
+<!-- Cases -->
+<div class="card">
+  <div class="card-title">Cases Received</div>
+  <div id="caseRows"></div>
+  <button class="add-btn" onclick="addRow()">+ Add another bank / client</button>
+</div>
+
+<!-- Status -->
+<div class="card">
+  <div class="card-title">Report Status</div>
+  <div class="status-row" id="statusRow">
+    <div class="chip" data-s="Received"    onclick="pickStatus(this)">
+      <span class="chip-icon">📥</span>Received
+    </div>
+    <div class="chip" data-s="In Progress" onclick="pickStatus(this)">
+      <span class="chip-icon">🔄</span>In Progress
+    </div>
+    <div class="chip" data-s="Submitted"   onclick="pickStatus(this)">
+      <span class="chip-icon">✅</span>Submitted
+    </div>
+  </div>
+</div>
+
+<!-- Notes -->
+<div class="card">
+  <div class="card-title">Notes (optional)</div>
+  <textarea id="notes" placeholder="Remarks, special cases, delays…"></textarea>
+</div>
+
+<!-- Submit -->
+<div class="card">
+  <button class="submit-btn" id="submitBtn" onclick="submitForm()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
+    Submit Daily Entry
+  </button>
+  <p class="hint">Saves directly to DC Valuation Google Sheet</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Gear button -->
+<button class="gear-btn" onclick="document.getElementById('ov').classList.add('open')" aria-label="Settings">⚙</button>
+
+<!-- Settings sheet -->
+<div class="overlay" id="ov" onclick="closeOv(event)">
+  <div class="sheet">
+    <div class="drag"></div>
+    <h2>Google Sheets Setup</h2>
+    <p class="sub">Paste your Apps Script Web App URL. See setup guide inside the HTML file.</p>
+    <label>Apps Script URL</label>
+    <input type="text" id="cfgUrl" placeholder="https://script.google.com/macros/s/…/exec">
+    <label style="margin-top:12px">Default staff name</label>
+    <input type="text" id="cfgName" placeholder="e.g. Sreenath">
+    <button class="save-btn" onclick="saveCfg()">Save</button>
+  </div>
+</div>
+
+<script>
+const BANKS = ["KSFE","Urban Bank","Muthoot","City Union","Kerala One Bank","Private Client","Other"];
+let status = "";
+
+function init() {
+  const d = new Date();
+  document.getElementById("entryDate").value = d.toISOString().split("T")[0];
+  document.getElementById("todayLabel").textContent =
+    "Entry for " + d.toLocaleDateString("en-IN", {weekday:"long", day:"numeric", month:"long", year:"numeric"});
+
+  const cfg = getCfg();
+  if (cfg.name) document.getElementById("staffName").value = cfg.name;
+  if (cfg.url)  document.getElementById("cfgUrl").value = cfg.url;
+  if (cfg.name) document.getElementById("cfgName").value = cfg.name;
+
+  addRow();
+}
+
+function addRow() {
+  const wrap = document.getElementById("caseRows");
+  const idx  = wrap.querySelectorAll(".bank-group").length;
+
+  const grp = document.createElement("div");
+  grp.className = "bank-group";
+
+  const opts = BANKS.map(b => `<option value="${b}">${b}</option>`).join("");
+
+  grp.innerHTML = `
+    ${idx > 0 ? '<div class="bank-divider"></div>' : ''}
+    <div class="bank-group-header" style="margin-top:${idx>0?'12px':'0'}">
+      <span class="bank-label">Bank / Client ${idx + 1}</span>
+      ${idx > 0 ? `<button class="remove-link" onclick="this.closest('.bank-group').remove()">Remove</button>` : ''}
+    </div>
+    <div class="bank-row-grid">
+      <select class="bsel">
+        <option value="">Select bank…</option>
+        ${opts}
+      </select>
+      <input type="number" class="bcnt" min="1" max="99" placeholder="Cases" style="text-align:center;">
+    </div>
+    <input type="text" class="bcasename" placeholder="Case / borrower name" style="margin-top:8px;">`;
+
+  wrap.appendChild(grp);
+}
+
+function pickStatus(el) {
+  document.querySelectorAll(".chip").forEach(c =>
+    c.classList.remove("sel-received","sel-progress","sel-submitted"));
+  status = el.dataset.s;
+  const cls = status === "Received" ? "sel-received"
+            : status === "In Progress" ? "sel-progress" : "sel-submitted";
+  el.classList.add(cls);
+}
+
+async function submitForm() {
+  const date  = document.getElementById("entryDate").value;
+  const staff = document.getElementById("staffName").value.trim();
+  const notes = document.getElementById("notes").value.trim();
+
+  if (!date)   { toast("Please select a date", "err"); return; }
+  if (!staff)  { toast("Please enter your name", "err"); return; }
+  if (!status) { toast("Please select a report status", "err"); return; }
+
+  const groups = document.querySelectorAll(".bank-group");
+  const cases  = [];
+  groups.forEach(g => {
+    const bank  = g.querySelector(".bsel").value;
+    const count = parseInt(g.querySelector(".bcnt").value) || 0;
+    const cname = g.querySelector(".bcasename").value.trim();
+    if (bank) cases.push({ bank, count, caseName: cname });
+  });
+
+  if (cases.length === 0 || cases.every(c => !c.bank)) {
+    toast("Please select at least one bank", "err"); return;
+  }
+
+  const cfg = getCfg();
+  if (!cfg.url) { toast("Tap ⚙ to add your Script URL first", "err"); return; }
+
+  const btn = document.getElementById("submitBtn");
+  btn.disabled = true;
+  btn.innerHTML = `<span style="opacity:.7">Submitting…</span>`;
+
+  const totalCases  = cases.reduce((s,c) => s + c.count, 0);
+  const bankSummary = cases.filter(c=>c.bank).map(c=>`${c.bank}: ${c.count}${c.caseName?' ('+c.caseName+')':''}`).join(" | ");
+
+  const payload = { date, staff, totalCases, bankSummary,
+                    status, notes, cases: JSON.stringify(cases),
+                    timestamp: new Date().toISOString() };
+  try {
+    await fetch(cfg.url, {
+      method: "POST", mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    toast("Entry saved to Google Sheet ✓", "ok");
+    setTimeout(reset, 1800);
+  } catch(e) {
+    toast("Network error — check connection", "err");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg> Submit Daily Entry`;
+  }
+}
+
+function reset() {
+  document.getElementById("notes").value = "";
+  document.getElementById("caseRows").innerHTML = "";
+  status = "";
+  document.querySelectorAll(".chip").forEach(c =>
+    c.classList.remove("sel-received","sel-progress","sel-submitted"));
+  addRow();
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+function toast(msg, type="") {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast " + type;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 3000);
+}
+
+function getCfg() {
+  try { return JSON.parse(localStorage.getItem("dcCfg")||"{}"); } catch { return {}; }
+}
+function saveCfg() {
+  const url  = document.getElementById("cfgUrl").value.trim();
+  const name = document.getElementById("cfgName").value.trim();
+  localStorage.setItem("dcCfg", JSON.stringify({url, name}));
+  if (name) document.getElementById("staffName").value = name;
+  document.getElementById("ov").classList.remove("open");
+  toast("Settings saved", "ok");
+}
+function closeOv(e) {
+  if (e.target===document.getElementById("ov"))
+    document.getElementById("ov").classList.remove("open");
+}
+
+init();
+</script>
+
+<!--
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SETUP GUIDE – READ BEFORE SHARING THE LINK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 1 – Create the Google Sheet
+─────────────────────────────────
+1. sheets.google.com → New blank sheet
+2. Name it: DC Valuation – Case Log
+3. Row 1 headers (A to H):
+   A: Timestamp  B: Date  C: Staff Name
+   D: Total Cases  E: Bank-wise Breakdown (includes case name)
+   F: Report Status  G: Notes  H: Raw JSON
+
+STEP 2 – Apps Script
+─────────────────────
+1. Extensions → Apps Script → delete default code → paste:
+
+function doPost(e) {
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var data  = JSON.parse(e.postData.contents);
+    sheet.appendRow([
+      data.timestamp, data.date, data.staff,
+      data.totalCases, data.bankSummary,
+      data.status, data.notes, data.cases
+    ]);
+    return ContentService
+      .createTextOutput(JSON.stringify({result:"success"}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({result:"error",error:err.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+2. Save → name project: DC Case Logger
+
+STEP 3 – Deploy
+─────────────────
+Deploy → New Deployment → gear icon → Web App
+Execute as: Me | Who has access: Anyone
+→ Deploy → Authorize → copy the URL
+
+STEP 4 – Connect & Share
+──────────────────────────
+1. Upload this HTML to GitHub Pages (free):
+   github.com → New repo → upload as index.html
+   Settings → Pages → Deploy from main
+   Share: https://yourusername.github.io/reponame
+
+2. Open the form → tap ⚙ → paste URL → save name → done
+3. Share link on WhatsApp ✓
+
+TO ADD NEW BANKS: find the BANKS array in the script and add the name.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+-->
+</body>
+</html>
