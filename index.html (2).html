@@ -1,0 +1,1661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>DC Valuation – Case Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --purple:       #670E98;
+    --purple-dark:  #4A0A6E;
+    --purple-deep:  #340750;
+    --purple-light: #8A2EB8;
+    --purple-tint:  #F1E5F8;
+    --purple-mid:   #C9A0DC;
+    --white:        #ffffff;
+    --text:         #1a1a2e;
+    --text-muted:   #6b5c7a;
+    --border:       #ddd2f0;
+    --surface:      #faf8fd;
+    --radius:       12px;
+    --radius-lg:    16px;
+    --green: #2E7D32;  --green-bg:#E8F5E9;
+    --amber: #F9A825;  --amber-bg:#FFF8E1;
+    --red:   #C62828;  --red-bg:  #FFEBEE;
+    --blue:  #1565C0;  --blue-bg: #E3F2FD;
+  }
+
+  body {
+    font-family: 'DM Sans', -apple-system, sans-serif;
+    background: var(--surface);
+    min-height: 100vh;
+    padding-bottom: 90px;
+    color: var(--text);
+  }
+
+  .header { background: var(--purple); padding: 20px 20px 0; position: sticky; top: 0; z-index: 30; }
+  .header-inner { display: flex; align-items: center; gap: 14px; padding-bottom: 14px; }
+  .logo-svg { flex-shrink: 0; }
+  .brand-text h1 { font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; color: var(--white); letter-spacing: 0.1px; line-height: 1.2; }
+  .brand-text .tagline { font-family: 'DM Serif Display', serif; font-style: italic; font-size: 11px; color: rgba(255,255,255,0.65); letter-spacing: 0.3px; margin-top: 1px; }
+
+  .tabs { display: flex; gap: 4px; }
+  .tab-btn {
+    flex: 1; padding: 11px 4px; background: transparent; border: none;
+    color: rgba(255,255,255,0.6); font-family: 'DM Sans', sans-serif;
+    font-size: 12.5px; font-weight: 600; cursor: pointer;
+    border-bottom: 2.5px solid transparent; transition: all 0.15s; white-space: nowrap;
+  }
+  .tab-btn.active { color: #fff; border-bottom-color: #fff; }
+
+  .date-pill {
+    margin: 12px 14px 0; display: inline-block; background: var(--purple-tint);
+    color: var(--purple); font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 99px;
+  }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .card { background: var(--white); border-radius: var(--radius-lg); margin: 14px 14px 0; padding: 18px 16px; border: 1px solid var(--border); }
+  .card-title { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--purple); margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+  .card-title::after { content: ''; flex: 1; height: 1px; background: var(--purple-tint); }
+
+  label { display: block; font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 7px; margin-top: 14px; }
+  label:first-of-type { margin-top: 0; }
+  .req { color: var(--purple); }
+
+  input[type="date"], input[type="time"], input[type="number"], input[type="text"],
+  select, textarea {
+    width: 100%; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: 10px;
+    font-size: 15px; font-family: 'DM Sans', sans-serif; color: var(--text);
+    background: var(--white); -webkit-appearance: none; appearance: none; outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(103,14,152,0.14); }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23670E98' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 13px center; padding-right: 38px; cursor: pointer;
+  }
+  textarea { resize: none; min-height: 64px; font-size: 14px; line-height: 1.5; }
+  .field-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .bank-group { margin-bottom: 12px; }
+  .bank-group-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .bank-label { font-size: 11px; font-weight: 600; color: var(--purple-light); text-transform: uppercase; letter-spacing: 0.7px; }
+  .remove-link { font-size: 12px; color: #c62828; cursor: pointer; background: none; border: none; padding: 0; font-family: inherit; }
+  .bank-divider { height: 1px; background: var(--purple-tint); margin: 12px 0 0; }
+  .add-btn {
+    width: 100%; padding: 11px; border: 1.5px dashed var(--purple-mid); border-radius: 10px;
+    background: var(--purple-tint); color: var(--purple); font-size: 14px; font-weight: 500;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; margin-top: 4px; transition: background 0.15s;
+  }
+  .add-btn:active { background: #e3cdf0; }
+
+  .submit-btn {
+    width: 100%; padding: 15px; background: var(--purple); color: var(--white); border: none;
+    border-radius: var(--radius); font-size: 16px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+    cursor: pointer; letter-spacing: 0.2px; display: flex; align-items: center; justify-content: center;
+    gap: 8px; transition: background 0.15s, transform 0.1s;
+  }
+  .submit-btn:active { background: var(--purple-dark); transform: scale(0.99); }
+  .submit-btn:disabled { background: #b0a0c8; cursor: not-allowed; transform: none; }
+  .submit-btn.secondary { background: var(--purple-tint); color: var(--purple); }
+  .submit-btn.secondary:active { background: #e3cdf0; }
+  .hint { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 8px; }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: var(--purple-deep); color: var(--white); padding: 12px 22px; border-radius: 99px;
+    font-size: 14px; font-weight: 500; font-family: 'DM Sans', sans-serif;
+    box-shadow: 0 4px 20px rgba(52,7,80,0.35); transition: transform 0.3s cubic-bezier(.34,1.56,.64,1);
+    white-space: nowrap; z-index: 200; max-width: 90vw; overflow: hidden; text-overflow: ellipsis;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.ok  { background: #1B5E20; }
+  .toast.err { background: #B71C1C; }
+
+  .gear-btn {
+    position: fixed; bottom: 22px; right: 16px; width: 46px; height: 46px; background: var(--purple);
+    border: none; border-radius: 50%; color: var(--white); font-size: 20px; cursor: pointer;
+    box-shadow: 0 3px 12px rgba(103,14,152,0.4); display: flex; align-items: center; justify-content: center; z-index: 50;
+  }
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(52,7,80,0.5); z-index: 100; align-items: flex-end; }
+  .overlay.open { display: flex; }
+  .sheet { background: var(--white); border-radius: 20px 20px 0 0; padding: 8px 18px 44px; width: 100%; max-height: 88vh; overflow-y: auto; }
+  .drag { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 12px auto 18px; }
+  .sheet h2 { font-size: 15px; font-weight: 600; color: var(--purple); margin-bottom: 3px; }
+  .sheet .sub { font-size: 12px; color: var(--text-muted); margin-bottom: 18px; }
+  .save-btn {
+    width: 100%; padding: 13px; background: var(--purple); color: var(--white); border: none;
+    border-radius: 10px; font-size: 15px; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; margin-top: 6px;
+  }
+
+  .role-tabs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin: 14px 14px 0; }
+  .role-btn {
+    padding: 12px 6px; border-radius: 12px; border: 1.5px solid var(--border); background: var(--white);
+    color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer; text-align: center;
+    font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+  }
+  .role-btn .role-icon { font-size: 20px; display: block; margin-bottom: 4px; }
+  .role-btn.active { background: var(--purple); border-color: var(--purple); color: var(--white); }
+
+  .case-picker-row { display: flex; gap: 8px; align-items: center; }
+  .case-picker-row select { flex: 1; }
+  .refresh-btn {
+    width: 42px; height: 42px; border-radius: 10px; border: 1.5px solid var(--border);
+    background: var(--white); color: var(--purple); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .refresh-btn.spinning svg { animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .case-summary-box {
+    background: var(--purple-tint); border-radius: 10px; padding: 12px 14px; margin-top: 10px;
+    font-size: 13px; color: var(--purple-dark); display: none;
+  }
+  .case-summary-box.show { display: block; }
+  .case-summary-box .csb-row { display: flex; justify-content: space-between; margin-top: 4px; gap: 10px; }
+  .case-summary-box .csb-row:first-child { margin-top: 0; }
+  .case-summary-box .csb-label { font-weight: 600; flex-shrink: 0; }
+  .case-summary-box .csb-val { text-align: right; }
+
+  .complete-toggle {
+    display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px;
+    border: 1.5px solid var(--border); cursor: pointer; margin-top: 14px; transition: all 0.15s;
+  }
+  .complete-toggle.on { background: var(--green-bg); border-color: var(--green); }
+  .complete-toggle .ct-box {
+    width: 20px; height: 20px; border-radius: 5px; border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s;
+  }
+  .complete-toggle.on .ct-box { background: var(--green); border-color: var(--green); }
+  .complete-toggle .ct-text { font-size: 14px; font-weight: 500; color: var(--text); }
+  .complete-toggle.on .ct-text { color: var(--green); font-weight: 600; }
+
+  .track-list-item {
+    background: var(--white); border-radius: 12px; padding: 14px 14px; margin-bottom: 10px;
+    border: 1px solid var(--border); border-left: 4px solid var(--border);
+  }
+  .track-list-item.tag-unassigned     { border-left-color: var(--text-muted); }
+  .track-list-item.tag-pending-visit  { border-left-color: var(--red); }
+  .track-list-item.tag-pending-report { border-left-color: var(--amber); }
+  .track-list-item.tag-complete       { border-left-color: var(--green); }
+  .tli-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; gap: 8px; }
+  .tli-case { font-size: 14px; font-weight: 600; color: var(--text); }
+  .tli-bank { font-size: 11px; color: var(--purple); font-weight: 600; text-transform: uppercase; }
+  .tli-badge { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 99px; white-space: nowrap; flex-shrink: 0; }
+  .tli-badge.unassigned     { background: #F0F0F0; color: var(--text-muted); }
+  .tli-badge.pending-visit  { background: var(--red-bg); color: var(--red); }
+  .tli-badge.pending-report { background: var(--amber-bg); color: #92600A; }
+  .tli-badge.complete       { background: var(--green-bg); color: var(--green); }
+  .tli-detail { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .tli-detail b { color: var(--text); font-weight: 500; }
+  .tli-delete {
+    margin-top: 10px; width: 100%; padding: 8px; background: var(--red-bg); color: var(--red);
+    border: 1px solid #ffcdd2; border-radius: 8px; font-size: 12px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif; cursor: pointer;
+  }
+  .tli-delete:active { background: #ffcdd2; }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .kpi-box { background: var(--white); border-radius: 14px; padding: 16px 14px; border: 1px solid var(--border); text-align: center; }
+  .kpi-box .kpi-val { font-size: 24px; font-weight: 700; color: var(--purple); line-height: 1; }
+  .kpi-box .kpi-lbl { font-size: 11px; color: var(--text-muted); margin-top: 6px; font-weight: 500; }
+  .kpi-box.red .kpi-val   { color: var(--red); }
+  .kpi-box.amber .kpi-val { color: #B8860B; }
+  .kpi-box.green .kpi-val { color: var(--green); }
+
+  .filter-row { display: flex; gap: 8px; align-items: center; }
+  .filter-row select { flex: 1; }
+
+  .date-preset-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+  .date-preset-btn {
+    padding: 9px 4px; border-radius: 9px; border: 1.5px solid var(--border); background: var(--white);
+    color: var(--text-muted); font-size: 11.5px; font-weight: 600; cursor: pointer; text-align: center;
+    font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+  }
+  .date-preset-btn.active { background: var(--purple); border-color: var(--purple); color: var(--white); }
+  .custom-range-toggle {
+    margin-top: 10px; font-size: 12px; color: var(--purple); font-weight: 600; cursor: pointer;
+    text-align: center; padding: 6px;
+  }
+  .custom-range-box { display: none; margin-top: 10px; }
+  .custom-range-box.show { display: block; }
+
+  .daily-row {
+    display: flex; justify-content: space-between; align-items: center; padding: 11px 0;
+    border-bottom: 1px solid var(--purple-tint); font-size: 13px;
+  }
+  .daily-row:last-child { border-bottom: none; }
+  .daily-row-date { font-weight: 600; color: var(--text); flex-shrink: 0; min-width: 78px; }
+  .daily-row-nums { display: flex; gap: 12px; color: var(--text-muted); font-size: 11.5px; flex-wrap: wrap; justify-content: flex-end; }
+  .daily-row-nums b { color: var(--purple); }
+  .daily-row-nums .dn-visit { color: var(--blue); }
+  .daily-row-nums .dn-report { color: var(--green); }
+
+  .bank-stat-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--purple-tint); font-size: 13px; }
+  .bank-stat-row:last-child { border-bottom: none; }
+  .bank-stat-name { font-weight: 600; color: var(--text); }
+  .bank-stat-nums { display: flex; gap: 14px; color: var(--text-muted); font-size: 12px; }
+  .bank-stat-nums b { color: var(--purple); }
+
+  .loading-spin { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 30px; color: var(--text-muted); font-size: 13px; }
+  .loading-spin svg { animation: spin 0.8s linear infinite; }
+  .empty-state { text-align: center; padding: 30px 20px; color: var(--text-muted); font-size: 13px; }
+  .warn-banner { font-size: 11px; color: #B8860B; margin-bottom: 10px; font-weight: 500; }
+
+  .confirm-overlay { display: none; position: fixed; inset: 0; background: rgba(52,7,80,0.55); z-index: 150; align-items: center; justify-content: center; padding: 20px; }
+  .confirm-overlay.open { display: flex; }
+  .confirm-box { background: var(--white); border-radius: 16px; padding: 22px 20px; max-width: 320px; width: 100%; text-align: center; }
+  .confirm-box h3 { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+  .confirm-box p { font-size: 13px; color: var(--text-muted); margin-bottom: 18px; line-height: 1.4; }
+  .confirm-actions { display: flex; gap: 10px; }
+  .confirm-actions button { flex: 1; padding: 11px; border-radius: 10px; font-size: 14px; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; border: none; }
+  .confirm-cancel { background: var(--purple-tint); color: var(--purple); }
+  .confirm-delete { background: var(--red); color: var(--white); }
+
+  .lock-note {
+    display: flex; align-items: center; gap: 8px; background: var(--blue-bg); color: #0D47A1;
+    padding: 10px 12px; border-radius: 10px; font-size: 12px; margin-top: 10px; line-height: 1.4;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <svg class="logo-svg" width="48" height="40" viewBox="0 0 52 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="DC Valuation logo">
+      <path d="M 33.86 14 A 16 16 0 1 0 33.86 30" stroke="white" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+      <circle cx="36" cy="18.5" r="1.5" fill="white"/>
+      <circle cx="36" cy="25.5" r="1.5" fill="white"/>
+      <text x="18" y="28" text-anchor="middle" font-family="DM Sans,Arial,sans-serif" font-size="13" font-weight="600" fill="white">DC</text>
+    </svg>
+    <div class="brand-text">
+      <h1>dc valuation &amp; advisory</h1>
+      <div class="tagline">data · numbers · decisions</div>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="t1" onclick="switchTab('t1')">📋 Daily Log</button>
+    <button class="tab-btn" data-tab="t2" onclick="switchTab('t2')">🚗 Visit &amp; Report</button>
+    <button class="tab-btn" data-tab="t3" onclick="switchTab('t3')">📊 Dashboard</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════ TAB 1 — Daily Log ══════════════════════════ -->
+<div class="page active" id="page-t1">
+  <div class="date-pill" id="todayLabel">Daily Case Entry</div>
+
+  <div class="card">
+    <div class="card-title">Entry Details</div>
+    <label>Date <span class="req">*</span></label>
+    <input type="date" id="entryDate">
+    <label>Staff Name <span class="req">*</span></label>
+    <input type="text" id="staffName" placeholder="Your name">
+  </div>
+
+  <div class="card">
+    <div class="card-title">Cases Received</div>
+    <div id="caseRows"></div>
+    <button class="add-btn" onclick="addRow()">+ Add another bank / client</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Notes (optional)</div>
+    <textarea id="notes" placeholder="Remarks, special cases, delays…"></textarea>
+  </div>
+
+  <div class="card">
+    <button class="submit-btn" id="submitBtn" onclick="submitDailyLog()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
+      Submit Daily Entry
+    </button>
+    <p class="hint">Saves directly to DC Valuation Google Sheet</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Recent Cases</div>
+    <div id="recentCasesList">
+      <div class="loading-spin">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" stroke-dasharray="50 30"/></svg>
+        Loading…
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════ TAB 2 — Visit & Report ══════════════════════════ -->
+<div class="page" id="page-t2">
+  <div class="date-pill">Visit &amp; Report Tracking</div>
+
+  <div class="role-tabs">
+    <button class="role-btn active" data-role="office" onclick="switchRole('office')">
+      <span class="role-icon">🏢</span>Office<br>Assign
+    </button>
+    <button class="role-btn" data-role="engineer" onclick="switchRole('engineer')">
+      <span class="role-icon">🚗</span>Engineer<br>Visit
+    </button>
+    <button class="role-btn" data-role="typist" onclick="switchRole('typist')">
+      <span class="role-icon">⌨️</span>Typist<br>Report
+    </button>
+  </div>
+
+  <!-- ── OFFICE ASSIGN VIEW ── -->
+  <div id="roleView-office">
+    <div class="card">
+      <div class="card-title">Select a Case to Assign</div>
+      <div class="case-picker-row">
+        <select id="officeCasePicker" onchange="onOfficeCasePicked()">
+          <option value="">Loading cases…</option>
+        </select>
+        <button class="refresh-btn" id="refreshOfficeBtn" onclick="loadAllData()" title="Refresh">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        </button>
+      </div>
+      <div class="case-summary-box" id="officeCaseSummary"></div>
+    </div>
+
+    <div class="card" id="officeAssignCard" style="display:none;">
+      <div class="card-title">Assign Staff</div>
+      <label>Visit Engineer</label>
+      <input type="text" id="assignEngineer" placeholder="Engineer name">
+      <label>Report Typist</label>
+      <input type="text" id="assignTypist" placeholder="Typist name">
+      <button class="submit-btn" id="officeAssignBtn" onclick="submitAssignment()" style="margin-top:18px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
+        Save Assignment
+      </button>
+      <p class="hint">Engineer &amp; typist will see this case in their own tab</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">All Cases Overview</div>
+      <div id="officeListContainer">
+        <div class="loading-spin">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" stroke-dasharray="50 30"/></svg>
+          Loading…
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ENGINEER VIEW ── -->
+  <div id="roleView-engineer" style="display:none;">
+    <div class="card">
+      <div class="card-title">Confirm Your Name</div>
+      <label>Engineer Name <span class="req">*</span></label>
+      <input type="text" id="engineerSelfName" placeholder="Type your name exactly as assigned" oninput="loadEngineerCases()">
+    </div>
+
+    <div class="card" id="engineerCasesCard" style="display:none;">
+      <div class="card-title">My Assigned Visits</div>
+      <select id="engineerCasePicker" onchange="onEngineerCasePicked()">
+        <option value="">Select a case…</option>
+      </select>
+      <div class="case-summary-box" id="engineerCaseSummary"></div>
+    </div>
+
+    <div class="card" id="engineerFormCard" style="display:none;">
+      <div class="card-title">Visit Details</div>
+      <label>Visit Date</label>
+      <input type="date" id="visitDate">
+      <label>Visit Time</label>
+      <input type="time" id="visitTime">
+
+      <div class="complete-toggle" id="visitCompleteToggle" onclick="toggleVisitComplete()">
+        <div class="ct-box" id="vctBox">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display:none" id="vctCheck"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <span class="ct-text">Mark Visit as Complete</span>
+      </div>
+
+      <button class="submit-btn" id="engineerSubmitBtn" onclick="submitVisit()" style="margin-top:16px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
+        Save Visit Update
+      </button>
+    </div>
+  </div>
+
+  <!-- ── TYPIST VIEW ── -->
+  <div id="roleView-typist" style="display:none;">
+    <div class="card">
+      <div class="card-title">Confirm Your Name</div>
+      <label>Typist Name <span class="req">*</span></label>
+      <input type="text" id="typistSelfName" placeholder="Type your name exactly as assigned" oninput="loadTypistCases()">
+    </div>
+
+    <div class="card" id="typistCasesCard" style="display:none;">
+      <div class="card-title">My Assigned Reports</div>
+      <select id="typistCasePicker" onchange="onTypistCasePicked()">
+        <option value="">Select a case…</option>
+      </select>
+      <div class="case-summary-box" id="typistCaseSummary"></div>
+    </div>
+
+    <div class="card" id="typistFormCard" style="display:none;">
+      <div class="card-title">Report Submission</div>
+      <label>Submission Date</label>
+      <input type="date" id="submitDate">
+      <label>Submission Time</label>
+      <input type="time" id="submitTime">
+
+      <div class="complete-toggle" id="reportCompleteToggle" onclick="toggleReportComplete()">
+        <div class="ct-box" id="rctBox">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display:none" id="rctCheck"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <span class="ct-text">Mark Report as Complete</span>
+      </div>
+
+      <button class="submit-btn" id="typistSubmitBtn" onclick="submitReport()" style="margin-top:16px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
+        Save Report Update
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════ TAB 3 — Dashboard ══════════════════════════ -->
+<div class="page" id="page-t3">
+  <div class="date-pill">Progress Dashboard</div>
+
+  <div class="card">
+    <div class="card-title">Filter by Bank</div>
+    <div class="filter-row">
+      <select id="bankFilter" onchange="renderDashboard()">
+        <option value="">All Banks</option>
+      </select>
+      <button class="refresh-btn" id="refreshDashBtn" onclick="loadAllData()" title="Refresh">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Filter by Date</div>
+    <div class="date-preset-row">
+      <button class="date-preset-btn active" data-preset="all" onclick="pickDatePreset('all')">All Time</button>
+      <button class="date-preset-btn" data-preset="today" onclick="pickDatePreset('today')">Today</button>
+      <button class="date-preset-btn" data-preset="week" onclick="pickDatePreset('week')">This Week</button>
+      <button class="date-preset-btn" data-preset="month" onclick="pickDatePreset('month')">This Month</button>
+    </div>
+    <div class="custom-range-toggle" onclick="toggleCustomRange()">📅 Custom date range</div>
+    <div class="custom-range-box" id="customRangeBox">
+      <div class="field-row2">
+        <div>
+          <label>From</label>
+          <input type="date" id="rangeFrom" onchange="applyCustomRange()">
+        </div>
+        <div>
+          <label>To</label>
+          <input type="date" id="rangeTo" onchange="applyCustomRange()">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Overview</div>
+    <div class="kpi-grid" id="kpiGrid">
+      <div class="loading-spin" style="grid-column:1/-1">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" stroke-dasharray="50 30"/></svg>
+        Loading dashboard…
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Bank-wise Breakdown</div>
+    <div id="bankBreakdown"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Daily Breakdown</div>
+    <div id="dailyBreakdown"></div>
+  </div>
+
+  <div class="card" id="overdueCard" style="display:none;">
+    <div class="card-title" style="color:var(--red)">⚠ TAT Over 2 Days</div>
+    <div id="overdueList"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<button class="gear-btn" onclick="document.getElementById('ov').classList.add('open')" aria-label="Settings">⚙</button>
+
+<div class="overlay" id="ov" onclick="closeOv(event)">
+  <div class="sheet">
+    <div class="drag"></div>
+    <h2>Google Sheets Setup</h2>
+    <p class="sub">Paste your Apps Script Web App URL. See setup guide inside the HTML file.</p>
+    <label>Apps Script URL</label>
+    <input type="text" id="cfgUrl" placeholder="https://script.google.com/macros/s/…/exec">
+    <label style="margin-top:12px">Default staff name</label>
+    <input type="text" id="cfgName" placeholder="e.g. Sreenath">
+    <button class="save-btn" onclick="saveCfg()">Save</button>
+  </div>
+</div>
+
+<div class="confirm-overlay" id="confirmOv">
+  <div class="confirm-box">
+    <h3>Delete this case?</h3>
+    <p id="confirmMsg">This will permanently remove the case and its tracking data. This cannot be undone.</p>
+    <div class="confirm-actions">
+      <button class="confirm-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="confirm-delete" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let BANKS = ["KSFE","Urban Bank","Muthoot","City Union","Kerala One Bank","Private Client"];
+function loadCustomBanks() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("dcCustomBanks") || "[]");
+    saved.forEach(b => { if (!BANKS.includes(b)) BANKS.push(b); });
+  } catch {}
+}
+function saveCustomBank(name) {
+  if (!name || BANKS.includes(name)) return;
+  BANKS.push(name);
+  try {
+    const saved = JSON.parse(localStorage.getItem("dcCustomBanks") || "[]");
+    if (!saved.includes(name)) { saved.push(name); localStorage.setItem("dcCustomBanks", JSON.stringify(saved)); }
+  } catch {}
+}
+
+let allCases = [];
+let trackingRows = [];
+let usingDummyData = false;
+let deleteTargetKey = "";
+let currentDatePreset = "all";
+let customRangeFrom = "";
+let customRangeTo = "";
+
+/* unique ID generator — survives row deletions/reorders */
+function genCaseId() {
+  const d = new Date();
+  const datePart = d.getFullYear().toString() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+  const rand = Math.random().toString(36).substring(2,6).toUpperCase();
+  return `DC-${datePart}-${rand}`;
+}
+
+const DUMMY_CASES = [
+  { key:"DEMO-0001", date:"10/06/2026", bank:"KSFE", caseName:"Rajesh Kumar", applicationId:"KSFE-2026-1042", distance:"8", propertyLocation:"Kakkanad, Ernakulam" },
+  { key:"DEMO-0002", date:"10/06/2026", bank:"Urban Bank", caseName:"Priya Menon", applicationId:"UB-77231", distance:"15", propertyLocation:"Vyttila, Kochi" },
+  { key:"DEMO-0003", date:"11/06/2026", bank:"Muthoot", caseName:"Suresh Nair", applicationId:"MUT-99812", distance:"22", propertyLocation:"Aluva" },
+  { key:"DEMO-0004", date:"12/06/2026", bank:"City Union", caseName:"Anitha George", applicationId:"CUB-4456", distance:"5", propertyLocation:"Tripunithura" },
+  { key:"DEMO-0005", date:"13/06/2026", bank:"Kerala One Bank", caseName:"Mohammed Iqbal", applicationId:"KOB-1023", distance:"30", propertyLocation:"Angamaly" },
+];
+const DUMMY_TRACKING = [
+  { caseKey:"DEMO-0001", engineer:"Sreenath S", typist:"Anu",
+    visitDate:"2026-06-11", visitTime:"10:30", visitComplete:true,
+    submitDate:"2026-06-13", submitTime:"17:00", reportComplete:true },
+  { caseKey:"DEMO-0002", engineer:"Sreenath S", typist:"",
+    visitDate:"2026-06-12", visitTime:"14:00", visitComplete:true,
+    submitDate:"", submitTime:"", reportComplete:false },
+  { caseKey:"DEMO-0003", engineer:"Sreenath S", typist:"Anu",
+    visitDate:"2026-06-11", visitTime:"15:00", visitComplete:true,
+    submitDate:"2026-06-12", submitTime:"11:00", reportComplete:true },
+  { caseKey:"DEMO-0004", engineer:"", typist:"",
+    visitDate:"", visitTime:"", visitComplete:false,
+    submitDate:"", submitTime:"", reportComplete:false },
+  { caseKey:"DEMO-0005", engineer:"Sreenath S", typist:"Anu",
+    visitDate:"2026-06-14", visitTime:"09:00", visitComplete:true,
+    submitDate:"2026-06-17", submitTime:"12:00", reportComplete:true }
+];
+
+/* ───────────────────────── INIT ───────────────────────── */
+function init() {
+  loadCustomBanks();
+  const d = new Date();
+  document.getElementById("entryDate").value = d.toISOString().split("T")[0];
+  document.getElementById("todayLabel").textContent =
+    "Entry for " + d.toLocaleDateString("en-IN", {weekday:"long", day:"numeric", month:"long", year:"numeric"});
+
+  const cfg = getCfg();
+  if (cfg.name) document.getElementById("staffName").value = cfg.name;
+  if (cfg.url)  document.getElementById("cfgUrl").value = cfg.url;
+  if (cfg.name) document.getElementById("cfgName").value = cfg.name;
+
+  addRow();
+
+  const bf = document.getElementById("bankFilter");
+  BANKS.forEach(b => {
+    const o = document.createElement("option");
+    o.value = b; o.textContent = b;
+    bf.appendChild(o);
+  });
+
+  loadAllData();
+}
+
+/* ───────────────────────── TABS ───────────────────────── */
+function switchTab(tab) {
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById("page-" + tab).classList.add("active");
+  if (tab === "t2") refreshTab2Views();
+  if (tab === "t3") renderDashboard();
+}
+
+function switchRole(role) {
+  document.querySelectorAll(".role-btn").forEach(b => b.classList.toggle("active", b.dataset.role === role));
+  ["office","engineer","typist"].forEach(r => {
+    document.getElementById("roleView-" + r).style.display = (r === role) ? "block" : "none";
+  });
+}
+
+/* ───────────────────────── TAB 1 LOGIC ───────────────────────── */
+function addRow() {
+  const wrap = document.getElementById("caseRows");
+  const idx  = wrap.querySelectorAll(".bank-group").length;
+  const grp = document.createElement("div");
+  grp.className = "bank-group";
+  const opts = BANKS.map(b => `<option value="${b}">${b}</option>`).join("");
+
+  grp.innerHTML = `
+    ${idx > 0 ? '<div class="bank-divider"></div>' : ''}
+    <div class="bank-group-header" style="margin-top:${idx>0?'12px':'0'}">
+      <span class="bank-label">Bank / Client ${idx + 1}</span>
+      ${idx > 0 ? `<button class="remove-link" onclick="this.closest('.bank-group').remove()">Remove</button>` : ''}
+    </div>
+    <select class="bsel" onchange="onBankSelect(this)">
+      <option value="">Select bank…</option>
+      ${opts}
+      <option value="__custom__">+ Add new bank…</option>
+    </select>
+    <input type="text" class="bcustom" placeholder="Enter new bank name" style="margin-top:8px;display:none;">
+    <input type="text" class="bcasename" placeholder="Case / borrower name" style="margin-top:8px;">
+    <input type="text" class="bproploc" placeholder="Property location" style="margin-top:8px;">
+    <div class="field-row2" style="margin-top:8px;">
+      <input type="text" class="bappid" placeholder="Application ID">
+      <input type="number" class="bdist" placeholder="Distance (km)" min="0">
+    </div>`;
+  wrap.appendChild(grp);
+}
+
+function onBankSelect(sel) {
+  const grp = sel.closest(".bank-group");
+  const customInput = grp.querySelector(".bcustom");
+  if (sel.value === "__custom__") {
+    customInput.style.display = "block";
+    customInput.focus();
+  } else {
+    customInput.style.display = "none";
+    customInput.value = "";
+  }
+}
+
+async function submitDailyLog() {
+  const date  = document.getElementById("entryDate").value;
+  const staff = document.getElementById("staffName").value.trim();
+  const notes = document.getElementById("notes").value.trim();
+
+  if (!date)   { toast("Please select a date", "err"); return; }
+  if (!staff)  { toast("Please enter your name", "err"); return; }
+
+  const groups = document.querySelectorAll(".bank-group");
+  const cases  = [];
+  groups.forEach(g => {
+    let bank = g.querySelector(".bsel").value;
+    if (bank === "__custom__") {
+      bank = g.querySelector(".bcustom").value.trim();
+      if (bank) saveCustomBank(bank);
+    }
+    const cname = g.querySelector(".bcasename").value.trim();
+    const apploc = g.querySelector(".bproploc").value.trim();
+    const appid = g.querySelector(".bappid").value.trim();
+    const dist  = g.querySelector(".bdist").value.trim();
+    if (bank) cases.push({ caseId: genCaseId(), bank, caseName: cname, propertyLocation: apploc, applicationId: appid, distance: dist });
+  });
+
+  if (cases.length === 0 || cases.every(c => !c.bank)) { toast("Please select at least one bank", "err"); return; }
+
+  const cfg = getCfg();
+  if (!cfg.url) { toast("Tap ⚙ to add your Script URL first", "err"); return; }
+
+  const btn = document.getElementById("submitBtn");
+  btn.disabled = true;
+  btn.innerHTML = `<span style="opacity:.7">Submitting…</span>`;
+
+  const totalCases  = cases.length;
+  const bankSummary = cases.map(c=>`${c.bank}${c.caseName?' ('+c.caseName+')':''}`).join(" | ");
+
+  const payload = {
+    action: "dailyLog",
+    date, staff, totalCases, bankSummary, notes,
+    cases: JSON.stringify(cases), timestamp: new Date().toISOString()
+  };
+
+  try {
+    await fetch(cfg.url, {
+      method: "POST", mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    toast("Entry saved to Google Sheet ✓", "ok");
+    setTimeout(() => { resetDailyLog(); loadAllData(); }, 1500);
+  } catch(e) {
+    toast("Network error — check connection", "err");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg> Submit Daily Entry`;
+  }
+}
+
+function resetDailyLog() {
+  document.getElementById("notes").value = "";
+  document.getElementById("caseRows").innerHTML = "";
+  addRow();
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+function renderRecentCases() {
+  const container = document.getElementById("recentCasesList");
+  if (allCases.length === 0) { container.innerHTML = `<div class="empty-state">No cases yet</div>`; return; }
+  const sorted = [...allCases].reverse().slice(0, 15);
+  const dummyNote = usingDummyData ? `<p class="warn-banner">⚠ Showing sample data — connect your sheet via ⚙ to see real entries</p>` : "";
+
+  container.innerHTML = dummyNote + sorted.map(c => `
+    <div class="track-list-item">
+      <div class="tli-top">
+        <div>
+          <div class="tli-bank">${c.bank}</div>
+          <div class="tli-case">${c.caseName || "Unnamed case"}</div>
+        </div>
+        <span class="tli-badge" style="background:var(--purple-tint);color:var(--purple)">${c.date}</span>
+      </div>
+      ${c.propertyLocation ? `<div class="tli-detail">Location: <b>${c.propertyLocation}</b></div>` : ''}
+      ${c.applicationId ? `<div class="tli-detail">App ID: <b>${c.applicationId}</b></div>` : ''}
+      ${c.distance ? `<div class="tli-detail">Distance: <b>${c.distance} km</b></div>` : ''}
+      <button class="tli-delete" onclick="askDelete('${c.key}','${(c.caseName||'this case').replace(/'/g,"")}')">🗑 Delete this case</button>
+    </div>`).join("");
+}
+
+function askDelete(key, name) {
+  deleteTargetKey = key;
+  document.getElementById("confirmMsg").textContent =
+    `This will permanently remove "${name}" and its tracking data. This cannot be undone.`;
+  document.getElementById("confirmOv").classList.add("open");
+}
+function closeConfirm() { document.getElementById("confirmOv").classList.remove("open"); deleteTargetKey = ""; }
+async function confirmDelete() {
+  const cfg = getCfg();
+  closeConfirm();
+
+  if (usingDummyData) {
+    allCases = allCases.filter(c => c.key !== deleteTargetKey);
+    trackingRows = trackingRows.filter(t => t.caseKey !== deleteTargetKey);
+    renderRecentCases();
+    toast("Sample case removed", "ok");
+    return;
+  }
+
+  if (!cfg.url) { toast("Setup needed — tap ⚙", "err"); return; }
+
+  try {
+    await fetch(cfg.url, {
+      method: "POST", mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "deleteCase", caseKey: deleteTargetKey })
+    });
+    toast("Case deleted ✓", "ok");
+    setTimeout(loadAllData, 1200);
+  } catch(e) {
+    toast("Network error — check connection", "err");
+  }
+}
+
+/* ───────────────────────── DATA LOADING (shared) ───────────────────────── */
+async function loadAllData() {
+  const cfg = getCfg();
+  const spinBtns = ["refreshOfficeBtn","refreshDashBtn"].map(id => document.getElementById(id)).filter(Boolean);
+  spinBtns.forEach(b => b.classList.add("spinning"));
+
+  if (!cfg.url) {
+    usingDummyData = true;
+    allCases = DUMMY_CASES;
+    trackingRows = DUMMY_TRACKING;
+    afterDataLoaded();
+    spinBtns.forEach(b => b.classList.remove("spinning"));
+    return;
+  }
+
+  try {
+    const res = await fetch(`${cfg.url}?action=cases&t=${Date.now()}`);
+    const data = await res.json();
+    if (!data.cases || data.cases.length === 0) {
+      usingDummyData = true;
+      allCases = DUMMY_CASES;
+      trackingRows = DUMMY_TRACKING;
+    } else {
+      usingDummyData = false;
+      allCases = data.cases;
+      trackingRows = data.tracking || [];
+    }
+  } catch(e) {
+    usingDummyData = true;
+    allCases = DUMMY_CASES;
+    trackingRows = DUMMY_TRACKING;
+  } finally {
+    spinBtns.forEach(b => b.classList.remove("spinning"));
+  }
+  afterDataLoaded();
+}
+
+function afterDataLoaded() {
+  renderRecentCases();
+  refreshTab2Views();
+  renderDashboard();
+}
+
+function getTracking(caseKey) {
+  return trackingRows.find(t => t.caseKey === caseKey) || null;
+}
+
+function caseStatusTag(c) {
+  const t = getTracking(c.key);
+  if (t && t.reportComplete) return { cls:"complete", text:"Complete" };
+  if (t && t.visitComplete)  return { cls:"pending-report", text:"Pending Report" };
+  if (t && (t.engineer || t.typist)) return { cls:"pending-visit", text:"Assigned – Pending Visit" };
+  return { cls:"unassigned", text:"Unassigned" };
+}
+
+/* ───────────────────────── TAB 2: OFFICE VIEW ───────────────────────── */
+function refreshTab2Views() {
+  populateOfficePicker();
+  renderOfficeList();
+  if (document.getElementById("engineerSelfName").value.trim()) loadEngineerCases();
+  if (document.getElementById("typistSelfName").value.trim()) loadTypistCases();
+}
+
+function populateOfficePicker() {
+  const picker = document.getElementById("officeCasePicker");
+  picker.innerHTML = '<option value="">Select a case…</option>';
+  allCases.forEach(c => {
+    const tag = caseStatusTag(c);
+    const icon = tag.cls === "complete" ? "✅" : tag.cls === "pending-report" ? "🔄" : tag.cls === "pending-visit" ? "🚗" : "⏳";
+    const o = document.createElement("option");
+    o.value = c.key;
+    o.textContent = `${c.bank} – ${c.caseName || "Unnamed"} (${c.date}) ${icon}`;
+    picker.appendChild(o);
+  });
+}
+
+function onOfficeCasePicked() {
+  const key = document.getElementById("officeCasePicker").value;
+  const box = document.getElementById("officeCaseSummary");
+  const card = document.getElementById("officeAssignCard");
+
+  if (!key) { box.classList.remove("show"); card.style.display = "none"; return; }
+
+  const c = allCases.find(x => x.key === key);
+  if (!c) return;
+  const t = getTracking(key);
+
+  box.innerHTML = `
+    <div class="csb-row"><span class="csb-label">Bank:</span><span class="csb-val">${c.bank}</span></div>
+    <div class="csb-row"><span class="csb-label">Case:</span><span class="csb-val">${c.caseName || "—"}</span></div>
+    <div class="csb-row"><span class="csb-label">Location:</span><span class="csb-val">${c.propertyLocation || "—"}</span></div>
+    <div class="csb-row"><span class="csb-label">Received:</span><span class="csb-val">${c.date}</span></div>
+  `;
+  box.classList.add("show");
+
+  document.getElementById("assignEngineer").value = t ? (t.engineer || "") : "";
+  document.getElementById("assignTypist").value   = t ? (t.typist || "") : "";
+  card.style.display = "block";
+}
+
+async function submitAssignment() {
+  const key = document.getElementById("officeCasePicker").value;
+  if (!key) { toast("Please select a case first", "err"); return; }
+
+  const engineer = document.getElementById("assignEngineer").value.trim();
+  const typist   = document.getElementById("assignTypist").value.trim();
+
+  if (!engineer && !typist) { toast("Enter at least an engineer or typist name", "err"); return; }
+
+  if (usingDummyData) { toast("Connect your sheet via ⚙ to save real assignments", "err"); return; }
+
+  const cfg = getCfg();
+  if (!cfg.url) { toast("Tap ⚙ to add your Script URL first", "err"); return; }
+
+  const c = allCases.find(x => x.key === key);
+  const existing = getTracking(key);
+  const btn = document.getElementById("officeAssignBtn");
+  btn.disabled = true;
+  btn.innerHTML = `<span style="opacity:.7">Saving…</span>`;
+
+  const payload = {
+    action: "assign",
+    caseKey: key, bank: c.bank, caseName: c.caseName,
+    engineer, typist,
+    visitDate: existing ? existing.visitDate : "", visitTime: existing ? existing.visitTime : "",
+    visitComplete: existing ? existing.visitComplete : false,
+    submitDate: existing ? existing.submitDate : "", submitTime: existing ? existing.submitTime : "",
+    reportComplete: existing ? existing.reportComplete : false,
+    timestamp: new Date().toISOString()
+  };
+
+  try {
+    await fetch(cfg.url, {
+      method: "POST", mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    toast("Assignment saved ✓", "ok");
+    setTimeout(loadAllData, 1200);
+  } catch(e) {
+    toast("Network error — check connection", "err");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg> Save Assignment`;
+  }
+}
+
+function renderOfficeList() {
+  const container = document.getElementById("officeListContainer");
+  if (allCases.length === 0) { container.innerHTML = `<div class="empty-state">No cases yet</div>`; return; }
+
+  const dummyNote = usingDummyData ? `<p class="warn-banner">⚠ Showing sample data — connect your sheet via ⚙</p>` : "";
+  const sorted = [...allCases].reverse().slice(0, 25);
+
+  container.innerHTML = dummyNote + sorted.map(c => {
+    const t = getTracking(c.key);
+    const tag = caseStatusTag(c);
+    return `
+      <div class="track-list-item tag-${tag.cls}">
+        <div class="tli-top">
+          <div><div class="tli-bank">${c.bank}</div><div class="tli-case">${c.caseName || "Unnamed case"}</div></div>
+          <span class="tli-badge ${tag.cls}">${tag.text}</span>
+        </div>
+        <div class="tli-detail">Received: <b>${c.date}</b>${c.propertyLocation ? ` · ${c.propertyLocation}` : ''}</div>
+        ${t && t.engineer ? `<div class="tli-detail">Engineer: <b>${t.engineer}</b>${t.visitComplete ? ' ✅ visit done' : ''}</div>` : ''}
+        ${t && t.typist ? `<div class="tli-detail">Typist: <b>${t.typist}</b>${t.reportComplete ? ' ✅ report done' : ''}</div>` : ''}
+      </div>`;
+  }).join("");
+}
+
+/* ───────────────────────── TAB 2: ENGINEER VIEW ───────────────────────── */
+function loadEngineerCases() {
+  const name = document.getElementById("engineerSelfName").value.trim();
+  const card = document.getElementById("engineerCasesCard");
+  if (!name) { card.style.display = "none"; document.getElementById("engineerFormCard").style.display = "none"; return; }
+
+  const myCases = allCases.filter(c => {
+    const t = getTracking(c.key);
+    return t && t.engineer && t.engineer.toLowerCase() === name.toLowerCase();
+  });
+
+  const picker = document.getElementById("engineerCasePicker");
+  picker.innerHTML = '<option value="">Select a case…</option>';
+  myCases.forEach(c => {
+    const t = getTracking(c.key);
+    const o = document.createElement("option");
+    o.value = c.key;
+    o.textContent = `${c.bank} – ${c.caseName || "Unnamed"} ${t.visitComplete ? "✅" : "⏳"}`;
+    picker.appendChild(o);
+  });
+
+  card.style.display = "block";
+  if (myCases.length === 0) {
+    picker.innerHTML = '<option value="">No cases assigned to you yet</option>';
+  }
+}
+
+function onEngineerCasePicked() {
+  const key = document.getElementById("engineerCasePicker").value;
+  const box = document.getElementById("engineerCaseSummary");
+  const formCard = document.getElementById("engineerFormCard");
+
+  if (!key) { box.classList.remove("show"); formCard.style.display = "none"; return; }
+
+  const c = allCases.find(x => x.key === key);
+  const t = getTracking(key);
+
+  box.innerHTML = `
+    <div class="csb-row"><span class="csb-label">Bank:</span><span class="csb-val">${c.bank}</span></div>
+    <div class="csb-row"><span class="csb-label">Case:</span><span class="csb-val">${c.caseName || "—"}</span></div>
+    <div class="csb-row"><span class="csb-label">Location:</span><span class="csb-val">${c.propertyLocation || "—"}</span></div>
+    <div class="csb-row"><span class="csb-label">Distance:</span><span class="csb-val">${c.distance ? c.distance+' km' : '—'}</span></div>
+  `;
+  box.classList.add("show");
+
+  document.getElementById("visitDate").value = t.visitDate || "";
+  document.getElementById("visitTime").value = t.visitTime || "";
+  setVisitComplete(!!t.visitComplete);
+  formCard.style.display = "block";
+}
+
+let visitCompleteState = false;
+function toggleVisitComplete() { setVisitComplete(!visitCompleteState); }
+function setVisitComplete(val) {
+  visitCompleteState = val;
+  document.getElementById("visitCompleteToggle").classList.toggle("on", val);
+  document.getElementById("vctCheck").style.display = val ? "block" : "none";
+}
+
+async function submitVisit() {
+  const key = document.getElementById("engineerCasePicker").value;
+  const name = document.getElementById("engineerSelfName").value.trim();
+  if (!key)  { toast("Please select a case", "err"); return; }
+  if (!name) { toast("Please enter your name", "err"); return; }
+
+  if (usingDummyData) { toast("Connect your sheet via ⚙ to save real updates", "err"); return; }
+
+  const cfg = getCfg();
+  if (!cfg.url) { toast("Tap ⚙ to add your Script URL first", "err"); return; }
+
+  const c = allCases.find(x => x.key === key);
+  const t = getTracking(key);
+  const btn = document.getElementById("engineerSubmitBtn");
+  btn.disabled = true;
+  btn.innerHTML = `<span style="opacity:.7">Saving…</span>`;
+
+  const payload = {
+    action: "assign",
+    caseKey: key, bank: c.bank, caseName: c.caseName,
+    engineer: t.engineer, typist: t.typist,
+    visitDate: document.getElementById("visitDate").value,
+    visitTime: document.getElementById("visitTime").value,
+    visitComplete: visitCompleteState,
+    submitDate: t.submitDate, submitTime: t.submitTime, reportComplete: t.reportComplete,
+    timestamp: new Date().toISOString()
+  };
+
+  try {
+    await fetch(cfg.url, {
+      method: "POST", mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    toast("Visit update saved ✓", "ok");
+    setTimeout(loadAllData, 1200);
+  } catch(e) {
+    toast("Network error — check connection", "err");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg> Save Visit Update`;
+  }
+}
+
+/* ───────────────────────── TAB 2: TYPIST VIEW ───────────────────────── */
+function loadTypistCases() {
+  const name = document.getElementById("typistSelfName").value.trim();
+  const card = document.getElementById("typistCasesCard");
+  if (!name) { card.style.display = "none"; document.getElementById("typistFormCard").style.display = "none"; return; }
+
+  const myCases = allCases.filter(c => {
+    const t = getTracking(c.key);
+    return t && t.typist && t.typist.toLowerCase() === name.toLowerCase();
+  });
+
+  const picker = document.getElementById("typistCasePicker");
+  picker.innerHTML = '<option value="">Select a case…</option>';
+  myCases.forEach(c => {
+    const t = getTracking(c.key);
+    const o = document.createElement("option");
+    o.value = c.key;
+    o.textContent = `${c.bank} – ${c.caseName || "Unnamed"} ${t.reportComplete ? "✅" : "⏳"}`;
+    picker.appendChild(o);
+  });
+
+  card.style.display = "block";
+  if (myCases.length === 0) {
+    picker.innerHTML = '<option value="">No cases assigned to you yet</option>';
+  }
+}
+
+function onTypistCasePicked() {
+  const key = document.getElementById("typistCasePicker").value;
+  const box = document.getElementById("typistCaseSummary");
+  const formCard = document.getElementById("typistFormCard");
+
+  if (!key) { box.classList.remove("show"); formCard.style.display = "none"; return; }
+
+  const c = allCases.find(x => x.key === key);
+  const t = getTracking(key);
+
+  box.innerHTML = `
+    <div class="csb-row"><span class="csb-label">Bank:</span><span class="csb-val">${c.bank}</span></div>
+    <div class="csb-row"><span class="csb-label">Case:</span><span class="csb-val">${c.caseName || "—"}</span></div>
+    <div class="csb-row"><span class="csb-label">Visit Status:</span><span class="csb-val">${t.visitComplete ? "✅ Done" : "⏳ Pending"}</span></div>
+  `;
+  box.classList.add("show");
+
+  if (!t.visitComplete) {
+    box.innerHTML += `<div class="lock-note">ℹ️ Visit isn't marked complete yet, but you can still start typing if you have the data.</div>`;
+  }
+
+  document.getElementById("submitDate").value = t.submitDate || "";
+  document.getElementById("submitTime").value = t.submitTime || "";
+  setReportComplete(!!t.reportComplete);
+  formCard.style.display = "block";
+}
+
+let reportCompleteState = false;
+function toggleReportComplete() { setReportComplete(!reportCompleteState); }
+function setReportComplete(val) {
+  reportCompleteState = val;
+  document.getElementById("reportCompleteToggle").classList.toggle("on", val);
+  document.getElementById("rctCheck").style.display = val ? "block" : "none";
+}
+
+async function submitReport() {
+  const key = document.getElementById("typistCasePicker").value;
+  const name = document.getElementById("typistSelfName").value.trim();
+  if (!key)  { toast("Please select a case", "err"); return; }
+  if (!name) { toast("Please enter your name", "err"); return; }
+
+  if (usingDummyData) { toast("Connect your sheet via ⚙ to save real updates", "err"); return; }
+
+  const cfg = getCfg();
+  if (!cfg.url) { toast("Tap ⚙ to add your Script URL first", "err"); return; }
+
+  const c = allCases.find(x => x.key === key);
+  const t = getTracking(key);
+  const btn = document.getElementById("typistSubmitBtn");
+  btn.disabled = true;
+  btn.innerHTML = `<span style="opacity:.7">Saving…</span>`;
+
+  const payload = {
+    action: "assign",
+    caseKey: key, bank: c.bank, caseName: c.caseName,
+    engineer: t.engineer, typist: t.typist,
+    visitDate: t.visitDate, visitTime: t.visitTime, visitComplete: t.visitComplete,
+    submitDate: document.getElementById("submitDate").value,
+    submitTime: document.getElementById("submitTime").value,
+    reportComplete: reportCompleteState,
+    timestamp: new Date().toISOString()
+  };
+
+  try {
+    await fetch(cfg.url, {
+      method: "POST", mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    toast("Report update saved ✓", "ok");
+    setTimeout(loadAllData, 1200);
+  } catch(e) {
+    toast("Network error — check connection", "err");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg> Save Report Update`;
+  }
+}
+
+/* ───────────────────────── TAB 3 LOGIC ───────────────────────── */
+function calcTATHours(receivedDateDDMMYYYY, submitDateISO, submitTime) {
+  if (!receivedDateDDMMYYYY || !submitDateISO) return null;
+  const recvDate = receivedDateDDMMYYYY.split("/").reverse().join("-");
+  const recvDT = new Date(recvDate + "T09:00:00");
+  const subDT  = new Date(submitDateISO + "T" + (submitTime || "18:00") + ":00");
+  const diffMs = subDT - recvDT;
+  if (isNaN(diffMs) || diffMs < 0) return null;
+  return diffMs / (1000 * 60 * 60);
+}
+function formatTAT(hours) {
+  if (hours === null || hours === undefined || isNaN(hours)) return "—";
+  const days = Math.floor(hours / 24);
+  const remHours = Math.round(hours % 24);
+  if (days === 0) return `${remHours}h`;
+  return `${days}d ${remHours}h`;
+}
+
+/* ───────────────────────── DATE FILTER ───────────────────────── */
+function parseDDMMYYYY(dateStr) {
+  if (!dateStr) return null;
+  const parts = dateStr.split("/");
+  if (parts.length !== 3) return null;
+  return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+}
+
+function pickDatePreset(preset) {
+  currentDatePreset = preset;
+  customRangeFrom = "";
+  customRangeTo = "";
+  document.getElementById("customRangeBox").classList.remove("show");
+  document.getElementById("rangeFrom").value = "";
+  document.getElementById("rangeTo").value = "";
+  document.querySelectorAll(".date-preset-btn").forEach(b => b.classList.toggle("active", b.dataset.preset === preset));
+  renderDashboard();
+}
+
+function toggleCustomRange() {
+  const box = document.getElementById("customRangeBox");
+  box.classList.toggle("show");
+}
+
+function applyCustomRange() {
+  const from = document.getElementById("rangeFrom").value;
+  const to   = document.getElementById("rangeTo").value;
+  if (!from && !to) return;
+  customRangeFrom = from;
+  customRangeTo = to;
+  currentDatePreset = "custom";
+  document.querySelectorAll(".date-preset-btn").forEach(b => b.classList.remove("active"));
+  renderDashboard();
+}
+
+function getDateRangeForPreset() {
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  if (currentDatePreset === "custom") {
+    const from = customRangeFrom ? new Date(customRangeFrom) : null;
+    const to   = customRangeTo ? new Date(customRangeTo) : null;
+    if (to) to.setHours(23,59,59,999);
+    return { from, to };
+  }
+  if (currentDatePreset === "today") {
+    const end = new Date(today); end.setHours(23,59,59,999);
+    return { from: today, to: end };
+  }
+  if (currentDatePreset === "week") {
+    const dayOfWeek = today.getDay();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - ((dayOfWeek + 6) % 7));
+    const end = new Date(today); end.setHours(23,59,59,999);
+    return { from: monday, to: end };
+  }
+  if (currentDatePreset === "month") {
+    const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const end = new Date(today); end.setHours(23,59,59,999);
+    return { from: firstOfMonth, to: end };
+  }
+  return { from: null, to: null }; // all time
+}
+
+function applyDateFilter(cases) {
+  const { from, to } = getDateRangeForPreset();
+  if (!from && !to) return cases;
+  return cases.filter(c => {
+    const d = parseDDMMYYYY(c.date);
+    if (!d) return false;
+    if (from && d < from) return false;
+    if (to && d > to) return false;
+    return true;
+  });
+}
+
+function renderDashboard() {
+  const filterBank = document.getElementById("bankFilter").value;
+  let filteredCases = filterBank ? allCases.filter(c => c.bank === filterBank) : allCases;
+  filteredCases = applyDateFilter(filteredCases);
+  const filteredKeys = new Set(filteredCases.map(c => c.key));
+  const filteredTracking = trackingRows.filter(t => filteredKeys.has(t.caseKey));
+
+  const totalCases     = filteredCases.length;
+  const totalAssigned  = filteredTracking.filter(t => t.engineer || t.typist).length;
+  const totalVisits    = filteredTracking.filter(t => t.visitComplete).length;
+  const pendingVisits  = totalCases - totalVisits;
+  const totalReports   = filteredTracking.filter(t => t.reportComplete).length;
+  const pendingReports = totalCases - totalReports;
+
+  const tatCases = filteredTracking
+    .filter(t => t.reportComplete && t.submitDate)
+    .map(t => {
+      const c = filteredCases.find(x => x.key === t.caseKey);
+      if (!c) return null;
+      const hrs = calcTATHours(c.date, t.submitDate, t.submitTime);
+      if (hrs === null) return null;
+      return { case: c, tracking: t, hours: hrs };
+    })
+    .filter(v => v !== null);
+
+  const avgHours = tatCases.length ? (tatCases.reduce((a,b)=>a+b.hours,0) / tatCases.length) : null;
+  const avgTATDisplay = formatTAT(avgHours);
+  const overdueCases = tatCases.filter(v => v.hours > 48);
+
+  const dummyBanner = usingDummyData ? `<div class="empty-state" style="grid-column:1/-1;padding:0 0 12px;color:#B8860B;font-weight:500">⚠ Showing sample data — connect your sheet via ⚙</div>` : "";
+
+  document.getElementById("kpiGrid").innerHTML = dummyBanner + `
+    <div class="kpi-box"><div class="kpi-val">${totalCases}</div><div class="kpi-lbl">Total Cases</div></div>
+    <div class="kpi-box"><div class="kpi-val">${totalAssigned}</div><div class="kpi-lbl">Assigned</div></div>
+    <div class="kpi-box red"><div class="kpi-val">${Math.max(0,pendingVisits)}</div><div class="kpi-lbl">Pending Visits</div></div>
+    <div class="kpi-box amber"><div class="kpi-val">${Math.max(0,pendingReports)}</div><div class="kpi-lbl">Pending Reports</div></div>
+    <div class="kpi-box green"><div class="kpi-val">${totalReports}</div><div class="kpi-lbl">Reports Completed</div></div>
+    <div class="kpi-box${overdueCases.length>0?' red':''}"><div class="kpi-val">${avgTATDisplay}</div><div class="kpi-lbl">Avg TAT</div></div>
+  `;
+
+  const breakdown = {};
+  filteredCases.forEach(c => {
+    if (!breakdown[c.bank]) breakdown[c.bank] = { cases:0, visits:0, complete:0 };
+    breakdown[c.bank].cases++;
+    const t = getTracking(c.key);
+    if (t && t.visitComplete)  breakdown[c.bank].visits++;
+    if (t && t.reportComplete) breakdown[c.bank].complete++;
+  });
+
+  const bbContainer = document.getElementById("bankBreakdown");
+  const banks = Object.keys(breakdown);
+  if (banks.length === 0) {
+    bbContainer.innerHTML = `<div class="empty-state">No data yet</div>`;
+  } else {
+    bbContainer.innerHTML = banks.map(b => `
+      <div class="bank-stat-row">
+        <span class="bank-stat-name">${b}</span>
+        <span class="bank-stat-nums">
+          <span><b>${breakdown[b].cases}</b> cases</span>
+          <span><b>${breakdown[b].visits}</b> visited</span>
+          <span><b>${breakdown[b].complete}</b> done</span>
+        </span>
+      </div>`).join("");
+  }
+
+  renderDailyBreakdown(filteredCases);
+  renderOverdueTAT(overdueCases);
+}
+
+function renderDailyBreakdown(filteredCases) {
+  const container = document.getElementById("dailyBreakdown");
+  if (filteredCases.length === 0) {
+    container.innerHTML = `<div class="empty-state">No cases in this date range</div>`;
+    return;
+  }
+
+  const byDate = {};
+  filteredCases.forEach(c => {
+    if (!byDate[c.date]) byDate[c.date] = { cases: 0, visits: 0, reports: 0, sortKey: parseDDMMYYYY(c.date) };
+    byDate[c.date].cases++;
+    const t = getTracking(c.key);
+    if (t && t.visitComplete)  byDate[c.date].visits++;
+    if (t && t.reportComplete) byDate[c.date].reports++;
+  });
+
+  const sortedDates = Object.keys(byDate).sort((a, b) => byDate[b].sortKey - byDate[a].sortKey);
+
+  container.innerHTML = sortedDates.map(dateStr => {
+    const d = byDate[dateStr];
+    return `
+      <div class="daily-row">
+        <span class="daily-row-date">${dateStr}</span>
+        <span class="daily-row-nums">
+          <span><b>${d.cases}</b> cases</span>
+          <span class="dn-visit"><b>${d.visits}</b> visited</span>
+          <span class="dn-report"><b>${d.reports}</b> reported</span>
+        </span>
+      </div>`;
+  }).join("");
+}
+
+function renderOverdueTAT(overdueCases) {
+  const card = document.getElementById("overdueCard");
+  const list = document.getElementById("overdueList");
+  if (!overdueCases || overdueCases.length === 0) { card.style.display = "none"; return; }
+
+  card.style.display = "block";
+  const sorted = [...overdueCases].sort((a,b) => b.hours - a.hours);
+  list.innerHTML = sorted.map(item => `
+    <div class="track-list-item" style="border-left-color:var(--red)">
+      <div class="tli-top">
+        <div><div class="tli-bank">${item.case.bank}</div><div class="tli-case">${item.case.caseName || "Unnamed case"}</div></div>
+        <span class="tli-badge" style="background:var(--red-bg);color:var(--red)">${formatTAT(item.hours)}</span>
+      </div>
+      <div class="tli-detail">Received: <b>${item.case.date}</b> · Submitted: <b>${item.tracking.submitDate} ${item.tracking.submitTime||''}</b></div>
+    </div>`).join("");
+}
+
+/* ───────────────────────── SHARED ───────────────────────── */
+function toast(msg, type="") {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast " + type;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 3000);
+}
+function getCfg() {
+  try { return JSON.parse(localStorage.getItem("dcCfg")||"{}"); } catch { return {}; }
+}
+function saveCfg() {
+  const url  = document.getElementById("cfgUrl").value.trim();
+  const name = document.getElementById("cfgName").value.trim();
+  localStorage.setItem("dcCfg", JSON.stringify({url, name}));
+  if (name) document.getElementById("staffName").value = name;
+  document.getElementById("ov").classList.remove("open");
+  toast("Settings saved", "ok");
+  loadAllData();
+}
+function closeOv(e) {
+  if (e.target===document.getElementById("ov")) document.getElementById("ov").classList.remove("open");
+}
+
+init();
+</script>
+
+<!--
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SETUP GUIDE — READ BEFORE SHARING THE LINK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+THIS IS A FULL REWRITE. THE OLD GOOGLE SHEET COLUMNS NO
+LONGER MATCH — YOU MUST UPDATE BOTH SHEET TABS AND PASTE
+THE NEW APPS SCRIPT BELOW. FOLLOW EVERY STEP.
+
+WHAT CHANGED:
+- Every case now gets a permanent unique ID (e.g. DC-20260617-8X4K)
+  generated the moment it's entered. This ID never changes even if
+  rows are deleted/reordered — this fixes the earlier delete bug.
+- Added "Property Location" field in Daily Log.
+- Removed "Cases" count — one row = one case.
+- Tab 2 is now split into 3 roles, switchable with buttons at the top:
+    🏢 Office Assign — office staff picks engineer + typist for a case
+    🚗 Engineer Visit — engineer types their own name, sees only
+       cases assigned to them, sets visit date/time, marks complete
+    ⌨️ Typist Report — typist types their own name, sees only cases
+       assigned to them, sets submission date/time, marks complete
+  This is a lightweight name-based check, not a password login —
+  good enough to prevent accidental cross-marking by different staff
+  using the same shared link.
+- Typing can happen independently of visit status (parallel, not
+  blocked) — matches how DC Valuation actually works.
+- Tab 3 Dashboard adds an "Assigned" KPI showing how many cases have
+  an engineer/typist picked, alongside Pending Visits / Pending
+  Reports / Reports Completed / Avg TAT (in days+hours, with overdue
+  highlighting over 48 hours).
+
+STEP 1 — Google Sheet structure (REPLACE OLD TABS)
+─────────────────────────────────────────────────────
+"Daily Log" sheet — headers in Row 1:
+A: Timestamp  B: Date  C: Staff Name  D: Total Cases
+E: Bank-wise Breakdown  F: Notes  G: Raw JSON
+(Note: column F used to be "Report Status" — it's now "Notes".
+ Raw JSON moved from H to G since the count/status columns were removed.)
+
+"Tracking" sheet — headers in Row 1:
+A: Timestamp  B: Case Key  C: Bank  D: Case Name
+E: Engineer  F: Typist
+G: Visit Date  H: Visit Time  I: Visit Complete
+J: Submit Date  K: Submit Time  L: Report Complete
+
+IMPORTANT: If you have an old "Tracking" sheet from before, delete
+all its data rows (keep headers) and replace the header row with the
+new columns above — the column order changed.
+
+STEP 2 — Replace the Apps Script code completely
+───────────────────────────────────────────────────
+Go to Extensions → Apps Script. Select all (Ctrl+A), delete, and
+paste this entire block:
+
+function doPost(e) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var data = JSON.parse(e.postData.contents);
+
+    if (data.action === "assign") {
+      var sheet = ss.getSheetByName("Tracking");
+      var rows = sheet.getDataRange().getValues();
+      var rowIndex = -1;
+      for (var i = 1; i < rows.length; i++) {
+        if (rows[i][1] === data.caseKey) { rowIndex = i + 1; break; }
+      }
+      var rowData = [
+        data.timestamp, data.caseKey, data.bank, data.caseName,
+        data.engineer, data.typist,
+        data.visitDate, data.visitTime, data.visitComplete ? "TRUE" : "FALSE",
+        data.submitDate, data.submitTime, data.reportComplete ? "TRUE" : "FALSE"
+      ];
+      if (rowIndex > 0) {
+        sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
+      } else {
+        sheet.appendRow(rowData);
+      }
+    } else if (data.action === "deleteCase") {
+      var dailySheet = ss.getSheetByName("Daily Log");
+      var dailyRows = dailySheet.getDataRange().getValues();
+      var found = false;
+
+      for (var i = 1; i < dailyRows.length && !found; i++) {
+        if (!dailyRows[i][6]) continue; // column G = Raw JSON
+        try {
+          var caseList = JSON.parse(dailyRows[i][6]);
+          for (var j = 0; j < caseList.length; j++) {
+            if (caseList[j].caseId === data.caseKey) {
+              caseList.splice(j, 1);
+              var newBankSummary = caseList.map(function(c) {
+                return c.bank + (c.caseName ? " (" + c.caseName + ")" : "");
+              }).join(" | ");
+              dailySheet.getRange(i + 1, 5).setValue(newBankSummary); // col E
+              dailySheet.getRange(i + 1, 4).setValue(caseList.length); // col D
+              dailySheet.getRange(i + 1, 7).setValue(JSON.stringify(caseList)); // col G
+              found = true;
+              break;
+            }
+          }
+        } catch(parseErr) {}
+      }
+
+      var trackSheet = ss.getSheetByName("Tracking");
+      var trackRows = trackSheet.getDataRange().getValues();
+      for (var k = trackRows.length - 1; k >= 1; k--) {
+        if (trackRows[k][1] === data.caseKey) {
+          trackSheet.deleteRow(k + 1);
+        }
+      }
+    } else {
+      var sheet = ss.getSheetByName("Daily Log");
+      sheet.appendRow([
+        data.timestamp, data.date, data.staff, data.totalCases,
+        data.bankSummary, data.notes, data.cases
+      ]);
+    }
+
+    return ContentService
+      .createTextOutput(JSON.stringify({result:"success"}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({result:"error", error: err.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var action = e.parameter.action;
+
+    if (action === "cases") {
+      var dailySheet = ss.getSheetByName("Daily Log");
+      var dailyRows = dailySheet.getDataRange().getValues();
+      var cases = [];
+
+      for (var i = 1; i < dailyRows.length; i++) {
+        var row = dailyRows[i];
+        if (!row[1]) continue;
+        try {
+          var caseList = JSON.parse(row[6]); // column G
+          caseList.forEach(function(c) {
+            if (c.bank) {
+              cases.push({
+                key: c.caseId,
+                date: Utilities.formatDate(new Date(row[1]), Session.getScriptTimeZone(), "dd/MM/yyyy"),
+                bank: c.bank,
+                caseName: c.caseName || "",
+                propertyLocation: c.propertyLocation || "",
+                applicationId: c.applicationId || "",
+                distance: c.distance || ""
+              });
+            }
+          });
+        } catch(parseErr) {}
+      }
+
+      var trackSheet = ss.getSheetByName("Tracking");
+      var trackRows = trackSheet.getDataRange().getValues();
+      var tracking = [];
+      for (var j = 1; j < trackRows.length; j++) {
+        var tr = trackRows[j];
+        if (!tr[1]) continue;
+        tracking.push({
+          caseKey: tr[1], bank: tr[2], caseName: tr[3],
+          engineer: tr[4], typist: tr[5],
+          visitDate: tr[6] ? Utilities.formatDate(new Date(tr[6]), Session.getScriptTimeZone(), "yyyy-MM-dd") : "",
+          visitTime: tr[7],
+          visitComplete: tr[8] === true || tr[8] === "TRUE",
+          submitDate: tr[9] ? Utilities.formatDate(new Date(tr[9]), Session.getScriptTimeZone(), "yyyy-MM-dd") : "",
+          submitTime: tr[10],
+          reportComplete: tr[11] === true || tr[11] === "TRUE"
+        });
+      }
+
+      return ContentService
+        .createTextOutput(JSON.stringify({cases: cases, tracking: tracking}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    return ContentService
+      .createTextOutput(JSON.stringify({error: "unknown action"}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({error: err.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+STEP 3 — Save & Deploy
+─────────────────────────
+1. Ctrl+S to save.
+2. Deploy → Manage deployments → pencil icon on your EXISTING active
+   deployment (the one whose URL matches what's saved in your form's
+   ⚙ settings) → Version: New version → Deploy.
+3. If a new URL appears, copy it and update the form's ⚙ settings.
+   If the URL is unchanged, you don't need to touch the form.
+
+STEP 4 — Upload this file to GitHub
+──────────────────────────────────────
+1. Rename this file to: index.html
+2. GitHub repo → delete old index.html → Add file → Upload files →
+   upload this one → Commit changes.
+3. Wait 1-2 minutes, then open your link.
+
+STEP 5 — How staff actually use Tab 2 now
+─────────────────────────────────────────────
+OFFICE STAFF: open Tab 2 → stay on "🏢 Office Assign" → pick a case →
+type the engineer's name and typist's name → Save Assignment.
+
+ENGINEER: open Tab 2 → tap "🚗 Engineer Visit" → type their own name
+exactly as the office staff entered it → their assigned cases appear
+in the dropdown automatically → pick the case → set visit date/time →
+toggle "Mark Visit as Complete" when done → Save.
+
+TYPIST: open Tab 2 → tap "⌨️ Typist Report" → type their own name →
+their assigned cases appear → pick the case → set submission
+date/time → toggle "Mark Report as Complete" → Save. Typing can start
+anytime, doesn't need to wait for the visit to be marked done.
+
+Names must match exactly (case-insensitive) between what office staff
+typed during assignment and what the engineer/typist types to find
+their cases — so agree on consistent name spellings beforehand
+(e.g. always "Sreenath S", not sometimes "Sreenath" / "sreenath s").
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+-->
+</body>
+</html>
