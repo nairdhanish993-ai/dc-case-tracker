@@ -999,27 +999,46 @@ async function confirmDelete() {
 
   if (usingDummyData) {
     allCases = allCases.filter(c => c.key !== deleteTargetKey);
-    trackingRows = trackingRows.filter(t => t.caseKey !== deleteTargetKey);
+    trackingRows = trackingRows.filter(r => r.caseKey !== deleteTargetKey);
     renderRecentCases();
-    toast("Sample case removed", "ok");
+    refreshTab2Views();
+    renderDashboard();
+    toast("Demo case removed", "ok");
+    deleteTargetKey = "";
     return;
   }
 
-  if (!cfg.url) { toast("Setup needed — tap ⚙", "err"); return; }
+  if (!cfg.url) { toast("No Script URL configured", "err"); return; }
+
+  toast("Deleting…");
 
   try {
+    const payload = {
+      action: "deleteCase",
+      caseId: deleteTargetKey,
+      timestamp: new Date().toISOString()
+    };
     await fetch(cfg.url, {
-      method: "POST", mode: "no-cors",
+      method: "POST",
+      mode: "no-cors",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "deleteCase", caseKey: deleteTargetKey })
+      body: JSON.stringify(payload)
     });
+
+    allCases = allCases.filter(c => c.key !== deleteTargetKey);
+    trackingRows = trackingRows.filter(r => r.caseKey !== deleteTargetKey);
+
+    renderRecentCases();
+    refreshTab2Views();
+    renderDashboard();
     toast("Case deleted ✓", "ok");
-    setTimeout(loadAllData, 1200);
+
   } catch(e) {
-    toast("Network error — check connection", "err");
+    toast("Delete failed — check connection", "err");
+  } finally {
+    deleteTargetKey = "";
   }
 }
-
 /* ───────────────────────── DATA LOADING (shared) ───────────────────────── */
 async function loadAllData() {
   const cfg = getCfg();
