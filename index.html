@@ -938,11 +938,10 @@ async function submitDailyLog() {
         applicationId: c.applicationId, distance: c.distance, notes,
         timestamp: new Date().toISOString()
       };
-      await fetch(cfg.url, {
-        method: "POST", mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
+     await fetch(`${cfg.url}?action=deleteCase&caseId=${encodeURIComponent(deleteTargetKey)}`, {
+method: "GET",
+mode: "no-cors"
+});
     }
     toast(`${cases.length} case${cases.length>1?'s':''} saved ✓`, "ok");
     setTimeout(() => { resetDailyLog(); loadAllData(); }, 1500);
