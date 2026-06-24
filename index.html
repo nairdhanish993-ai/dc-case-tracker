@@ -854,6 +854,7 @@ function closeConfirm(){document.getElementById("confirmOv").classList.remove("o
 
 async function confirmDelete() {
   const cfg=getCfg();
+  const keyToDelete=deleteTargetKey;
   closeConfirm();
 
   if(usingDummyData){
@@ -868,12 +869,12 @@ async function confirmDelete() {
   toast("Deleting…");
 
   try {
-    await fetch(`${cfg.url}?action=deleteCase&caseId=${encodeURIComponent(deleteTargetKey)}`,{
+    await fetch(`${cfg.url}?action=deleteCase&caseId=${encodeURIComponent(keyToDelete)}``,{
       method:"GET",
       mode:"no-cors"
     });
-    allCases=allCases.filter(c=>c.key!==deleteTargetKey);
-    trackingRows=trackingRows.filter(r=>r.caseKey!==deleteTargetKey);
+    allCases=allCases.filter(c=>c.key!==keyToDelete);
+    trackingRows=trackingRows.filter(r=>r.caseKey!==keyToDelete);
     renderRecentCases();refreshTab2Views();renderDashboard();
     toast("Case deleted ✓","ok");
   } catch(e){
