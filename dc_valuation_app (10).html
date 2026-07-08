@@ -1,0 +1,3097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>DC Valuation & Advisory</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --p:#4A1A6B;--pd:#33104A;--plight:#6B2D9A;--ptint:#F3ECF9;--pmid:#C9A0DC;
+  --w:#fff;--text:#1a1a2e;--muted:#6b5c7a;--border:#ddd2f0;--surface:#faf8fd;
+  --green:#2E7D32;--gbg:#E8F5E9;--amber:#F9A825;--abg:#FFF8E1;
+  --red:#C62828;--rbg:#FFEBEE;--blue:#1565C0;--bbg:#E3F2FD;
+  --r:12px;--rl:16px;
+}
+body{font-family:'DM Sans',-apple-system,sans-serif;background:var(--surface);min-height:100vh;color:var(--text);padding-bottom:30px;}
+
+/* LOGIN */
+#loginScreen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(150deg,#1E0A2E,#4A1A6B,#6B2D9A);padding:24px;}
+.login-logo{text-align:center;margin-bottom:28px;}
+.login-logo h1{font-size:20px;font-weight:600;color:#fff;margin-top:10px;}
+.login-logo p{font-family:'DM Serif Display',serif;font-style:italic;font-size:12px;color:rgba(255,255,255,0.6);margin-top:3px;}
+.login-card{background:rgba(255,255,255,0.1);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:24px 20px;width:100%;max-width:340px;}
+.user-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px;}
+.ubtn{padding:12px 8px;border-radius:12px;border:1.5px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:600;cursor:pointer;text-align:center;transition:all 0.15s;}
+.ubtn .ui{font-size:22px;display:block;margin-bottom:4px;}
+.ubtn.sel{background:rgba(255,255,255,0.25);border-color:rgba(255,255,255,0.7);}
+.pin-label{font-size:12px;color:rgba(255,255,255,0.7);text-align:center;margin-bottom:10px;font-weight:500;}
+.pin-dots{display:flex;gap:10px;justify-content:center;margin-bottom:16px;}
+.pin-dot{width:13px;height:13px;border-radius:50%;border:2px solid rgba(255,255,255,0.4);}
+.pin-dot.on{background:#fff;border-color:#fff;}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.pkey{padding:15px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.1);color:#fff;font-size:20px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;text-align:center;transition:all 0.1s;-webkit-tap-highlight-color:transparent;}
+.pkey:active{background:rgba(255,255,255,0.3);transform:scale(0.95);}
+.pkey.sm{font-size:14px;}
+.login-err{color:#FF6B6B;font-size:12px;text-align:center;margin-top:10px;min-height:18px;font-weight:500;}
+
+/* APP */
+#app{display:none;}
+#app.on{display:block;}
+.hdr{background:var(--p);padding:14px 14px 0;position:sticky;top:0;z-index:30;}
+.hdr-top{display:flex;align-items:center;gap:10px;padding-bottom:12px;}
+.brand h1{font-size:13.5px;font-weight:600;color:#fff;line-height:1.2;}
+.brand p{font-family:'DM Serif Display',serif;font-style:italic;font-size:10px;color:rgba(255,255,255,0.6);margin-top:1px;}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.upill{background:rgba(255,255,255,0.15);color:#fff;font-size:10.5px;font-weight:600;padding:4px 10px;border-radius:99px;}
+.lout{background:transparent;border:1px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.8);font-size:10.5px;padding:4px 10px;border-radius:99px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.navtabs{display:flex;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.navtabs::-webkit-scrollbar{display:none;}
+.ntab{flex-shrink:0;padding:10px 14px;background:transparent;border:none;color:rgba(255,255,255,0.5);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2.5px solid transparent;transition:all 0.15s;white-space:nowrap;}
+.ntab.on{color:#fff;border-bottom-color:#fff;}
+
+.page{display:none;padding-bottom:60px;}
+.page.on{display:block;}
+
+/* CARDS */
+.card{background:#fff;border-radius:var(--rl);margin:14px 14px 0;padding:18px 16px;border:1px solid var(--border);}
+.ctitle{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--p);margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+.ctitle::after{content:'';flex:1;height:1px;background:var(--ptint);}
+.dpill{margin:12px 14px 0;display:inline-block;background:var(--ptint);color:var(--p);font-size:12px;font-weight:600;padding:5px 12px;border-radius:99px;}
+
+/* FORMS */
+label{display:block;font-size:13px;font-weight:500;color:var(--text);margin-bottom:6px;margin-top:14px;}
+label:first-of-type{margin-top:0;}
+.req{color:var(--p);}
+input,select,textarea{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;font-family:'DM Sans',sans-serif;color:var(--text);background:#fff;-webkit-appearance:none;appearance:none;outline:none;transition:border-color 0.15s,box-shadow 0.15s;}
+input:focus,select:focus,textarea:focus{border-color:var(--p);box-shadow:0 0 0 3px rgba(74,26,107,0.12);}
+input.err,select.err{border-color:var(--red);}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234A1A6B' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;padding-right:38px;cursor:pointer;}
+textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.hint{font-size:11px;color:var(--muted);margin-top:4px;}
+
+/* BUTTONS */
+.btn{width:100%;padding:14px;border:none;border-radius:var(--r);font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.15s;margin-top:10px;}
+.btn:first-child{margin-top:0;}
+.bp{background:var(--p);color:#fff;}
+.bp:active{background:var(--pd);}
+.bp:disabled{background:#b0a0c8;cursor:not-allowed;}
+.bs{background:var(--ptint);color:var(--p);}
+.bs:active{background:#e3cdf0;}
+.bd{background:var(--red);color:#fff;}
+.bw{background:#1565C0;color:#fff;}
+.bpdf{background:var(--red);color:#fff;}
+.bg{background:var(--green);color:#fff;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);background:#1E0A2E;color:#fff;padding:12px 22px;border-radius:99px;font-size:14px;font-weight:500;font-family:'DM Sans',sans-serif;box-shadow:0 4px 20px rgba(30,10,46,0.4);transition:transform 0.3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;z-index:200;max-width:90vw;text-overflow:ellipsis;overflow:hidden;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.ok{background:#1B5E20;}
+.toast.err{background:#B71C1C;}
+
+/* STATUS */
+.badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap;}
+.b-received{background:#F0F0F0;color:var(--muted);}
+.b-assigned{background:var(--bbg);color:var(--blue);}
+.b-visit_done{background:var(--abg);color:#92600A;}
+.b-report_done{background:var(--gbg);color:var(--green);}
+
+/* CASE CARDS */
+.cc{background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid var(--border);border-left:4px solid var(--border);}
+.cc.s-received{border-left-color:var(--muted);}
+.cc.s-assigned{border-left-color:var(--blue);}
+.cc.s-visit_done{border-left-color:var(--amber);}
+.cc.s-report_done{border-left-color:var(--green);}
+.cc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:5px;}
+.cc-bank{font-size:10.5px;color:var(--p);font-weight:700;text-transform:uppercase;}
+.cc-name{font-size:14px;font-weight:600;color:var(--text);}
+.cc-meta{font-size:12px;color:var(--muted);line-height:1.5;}
+.cc-meta b{color:var(--text);font-weight:500;}
+
+/* KPI */
+.kgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.kbox{background:#fff;border-radius:14px;padding:16px 14px;border:1px solid var(--border);text-align:center;}
+.kval{font-size:26px;font-weight:700;color:var(--p);line-height:1;}
+.klbl{font-size:11px;color:var(--muted);margin-top:6px;font-weight:500;}
+.kbox.kr .kval{color:var(--red);}
+.kbox.ka .kval{color:#B8860B;}
+.kbox.kg .kval{color:var(--green);}
+
+/* TABLE */
+.twrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -16px;padding:0 16px;}
+.tbl{width:100%;border-collapse:collapse;font-size:12px;min-width:560px;}
+.tbl th{text-align:left;padding:9px 10px;background:var(--ptint);color:var(--p);font-weight:700;font-size:10px;text-transform:uppercase;cursor:pointer;white-space:nowrap;}
+.tbl th:first-child{border-radius:8px 0 0 8px;}
+.tbl th:last-child{border-radius:0 8px 8px 0;}
+.tbl td{padding:10px;border-bottom:1px solid var(--ptint);white-space:nowrap;}
+.tbl tr:last-child td{border-bottom:none;}
+
+/* COMPLETE TOGGLE */
+.ctog{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;margin-top:12px;transition:all 0.15s;}
+.ctog.on{background:var(--gbg);border-color:var(--green);}
+.ctbox{width:20px;height:20px;border-radius:5px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;}
+.ctog.on .ctbox{background:var(--green);border-color:var(--green);}
+.cttxt{font-size:14px;font-weight:500;}
+.ctog.on .cttxt{color:var(--green);font-weight:600;}
+
+/* SITE NOTES */
+.snh{font-size:11px;font-weight:700;color:var(--p);text-transform:uppercase;letter-spacing:0.8px;margin:18px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--ptint);}
+.snh:first-child{margin-top:0;}
+.bndtbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;}
+.bndtbl th{background:var(--ptint);color:var(--p);font-weight:700;font-size:10px;text-transform:uppercase;padding:7px 6px;text-align:left;}
+.bndtbl td{padding:5px 4px;border-bottom:1px solid var(--ptint);}
+.bndtbl td input{border:none;background:transparent;width:100%;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;padding:2px;}
+.bndtbl td input:focus{background:var(--ptint);border-radius:4px;}
+.gps-row{display:flex;gap:8px;align-items:flex-end;}
+.gps-row>div:first-child{flex:1;}
+.gps-btn{height:44px;padding:0 14px;border-radius:10px;border:1.5px solid var(--p);background:var(--ptint);color:var(--p);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.gps-btn:active{background:#e3cdf0;}
+
+/* PHOTO */
+.photo-area{border:2px dashed var(--pmid);border-radius:12px;padding:18px;text-align:center;cursor:pointer;background:var(--ptint);margin-top:8px;}
+.photo-area p{font-size:13px;color:var(--p);font-weight:500;margin-top:6px;}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+.pthumb{position:relative;aspect-ratio:1;}
+.pthumb img{width:100%;height:100%;object-fit:cover;border-radius:8px;border:1px solid var(--border);}
+.prm{position:absolute;top:3px;right:3px;width:20px;height:20px;background:rgba(0,0,0,0.6);color:#fff;border:none;border-radius:50%;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+
+/* VAL ROWS */
+.vrow{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--ptint);font-size:13px;}
+.vrow:last-child{border-bottom:none;}
+.vrow.vtot{background:var(--ptint);margin:0 -16px;padding:12px 16px;border-radius:10px;}
+.vlbl{color:var(--muted);font-size:12px;}
+.vval{font-weight:600;color:var(--p);}
+.vrow.vtot .vlbl{color:var(--p);font-weight:600;}
+.vrow.vtot .vval{font-size:15px;color:var(--pd);}
+
+/* VALIDATION */
+.vp{border-radius:12px;padding:14px;margin-bottom:12px;display:none;}
+.vp.warn{display:block;background:#FFF8E1;border:1.5px solid var(--amber);}
+.vp.ok{display:block;background:var(--gbg);border:1.5px solid var(--green);}
+.vpt{font-size:12px;font-weight:700;margin-bottom:8px;}
+.vpi{font-size:12px;padding:5px 0;border-bottom:1px solid rgba(0,0,0,0.06);color:#5D4037;line-height:1.4;}
+.vpi:last-child{border-bottom:none;padding-bottom:0;}
+.vpi.doc{color:var(--red);}
+.ackrow{display:none;align-items:flex-start;gap:10px;padding:12px 14px;background:#FFF3E0;border:1.5px solid #FF9800;border-radius:10px;margin-bottom:12px;cursor:pointer;}
+.ackrow.vis{display:flex;}
+.ackbox{width:20px;height:20px;border-radius:5px;border:2px solid #FF9800;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;transition:all 0.15s;margin-top:1px;}
+.ackrow.ck .ackbox{background:#FF9800;border-color:#FF9800;}
+.acktxt{font-size:12px;font-weight:500;color:#5D4037;line-height:1.4;}
+
+/* MODAL */
+.modal{display:none;position:fixed;inset:0;background:rgba(30,10,46,0.55);z-index:150;align-items:center;justify-content:center;padding:20px;}
+.modal.open{display:flex;}
+.mbox{background:#fff;border-radius:16px;padding:22px 20px;max-width:320px;width:100%;text-align:center;}
+.mbox h3{font-size:16px;font-weight:700;margin-bottom:8px;}
+.mbox p{font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.4;}
+.macts{display:flex;gap:10px;}
+.macts button{flex:1;padding:11px;border-radius:10px;font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;border:none;}
+
+/* PERIOD */
+.prow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+.pbtn{padding:9px 4px;border-radius:9px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;text-align:center;font-family:'DM Sans',sans-serif;transition:all 0.15s;}
+.pbtn.on{background:var(--p);border-color:var(--p);color:#fff;}
+
+/* MONTHLY TABLE */
+.mowrap{overflow-x:auto;margin:0 -16px;padding:0 16px;}
+.motbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:380px;}
+.motbl th{text-align:left;padding:9px 8px;background:var(--ptint);color:var(--p);font-weight:700;font-size:10.5px;text-transform:uppercase;}
+.motbl th:first-child{border-radius:8px 0 0 8px;}
+.motbl th:last-child{border-radius:0 8px 8px 0;}
+.motbl td{padding:10px 8px;border-bottom:1px solid var(--ptint);}
+.motbl tr.cur td{background:var(--ptint);}
+.motbl tr:last-child td{border-bottom:none;}
+.mnum{color:var(--p);font-weight:600;}
+.mtat{color:var(--blue);font-weight:600;}
+.mtat.ov{color:var(--red);}
+
+/* SUM BAR */
+.sbar{display:flex;gap:10px;background:var(--ptint);border-radius:10px;padding:10px 14px;margin-bottom:10px;}
+.si{flex:1;text-align:center;}
+.sv{font-size:18px;font-weight:700;color:var(--p);line-height:1;}
+.sv.ov{color:var(--red);}
+.sl{font-size:10px;color:var(--muted);margin-top:3px;font-weight:500;}
+.sdiv{width:1px;background:var(--pmid);opacity:0.4;}
+
+/* LR */
+.lrrow{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--ptint);font-size:13px;}
+.lrrow:last-child{border-bottom:none;}
+.lrplace{font-weight:600;}
+.lrrate{color:var(--p);font-weight:700;text-align:right;}
+.lrmeta{font-size:11px;color:var(--muted);}
+
+.empty{text-align:center;padding:28px 20px;color:var(--muted);font-size:13px;}
+.spin{animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.lspin{display:flex;align-items:center;justify-content:center;gap:8px;padding:28px;color:var(--muted);font-size:13px;}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="loginScreen">
+  <div class="login-logo">
+    <svg width="60" height="52" viewBox="0 0 68 58" fill="none">
+      <path d="M 45 18 A 20 20 0 1 0 45 40" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
+      <circle cx="47.5" cy="23.5" r="2" fill="white"/>
+      <circle cx="47.5" cy="34.5" r="2" fill="white"/>
+      <text x="24" y="36" text-anchor="middle" font-family="DM Sans" font-size="17" font-weight="600" fill="white">DC</text>
+    </svg>
+    <h1>dc valuation & advisory</h1>
+    <p>data · numbers · decisions</p>
+  </div>
+  <div class="login-card">
+    <div class="user-grid" id="userGrid"></div>
+    <p class="pin-label" id="pinLabel">Select your name to login</p>
+    <div class="pin-dots" id="pinDots"></div>
+    <div class="pin-pad">
+      <button class="pkey" onclick="pk('1')">1</button>
+      <button class="pkey" onclick="pk('2')">2</button>
+      <button class="pkey" onclick="pk('3')">3</button>
+      <button class="pkey" onclick="pk('4')">4</button>
+      <button class="pkey" onclick="pk('5')">5</button>
+      <button class="pkey" onclick="pk('6')">6</button>
+      <button class="pkey" onclick="pk('7')">7</button>
+      <button class="pkey" onclick="pk('8')">8</button>
+      <button class="pkey" onclick="pk('9')">9</button>
+      <button class="pkey sm" onclick="pdel()">⌫</button>
+      <button class="pkey" onclick="pk('0')">0</button>
+      <button class="pkey sm" onclick="plogin()">Login</button>
+    </div>
+    <p class="login-err" id="loginErr"></p>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="app">
+  <div class="hdr">
+    <div class="hdr-top">
+      <svg width="44" height="38" viewBox="0 0 52 44" fill="none">
+        <path d="M 33 13 A 16 16 0 1 0 33 31" stroke="white" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+        <circle cx="35.5" cy="18" r="1.5" fill="white"/>
+        <circle cx="35.5" cy="26" r="1.5" fill="white"/>
+        <text x="18" y="28" text-anchor="middle" font-family="DM Sans" font-size="12" font-weight="600" fill="white">DC</text>
+      </svg>
+      <div class="brand"><h1>dc valuation & advisory</h1><p>data · numbers · decisions</p></div>
+      <div class="hdr-right">
+        <span class="upill" id="upill"></span>
+        <button class="lout" onclick="logout()">Logout</button>
+      </div>
+    </div>
+    <div class="navtabs" id="navtabs"></div>
+  </div>
+
+  <!-- TAB: Cases -->
+  <div class="page" id="pg-cases">
+    <div class="dpill" id="caseDatePill"></div>
+    <div class="card">
+      <div class="ctitle">Add New Case</div>
+      <div class="row2">
+        <div><label>Date <span class="req">*</span></label><input type="date" id="c_date"></div>
+        <div><label>Time <span class="req">*</span></label><input type="time" id="c_time"></div>
+      </div>
+      <label>Bank <span class="req">*</span></label>
+      <div style="display:flex;gap:8px;">
+        <select id="c_bank" style="flex:1;"><option value="">Select bank…</option></select>
+        <button onclick="showQuickAddBank()" style="width:44px;height:44px;border-radius:10px;border:1.5px solid var(--p);background:var(--ptint);color:var(--p);font-size:20px;cursor:pointer;flex-shrink:0;">+</button>
+      </div>
+      <div id="quickAddBankRow" style="display:none;margin-top:8px;display:none;">
+        <input type="text" id="quickBankName" placeholder="New bank name…" style="margin-bottom:6px;">
+        <div style="display:flex;gap:8px;">
+          <button class="btn bp" onclick="quickAddBank()" style="flex:1;padding:10px;">Add Bank</button>
+          <button class="btn bs" onclick="document.getElementById('quickAddBankRow').style.display='none'" style="flex:1;padding:10px;">Cancel</button>
+        </div>
+      </div>
+      <label>Loan Product <span class="req">*</span></label>
+      <select id="c_product">
+        <option value="">Select…</option>
+        <option>Home Loan</option><option>LAP (Loan Against Property)</option>
+        <option>Plot Loan</option><option>Construction Loan</option>
+        <option>Commercial Property Loan</option><option>Mortgage Loan</option>
+        <option>NPA / SARFAESI Valuation</option><option>Other Immovable Property</option>
+        <option>-- Add New Product --</option>
+      </select>
+      <div id="newProductRow" style="display:none;margin-top:6px;">
+        <input type="text" id="newProductName" placeholder="New loan product name…">
+      </div>
+      <label>Borrower Name <span class="req">*</span></label>
+      <input type="text" id="c_name" placeholder="Full name">
+      <label>Application ID <span class="req">*</span></label>
+      <input type="text" id="c_appid" placeholder="Bank application number">
+      <label>Property Location <span class="req">*</span></label>
+      <input type="text" id="c_loc" placeholder="e.g. Kalarcode, Alappuzha">
+      <label>Client Phone Number <span class="req">*</span></label>
+      <input type="tel" id="c_phone" placeholder="e.g. 9876543210">
+      <label>Distance from Office (km)</label>
+      <input type="number" id="c_dist" placeholder="e.g. 12" min="0">
+      <label>Notes</label>
+      <textarea id="c_notes" placeholder="Any remarks…"></textarea>
+      <button class="btn bp" id="addCaseBtn" onclick="addCase()" style="margin-top:16px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
+        Submit Case
+      </button>
+    </div>
+    <div class="card">
+      <div class="ctitle">Recent Cases</div>
+      <div id="recentList"><div class="lspin"><svg class="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="50 30"/></svg>Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- TAB: Assign (Admin) -->
+  <div class="page" id="pg-assign">
+    <div class="dpill">Assign Cases</div>
+    <div class="card">
+      <div class="ctitle">Select Case to Assign / Reassign</div>
+      <select id="asgn_case" onchange="onAssignPick()"><option value="">Select case…</option></select>
+      <div id="asgn_summary" style="display:none;background:var(--ptint);border-radius:10px;padding:12px;margin-top:10px;font-size:13px;"></div>
+    </div>
+    <div class="card" id="asgn_form" style="display:none;">
+      <div class="ctitle">Assign Staff</div>
+      <label>Visit Engineer</label>
+      <select id="asgn_eng"><option value="">Select…</option></select>
+      <label>Report Typist</label>
+      <select id="asgn_typ"><option value="">Select…</option></select>
+      <button class="btn bp" onclick="saveAssign()" style="margin-top:14px;">Save Assignment</button>
+    </div>
+    <div class="card">
+      <div class="ctitle">Pending Assignment</div>
+      <div id="unassignedList"><div class="lspin"><svg class="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="50 30"/></svg>Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- TAB: My Work -->
+  <div class="page" id="pg-work">
+    <div class="dpill">My Work</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:12px 14px 0;">
+      <button class="pbtn on" data-w="visit" onclick="switchWork('visit')">🚗 Site Visit</button>
+      <button class="pbtn" data-w="report" onclick="switchWork('report')">⌨️ Report</button>
+    </div>
+
+    <!-- VISIT -->
+    <div id="wv-visit">
+      <div class="card">
+        <div class="ctitle">My Assigned Cases</div>
+        <select id="v_case" onchange="onVisitPick()"><option value="">Select case…</option></select>
+        <div id="v_summary" style="display:none;background:var(--ptint);border-radius:10px;padding:12px;margin-top:10px;font-size:13px;"></div>
+      </div>
+
+      <div class="card" id="v_form" style="display:none;">
+        <div class="ctitle">Visit Details</div>
+        <div class="row2">
+          <div><label>Visit Date <span class="req">*</span></label><input type="date" id="v_date"></div>
+          <div><label>Visit Time <span class="req">*</span></label><input type="time" id="v_time"></div>
+        </div>
+        <div class="ctog" id="v_tog" onclick="togVisit()">
+          <div class="ctbox" id="v_box"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display:none" id="v_chk"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span class="cttxt">Mark Visit Complete</span>
+        </div>
+        <p class="hint">Date and time required to mark complete</p>
+        <label style="margin-top:10px;">Reason for Delay (if TAT > 2 days)</label>
+        <textarea id="v_delay_reason" placeholder="e.g. Client unavailable, documents pending…" style="min-height:50px;"></textarea>
+        <button class="btn bp" onclick="saveVisit()" style="margin-top:12px;">Save Visit</button>
+      </div>
+
+      <!-- SITE NOTES -->
+      <div class="card" id="sn_card" style="display:none;">
+        <div class="ctitle">Site Technical Notes</div>
+
+        <div class="snh">1. Property Identification</div>
+        <label>Property Type <span class="req">*</span></label>
+        <div style="display:flex;gap:8px;">
+          <select id="sn_type" style="flex:1;" onchange="onPropTypeChange()">
+            <option value="">Select…</option>
+            <option>Land and Residential Building</option>
+            <option>Residential Building Only</option>
+            <option>Vacant Plot / Land</option>
+            <option>Apartment</option>
+            <option>Shop / Commercial Space</option>
+            <option>Commercial Land and Building</option>
+            <option>Commercial Building Only</option>
+            <option>Industrial Property</option>
+            <option>Agricultural Land</option>
+            <option>Other</option>
+          </select>
+          <button onclick="showCustomPropType()" style="width:44px;height:44px;border-radius:10px;border:1.5px solid var(--p);background:var(--ptint);color:var(--p);font-size:20px;cursor:pointer;flex-shrink:0;">+</button>
+        </div>
+        <div id="customPropTypeRow" style="display:none;margin-top:6px;">
+          <input type="text" id="customPropType" placeholder="Custom property type…">
+          <button class="btn bp" onclick="applyCustomPropType()" style="margin-top:6px;padding:10px;">Apply</button>
+        </div>
+        <p style="font-size:11.5px;font-weight:600;color:var(--p);margin:12px 0 6px;">As per Site / Title Deed / Location Sketch</p>
+        <table class="bndtbl">
+          <thead><tr><th>Particulars</th><th>As per Site</th><th>Title Deed</th><th>Location Sketch</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;font-size:12px;">Owner Name</td><td><input id="sn_own_site" placeholder="—"></td><td><input id="sn_own_deed" placeholder="—"></td><td><input id="sn_own_sketch" placeholder="—"></td></tr>
+            <tr><td style="font-weight:600;font-size:12px;">Survey No.</td><td><input id="sn_sy_site" placeholder="—"></td><td><input id="sn_sy_deed" placeholder="—"></td><td><input id="sn_sy_sketch" placeholder="—"></td></tr>
+            <tr><td style="font-weight:600;font-size:12px;">Door No.</td><td><input id="sn_door" placeholder="—"></td><td><input id="sn_door_deed" placeholder="—"></td><td><input id="sn_door_sk" placeholder="—"></td></tr>
+            <tr><td style="font-weight:600;font-size:12px;">Village</td><td><input id="sn_village" placeholder="—"></td><td><input id="sn_vil_deed" placeholder="—"></td><td><input id="sn_vil_sk" placeholder="—"></td></tr>
+          </tbody>
+        </table>
+        <div class="row2" style="margin-top:8px;">
+          <div><label>Taluk</label><input type="text" id="sn_taluk"></div>
+          <div><label>District</label><input type="text" id="sn_district"></div>
+        </div>
+        <label>Local Body (Panchayat/Municipality/Corporation)</label>
+        <input type="text" id="sn_localbody">
+        <div class="row2" style="margin-top:8px;">
+          <div><label>Broker / Agent Name</label><input type="text" id="sn_broker_name" placeholder="Name or NA"></div>
+          <div><label>Broker Phone</label><input type="tel" id="sn_broker_phone" placeholder="Phone or NA"></div>
+        </div>
+
+        <div class="snh" style="margin-top:16px;">Documents for Verification</div>
+        <p style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">Tick documents available on site</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;" id="docsAvailGrid">
+          <div class="doc-check" data-doc="Title Deed" onclick="togDoc(this)" style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;background:#fff;transition:all 0.15s;">
+            <div style="width:18px;height:18px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;" class="dchk-box"></div>Title Deed</div>
+          <div class="doc-check" data-doc="Land Tax / Possession" onclick="togDoc(this)" style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;background:#fff;transition:all 0.15s;">
+            <div style="width:18px;height:18px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;" class="dchk-box"></div>Land Tax / Possession</div>
+          <div class="doc-check" data-doc="Location Sketch" onclick="togDoc(this)" style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;background:#fff;transition:all 0.15s;">
+            <div style="width:18px;height:18px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;" class="dchk-box"></div>Location Sketch</div>
+          <div class="doc-check" data-doc="Approved / Working Plan" onclick="togDoc(this)" style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;background:#fff;transition:all 0.15s;">
+            <div style="width:18px;height:18px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;" class="dchk-box"></div>Approved / Working Plan</div>
+          <div class="doc-check" data-doc="Building Tax" onclick="togDoc(this)" style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;background:#fff;transition:all 0.15s;">
+            <div style="width:18px;height:18px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;" class="dchk-box"></div>Building Tax</div>
+          <div class="doc-check" data-doc="Prior Deed" onclick="togDoc(this)" style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;background:#fff;transition:all 0.15s;">
+            <div style="width:18px;height:18px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;" class="dchk-box"></div>Prior Deed</div>
+        </div>
+        <label style="margin-top:10px;">Pending Documents Required from Client</label>
+        <textarea id="sn_pending_docs" placeholder="e.g. Building Tax receipt pending, Approved plan to be submitted…" style="min-height:50px;"></textarea>
+
+        <div class="snh">2. Boundary Demarcation</div>
+        <table class="bndtbl">
+          <thead><tr><th>Dir</th><th>As per Title Deed</th><th>Location Sketch</th><th>Physical Visit</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;">N</td><td><input id="bn_deed" placeholder="—"></td><td><input id="bn_sk" placeholder="—"></td><td><input id="bn_site" placeholder="—"></td></tr>
+            <tr><td style="font-weight:600;">S</td><td><input id="bs_deed" placeholder="—"></td><td><input id="bs_sk" placeholder="—"></td><td><input id="bs_site" placeholder="—"></td></tr>
+            <tr><td style="font-weight:600;">E</td><td><input id="be_deed" placeholder="—"></td><td><input id="be_sk" placeholder="—"></td><td><input id="be_site" placeholder="—"></td></tr>
+            <tr><td style="font-weight:600;">W</td><td><input id="bw_deed" placeholder="—"></td><td><input id="bw_sk" placeholder="—"></td><td><input id="bw_site" placeholder="—"></td></tr>
+          </tbody>
+        </table>
+        <div class="row2" style="margin-top:8px;">
+          <div><label>Demarcation Type</label>
+            <select id="sn_demarcation">
+              <option value="">Select…</option>
+              <option>Compound wall all sides</option><option>Compound wall some sides</option>
+              <option>Fencing</option><option>No demarcation</option>
+            </select>
+          </div>
+          <div><label>Shape of Land</label>
+            <select id="sn_shape">
+              <option value="">Select…</option>
+              <option>Rectangular</option><option>Square</option>
+              <option>Irregular</option><option>Corner plot</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="snh">3. Land & Building Measurements</div>
+        <div class="row2">
+          <div><label>Land Area (Document)</label><input type="text" id="sn_area_doc" placeholder="e.g. 9.59 cents"></div>
+          <div><label>Land Area (Site) <span class="req">*</span></label><input type="text" id="sn_area_site" placeholder="e.g. 9.59 cents"></div>
+        </div>
+        <label>Road Type & Width</label>
+        <div class="row2">
+          <select id="sn_road"><option value="">Select…</option><option>Tar road</option><option>Concrete road</option><option>Mud road</option><option>Interlocked</option></select>
+          <input type="text" id="sn_road_width" placeholder="Width e.g. 9.8 ft">
+        </div>
+        <div id="sn_bldg_section">
+          <div class="row2" style="margin-top:8px;">
+            <div><label>BUA (Document)</label><input type="number" id="sn_bua_doc" placeholder="sqft"></div>
+            <div><label>BUA (Site) <span class="req">*</span></label><input type="number" id="sn_bua_site" placeholder="sqft"></div>
+          </div>
+          <label>Construction Type</label>
+          <select id="sn_const"><option value="">Select…</option><option>RCC</option><option>Load bearing</option><option>Composite</option><option>Steel framed</option></select>
+          <div class="row2">
+            <div><label>No. of Floors</label><input type="number" id="sn_floors" placeholder="e.g. 2" min="1"></div>
+            <div><label>Condition</label><select id="sn_cond"><option value="">Select…</option><option>Excellent</option><option>Good</option><option>Normal</option><option>Poor</option></select></div>
+          </div>
+        </div>
+
+        <div class="snh">4. Market Rate & Age of Building</div>
+        <div class="row2">
+          <div><label>Age of Building (yrs)</label><input type="number" id="sn_age" placeholder="e.g. 18" min="0"></div>
+          <div><label>Prevailing Market Rate</label><input type="text" id="sn_mkt_range" placeholder="e.g. 3-4L/cent"></div>
+        </div>
+        <label>Comparable Sale 1</label>
+        <input type="text" id="sn_comp1" placeholder="Location, area, rate, date">
+        <label>Comparable Sale 2</label>
+        <input type="text" id="sn_comp2" placeholder="Location, area, rate, date">
+
+        <div class="snh">4b. Residential / Commercial Details</div>
+        <div id="sn_residential_section" style="display:none;">
+          <label>Residential Type</label>
+          <select id="sn_res_type">
+            <option value="">Select…</option>
+            <option>1 BHK</option><option>2 BHK</option><option>3 BHK</option>
+            <option>4 BHK</option><option>Independent House</option><option>Apartment</option><option>Villa</option>
+          </select>
+          <div class="row2">
+            <div><label>Approximate Monthly Rent (Rs.)</label><input type="number" id="sn_res_rent" placeholder="e.g. 12000"></div>
+            <div><label>No. of Bedrooms</label><input type="number" id="sn_bedrooms" placeholder="e.g. 3" min="1"></div>
+          </div>
+        </div>
+        <div id="sn_commercial_section" style="display:none;">
+          <div class="row2">
+            <div><label>Commercial Rent (Rs./sqft/month)</label><input type="number" id="sn_comm_rent_sqft" placeholder="e.g. 45"></div>
+            <div><label>Rentable Area (sqft)</label><input type="number" id="sn_comm_area" placeholder="e.g. 850"></div>
+          </div>
+        </div>
+
+        <div class="snh">5. Adopted Rate (Engineer's Estimate) <span class="req">*</span></div>
+        <div class="row2">
+          <div><label>Land Rate (Rs./cent) <span class="req">*</span></label><input type="number" id="sn_land_rate" placeholder="e.g. 300000" oninput="calcSiteEst()"></div>
+          <div><label>Land Area (cents) <span class="req">*</span></label><input type="number" id="sn_land_cents" placeholder="e.g. 9.59" step="0.01" oninput="calcSiteEst()"></div>
+        </div>
+        <div class="row2">
+          <div><label>Building Rate (Rs./sqft)</label><input type="number" id="sn_bldg_rate" placeholder="e.g. 2050" oninput="calcSiteEst()"></div>
+          <div><label>BUA for Valuation (sqft)</label><input type="number" id="sn_bldg_area" placeholder="e.g. 3850" oninput="calcSiteEst()"></div>
+        </div>
+        <div id="sn_est_box" style="display:none;margin-top:10px;">
+          <div class="vrow"><span class="vlbl">Land Value</span><span class="vval" id="se_land">—</span></div>
+          <div class="vrow"><span class="vlbl">Building Value</span><span class="vval" id="se_bldg">—</span></div>
+          <div class="vrow vtot"><span class="vlbl">Engineer's Estimated Total</span><span class="vval" id="se_tot">—</span></div>
+        </div>
+
+        <div class="snh">6. GPS Coordinates <span class="req">*</span></div>
+        <button onclick="fetchGPS()" style="width:100%;padding:14px;border-radius:12px;border:2px solid var(--p);background:var(--ptint);color:var(--p);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;">
+          📍 Tap to Fetch GPS Location
+        </button>
+        <p class="hint" id="gps_status" style="text-align:center;margin-bottom:10px;">Auto-fetches when you open a case. Tap above if needed.</p>
+        <div class="row2">
+          <div><label>Latitude</label><input type="text" id="sn_lat" placeholder="Auto-filled"></div>
+          <div><label>Longitude</label><input type="text" id="sn_lon" placeholder="Auto-filled"></div>
+        </div>
+
+        <div class="snh">7. General Remarks & Concerns</div>
+        <textarea id="sn_remarks" placeholder="Any concerns, special features, encroachments, CRZ, flooding risk, demolition risk, conditions of approval…" style="min-height:90px;"></textarea>
+
+        <div class="snh">Photos</div>
+        <div class="photo-area" onclick="document.getElementById('photoInput').click()">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <p>Tap to add site photos</p>
+        </div>
+        <input type="file" id="photoInput" accept="image/*" multiple style="display:none" onchange="addPhotos(event)">
+        <div class="pgrid" id="photoGrid"></div>
+
+        <button class="btn bp" onclick="saveSiteNotes()" style="margin-top:16px;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v14z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save Site Notes
+        </button>
+        <button class="btn bs" onclick="downloadSiteNotesPDF()" style="margin-top:8px;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download Site Notes PDF
+        </button>
+        <button class="btn bw" onclick="downloadSiteNotesWord()" style="margin-top:8px;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Download Site Notes Word
+        </button>
+      </div>
+    </div>
+
+    <!-- REPORT -->
+    <div id="wv-report" style="display:none;">
+      <div class="card">
+        <div class="ctitle">My Assigned Cases</div>
+        <select id="r_case" onchange="onReportPick()"><option value="">Select case…</option></select>
+        <div id="r_summary" style="display:none;background:var(--ptint);border-radius:10px;padding:12px;margin-top:10px;font-size:13px;"></div>
+      </div>
+
+      <div id="r_form" style="display:none;">
+        <div class="card">
+          <div class="ctitle">Report Mode</div>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Choose how you want to complete this report</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <button id="mode_online_btn" class="btn bp" onclick="setReportMode('online')" style="padding:16px;flex-direction:column;gap:4px;">
+              <span style="font-size:20px;">💻</span>
+              <span>Online</span>
+              <span style="font-size:10px;font-weight:400;opacity:0.8;">Fill in app</span>
+            </button>
+            <button id="mode_offline_btn" class="btn bs" onclick="setReportMode('offline')" style="padding:16px;flex-direction:column;gap:4px;">
+              <span style="font-size:20px;">📄</span>
+              <span>Offline</span>
+              <span style="font-size:10px;font-weight:400;opacity:0.8;">Done outside</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="offline_mode_card" style="display:none;">
+          <div class="card">
+            <div class="ctitle">Offline Report</div>
+            <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Report has been prepared offline. Mark complete once submitted to bank.</p>
+            <label>Report Reference / File No.</label>
+            <input type="text" id="r_offline_ref" placeholder="e.g. DC/2026/001">
+            <label>Date of Report</label>
+            <input type="date" id="r_offline_date">
+            <label>Delay Reason (if TAT > 2 days)</label>
+            <textarea id="r_offline_delay" placeholder="e.g. Bank format received late…" style="min-height:50px;"></textarea>
+            <div class="ctog" id="r_tog_offline" onclick="togReport()" style="margin-top:12px;">
+              <div class="ctbox" id="r_box_offline"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display:none" id="r_chk_offline"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <span class="cttxt">Mark Report Complete</span>
+            </div>
+            <button class="btn bp" onclick="submitOfflineReport()" style="margin-top:12px;">Save & Mark Complete</button>
+          </div>
+        </div>
+
+        <div id="online_mode_form" style="display:none;">
+        <div class="card">
+          <div class="ctitle">Applicant & Loan Details</div>
+          <label>Applicant Name <span class="req">*</span></label><input type="text" id="r_applicant" placeholder="Full name">
+          <label>Co-Applicant</label><input type="text" id="r_coapplicant" placeholder="Name or NA">
+          <label>Loan / Application No. <span class="req">*</span></label><input type="text" id="r_loanno">
+          <div class="row2">
+            <div><label>Present Liability (Rs.)</label><input type="number" id="r_presentliab" placeholder="0"></div>
+            <div><label>Previous Liability (Rs.)</label><input type="number" id="r_prevliab" placeholder="0"></div>
+          </div>
+          <div class="row2">
+            <div><label>Date of Inspection</label><input type="date" id="r_inspdate"></div>
+            <div><label>Date of Report <span class="req">*</span></label><input type="date" id="r_reportdate"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ctitle">Owner & Title Deed</div>
+          <label>Owner Name <span class="req">*</span></label><input type="text" id="r_owner">
+          <label>Owner Address</label><textarea id="r_owneraddr" style="min-height:60px;"></textarea>
+          <label>Owner Phone</label><input type="tel" id="r_ownerphone">
+          <label>Ownership</label>
+          <select id="r_ownership"><option>Freehold</option><option>Leasehold</option><option>Joint ownership</option></select>
+          <div class="row2">
+            <div><label>Document No.</label><input type="text" id="r_deedno"></div>
+            <div><label>Date of Registration</label><input type="date" id="r_deeddate"></div>
+          </div>
+          <label>SRO</label><input type="text" id="r_sro" placeholder="Sub Registrar Office">
+          <label>Description as per Deed</label><textarea id="r_deeddesc" style="min-height:60px;"></textarea>
+        </div>
+        <div class="card">
+          <div class="ctitle">Valuation — Land <span class="req">*</span></div>
+          <div class="row2">
+            <div><label>Land Area (cents) <span class="req">*</span></label><input type="number" id="r_cents" step="0.01" oninput="calcRpt()"></div>
+            <div><label>Adopted Rate (Rs./cent) <span class="req">*</span></label><input type="number" id="r_landrate" oninput="calcRpt()"></div>
+          </div>
+          <label>Guideline Rate</label><input type="text" id="r_guideline" placeholder="e.g. Rs. 242880/are">
+          <label>Market Rate Range</label><input type="text" id="r_mktrange" placeholder="e.g. Rs. 3-4 lakhs/cent">
+        </div>
+        <div class="card" id="r_bldg_card">
+          <div class="ctitle">Valuation — Building</div>
+          <div class="row2">
+            <div><label>BUA (sqft)</label><input type="number" id="r_bua" oninput="calcRpt()"></div>
+            <div><label>Construction Rate (Rs./sqft)</label><input type="number" id="r_constrate" oninput="calcRpt()"></div>
+          </div>
+          <div class="row2">
+            <div><label>Depreciation %</label><input type="number" id="r_dep" placeholder="e.g. 30" min="0" max="100" oninput="calcRpt()"></div>
+            <div><label>Residual Age (yrs)</label><input type="number" id="r_residual" placeholder="e.g. 42"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ctitle">Valuation Summary</div>
+          <div class="vrow"><span class="vlbl">Land Value</span><span class="vval" id="r_landval">—</span></div>
+          <div class="vrow"><span class="vlbl">Building Replacement Cost</span><span class="vval" id="r_bldggross">—</span></div>
+          <div class="vrow"><span class="vlbl">Less: Depreciation</span><span class="vval" id="r_depamt">—</span></div>
+          <div class="vrow"><span class="vlbl">Net Building Value</span><span class="vval" id="r_bldgnet">—</span></div>
+          <div class="vrow vtot"><span class="vlbl">Fair Market Value</span><span class="vval" id="r_fmv" style="font-size:15px;">—</span></div>
+          <div class="vrow"><span class="vlbl" id="r_fsvlbl">Forced Sale Value (75%)</span><span class="vval" id="r_fsv">—</span></div>
+          <label style="margin-top:12px;">FSV %</label>
+          <input type="number" id="r_fsvpct" value="75" min="1" max="100" oninput="calcRpt()">
+        </div>
+        <div class="card">
+          <div class="ctitle">Remarks & Conditions</div>
+          <textarea id="r_remarks" placeholder="Market analysis, observations, special notes…" style="min-height:80px;"></textarea>
+          <label style="margin-top:12px;">Report Conditions (if any)</label>
+          <textarea id="r_conditions" placeholder="e.g. Subject to submission of approved plan…" style="min-height:50px;"></textarea>
+          <label style="margin-top:12px;">Report Status</label>
+          <select id="r_status"><option>Positive</option><option>Negative</option><option>Conditional Positive</option></select>
+        </div>
+        <div class="card">
+          <div class="ctitle">Validation Check</div>
+          <div class="vp" id="val_panel"><div class="vpt" id="val_title"></div><div id="val_items"></div></div>
+          <div class="ackrow" id="ack_row" onclick="toggleAck()">
+            <div class="ackbox" id="ack_box"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <p class="acktxt">I have reviewed all warnings and verified figures against engineer's site notes.</p>
+          </div>
+          <div class="ctog" id="r_tog" onclick="togReport()">
+            <div class="ctbox" id="r_box"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display:none" id="r_chk"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="cttxt">Mark Report Complete</span>
+          </div>
+          <p class="hint">Submission time recorded automatically when marked complete</p>
+          <button class="btn bw" onclick="genReport('word')" style="margin-top:12px;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Download Word Report
+          </button>
+          <button class="btn bpdf" onclick="genReport('pdf')">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Print / Save PDF
+          </button>
+          <button class="btn bp" id="r_submitBtn" onclick="submitReport()">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
+            Save & Submit Report
+          </button>
+        </div>
+        </div><!-- end online_mode_form -->
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: Dashboard (Admin) -->
+  <div class="page" id="pg-dash">
+    <div class="dpill">Dashboard</div>
+    <div class="card">
+      <div class="ctitle">Period</div>
+      <div class="prow">
+        <button class="pbtn" data-p="today" onclick="setPeriod('today')">Today</button>
+        <button class="pbtn" data-p="week" onclick="setPeriod('week')">This Week</button>
+        <button class="pbtn on" data-p="month" onclick="setPeriod('month')">This Month</button>
+        <button class="pbtn" data-p="all" onclick="setPeriod('all')">All Time</button>
+      </div>
+      <div id="adminDashFilters" style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+        <select id="d_bank" onchange="renderDash()" style="flex:1;"><option value="">All Banks</option></select>
+        <button onclick="loadData()" style="width:42px;height:42px;border-radius:10px;border:1.5px solid var(--border);background:#fff;color:var(--p);cursor:pointer;font-size:14px;flex-shrink:0;">↻</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ctitle" id="d_overtitle">Overview — This Month</div>
+      <div class="kgrid" id="d_kpi"><div class="lspin" style="grid-column:1/-1"><svg class="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="50 30"/></svg>Loading…</div></div>
+    </div>
+    <div class="card" id="d_overdue" style="display:none;">
+      <div class="ctitle" style="color:var(--red)">⚠ TAT Over 2 Days</div>
+      <div id="d_overdue_list"></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Bank-wise Breakdown</div>
+      <div id="d_banks"></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Staff Performance</div>
+      <div id="d_staff"></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Month-on-Month</div>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:10px;">All months — independent of period filter</p>
+      <div class="mowrap">
+        <table class="motbl">
+          <thead><tr><th>Month</th><th>Cases</th><th>Top Bank</th><th>Avg TAT</th></tr></thead>
+          <tbody id="d_months"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ctitle">All Cases</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input type="text" id="d_search" placeholder="Search…" oninput="renderCasesTable()" style="flex:1;">
+        <select id="d_mfilter" onchange="renderCasesTable()" style="width:120px;flex-shrink:0;"></select>
+        <button onclick="downloadCaseList()" style="width:42px;height:42px;border-radius:10px;border:1.5px solid var(--p);background:var(--ptint);color:var(--p);font-size:16px;cursor:pointer;flex-shrink:0;" title="Download case list">⬇</button>
+      </div>
+      <div class="sbar" id="d_sumbar"></div>
+      <p class="hint" id="d_count" style="margin-bottom:8px;"></p>
+      <div class="twrap">
+        <table class="tbl">
+          <thead><tr>
+            <th onclick="tsort('date')">Date/Time <span id="ts_date"></span></th>
+            <th onclick="tsort('bank')">Bank <span id="ts_bank"></span></th>
+            <th onclick="tsort('name')">Borrower <span id="ts_name"></span></th>
+            <th>App ID</th>
+            <th onclick="tsort('visit')">Visit <span id="ts_visit"></span></th>
+            <th onclick="tsort('report')">Report Submitted <span id="ts_report"></span></th>
+            <th onclick="tsort('tat')">TAT <span id="ts_tat"></span></th>
+          </tr></thead>
+          <tbody id="d_table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: Land Rates -->
+  <div class="page" id="pg-lr">
+    <div class="dpill">Land Rate Database</div>
+    <!-- Sub tabs -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:12px 14px 0;">
+      <button class="pbtn on" data-lr="approved" onclick="switchLR('approved')">✅ Approved</button>
+      <button class="pbtn" data-lr="pending" onclick="switchLR('pending')">⏳ Pending</button>
+      <button class="pbtn" data-lr="rental" onclick="switchLR('rental')">🏠 Rental</button>
+    </div>
+
+    <!-- Approved rates -->
+    <div id="lr-approved">
+      <div class="card">
+        <div class="ctitle">Approved Land Rates</div>
+        <input type="text" id="lr_search" placeholder="Village, taluk, district…" oninput="renderLR()" style="margin-bottom:10px;">
+        <div id="lr_list"><div class="lspin"><svg class="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="50 30"/></svg>Loading…</div></div>
+      </div>
+      <div class="card">
+        <div class="ctitle">Bulk Upload Land Rates</div>
+        <p style="font-size:12.5px;color:var(--muted);margin-bottom:12px;">Upload existing land rate data from a CSV file. All uploaded records are marked High Confidence.</p>
+        <button class="btn bs" onclick="downloadLRTemplate()" style="margin-bottom:8px;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download CSV Template
+        </button>
+        <div class="photo-area" onclick="document.getElementById('lrCSVInput').click()" style="margin-top:0;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <p>Tap to upload Land Rate CSV</p>
+        </div>
+        <input type="file" id="lrCSVInput" accept=".csv" style="display:none" onchange="previewLRCSV(event)">
+        <div id="lrPreviewBox" style="display:none;margin-top:12px;">
+          <p style="font-size:12px;font-weight:600;color:var(--p);margin-bottom:8px;" id="lrPreviewTitle"></p>
+          <div id="lrPreviewList" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:8px;font-size:12px;"></div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="btn bp" onclick="confirmLRUpload()" style="flex:1;">Upload All Records</button>
+            <button class="btn bs" onclick="document.getElementById('lrPreviewBox').style.display='none'" style="flex:1;">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending approval -->
+    <div id="lr-pending" style="display:none;">
+      <div class="card">
+        <div class="ctitle">Pending Rate Approvals</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Review and approve land rates submitted from site visits</p>
+        <div id="lr_pending_list"><div class="lspin"><svg class="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="50 30"/></svg>Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- Rental analysis -->
+    <div id="lr-rental" style="display:none;">
+      <div class="card">
+        <div class="ctitle">Rental Rate Database</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;">
+          <button class="pbtn on" data-rt="all" onclick="filterRental('all')">All</button>
+          <button class="pbtn" data-rt="residential" onclick="filterRental('residential')">Residential</button>
+        </div>
+        <input type="text" id="rental_search" placeholder="Village, taluk, district…" oninput="renderRental()">
+        <div id="rental_list" style="margin-top:10px;"><div class="lspin"><svg class="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="50 30"/></svg>Loading…</div></div>
+      </div>
+      <div class="card" id="rental_pending_card">
+        <div class="ctitle">Pending Rental Approvals</div>
+        <div id="rental_pending_list"></div>
+      </div>
+      <div class="card">
+        <div class="ctitle">Bulk Upload Rental Rates</div>
+        <p style="font-size:12.5px;color:var(--muted);margin-bottom:12px;">Upload existing rental data from a CSV file. All uploaded records are marked High Confidence.</p>
+        <button class="btn bs" onclick="downloadRentalTemplate()" style="margin-bottom:8px;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download CSV Template
+        </button>
+        <div class="photo-area" onclick="document.getElementById('rentalCSVInput').click()" style="margin-top:0;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <p>Tap to upload Rental Rate CSV</p>
+        </div>
+        <input type="file" id="rentalCSVInput" accept=".csv" style="display:none" onchange="previewRentalCSV(event)">
+        <div id="rentalPreviewBox" style="display:none;margin-top:12px;">
+          <p style="font-size:12px;font-weight:600;color:var(--p);margin-bottom:8px;" id="rentalPreviewTitle"></p>
+          <div id="rentalPreviewList" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:8px;font-size:12px;"></div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="btn bp" onclick="confirmRentalUpload()" style="flex:1;">Upload All Records</button>
+            <button class="btn bs" onclick="document.getElementById('rentalPreviewBox').style.display='none'" style="flex:1;">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: Admin -->
+  <div class="page" id="pg-admin">
+    <div class="dpill">Admin Panel</div>
+    <div class="card">
+      <div class="ctitle">Staff & PINs</div>
+      <div id="admin_users"></div>
+      <button class="btn bs" onclick="showAddUser()" style="margin-top:12px;">+ Add Staff Member</button>
+    </div>
+    <div class="card" id="addUserCard" style="display:none;">
+      <div class="ctitle">New Staff</div>
+      <label>Name <span class="req">*</span></label><input type="text" id="nu_name">
+      <label>PIN (6 digits) <span class="req">*</span></label><input type="text" id="nu_pin" maxlength="6" placeholder="e.g. 333333">
+      <label>Role <span class="req">*</span></label>
+      <select id="nu_role">
+        <option value="staff">Staff (add cases only)</option>
+        <option value="engineer">Engineer (visits + cases + typing)</option>
+        <option value="typist">Typist (typing + cases)</option>
+        <option value="admin">Admin (full access)</option>
+      </select>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn bp" onclick="addUser()" style="flex:1;">Save</button>
+        <button class="btn bs" onclick="document.getElementById('addUserCard').style.display='none'" style="flex:1;">Cancel</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Banks</div>
+      <div id="admin_banks"></div>
+      <button class="btn bs" onclick="showAddBank()" style="margin-top:12px;">+ Add Bank</button>
+    </div>
+    <div class="card" id="addBankCard" style="display:none;">
+      <div class="ctitle">New Bank</div>
+      <label>Bank Name <span class="req">*</span></label><input type="text" id="nb_name">
+      <label>Template</label>
+      <select id="nb_tpl"><option value="generic">DC Valuation Generic</option><option value="ksfe">KSFE Format</option><option value="muthoot">Muthoot Format</option></select>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn bp" onclick="addBank()" style="flex:1;">Save</button>
+        <button class="btn bs" onclick="document.getElementById('addBankCard').style.display='none'" style="flex:1;">Cancel</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Change My PIN</div>
+      <label>Current PIN</label><input type="text" id="cp_cur" maxlength="6">
+      <label>New PIN</label><input type="text" id="cp_new" maxlength="6">
+      <label>Confirm New PIN</label><input type="text" id="cp_conf" maxlength="6">
+      <button class="btn bp" onclick="changePin()" style="margin-top:12px;">Update PIN</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS OVERLAY -->
+<div id="successOverlay" style="display:none;position:fixed;inset:0;background:rgba(30,10,46,0.7);z-index:200;align-items:center;justify-content:center;padding:30px;flex-direction:column;">
+  <div style="background:#fff;border-radius:20px;padding:32px 24px;text-align:center;max-width:300px;width:100%;">
+    <div style="font-size:64px;margin-bottom:12px;" id="successEmoji">👍</div>
+    <h2 style="font-size:20px;font-weight:700;color:var(--p);margin-bottom:8px;" id="successTitle">Well done!</h2>
+    <p style="font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:20px;" id="successMsg">Saved successfully.</p>
+    <button onclick="closeSuccess()" style="width:100%;padding:14px;border:none;border-radius:12px;background:var(--p);color:#fff;font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;">Continue</button>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+  <div class="mbox">
+    <h3 id="modal_title"></h3>
+    <p id="modal_msg"></p>
+    <div class="macts">
+      <button style="background:var(--ptint);color:var(--p);" onclick="closeModal()">Cancel</button>
+      <button style="background:var(--red);color:#fff;" id="modal_ok">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════
+// SUPABASE CONFIG
+// ═══════════════════════════════════════════
+const SB_URL = 'https://rjafjfagrilflpqvmcnq.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqYWZqZmFncmlsZmxwcXZtY25xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzMjA4NDYsImV4cCI6MjA5ODg5Njg0Nn0.q1r7pZjlgc0ejo-6J0NLEQKzK8_diHdxhfCrkZSducA';
+const HDR = {'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
+const HDR_DEL = {'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
+
+async function dbGet(table, filters={}, cols='*') {
+  let url = `${SB_URL}/rest/v1/${table}?select=${cols}`;
+  Object.entries(filters).forEach(([k,v]) => url += `&${k}=eq.${encodeURIComponent(v)}`);
+  url += '&order=created_at.desc';
+  const r = await fetch(url, {headers:HDR});
+  if(!r.ok){const t=await r.text();throw new Error(t);}
+  return r.json();
+}
+
+async function dbGetOne(table, filters={}) {
+  let url = `${SB_URL}/rest/v1/${table}?select=*`;
+  Object.entries(filters).forEach(([k,v]) => url += `&${k}=eq.${encodeURIComponent(v)}`);
+  url += '&limit=1';
+  const r = await fetch(url, {headers:HDR});
+  if(!r.ok) return null;
+  const d = await r.json();
+  return d && d.length > 0 ? d[0] : null;
+}
+
+async function dbInsert(table, data) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}`, {method:'POST',headers:HDR,body:JSON.stringify(data)});
+  const t = await r.text();
+  if(!r.ok) throw new Error(t);
+  return t ? JSON.parse(t) : null;
+}
+
+async function dbUpdate(table, filters, data) {
+  let url = `${SB_URL}/rest/v1/${table}?`;
+  Object.entries(filters).forEach(([k,v],i) => url += (i?'&':'')+`${k}=eq.${encodeURIComponent(v)}`);
+  const r = await fetch(url, {method:'PATCH',headers:HDR,body:JSON.stringify(data)});
+  const t = await r.text();
+  if(!r.ok) throw new Error(t);
+  return t ? JSON.parse(t) : null;
+}
+
+async function dbDelete(table, filters) {
+  let url = `${SB_URL}/rest/v1/${table}?`;
+  const entries = Object.entries(filters);
+  entries.forEach(([k,v],i) => url += (i?'&':'')+`${k}=eq.${encodeURIComponent(v)}`);
+  const r = await fetch(url, {method:'DELETE',headers:HDR_DEL});
+  if(!r.ok){const t=await r.text();throw new Error(t);}
+  return true;
+}
+
+async function dbUpsert(table, data, onConflict) {
+  let url = `${SB_URL}/rest/v1/${table}`;
+  if(onConflict) url += `?on_conflict=${onConflict}`;
+  const h = {...HDR,'Prefer':'resolution=merge-duplicates,return=representation'};
+  const r = await fetch(url, {method:'POST',headers:h,body:JSON.stringify(data)});
+  const t = await r.text();
+  if(!r.ok) throw new Error(t);
+  return t ? JSON.parse(t) : null;
+}
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let CU = null; // current user
+let CASES = [], TRACKING = [], USERS = [], BANKS = [], LRATES = [];
+let sitePhotos = [], visitDone = false, reportDone = false, ackDone = false;
+let curPeriod = 'month', periodFrom = null, periodTo = null;
+let tblSort = 'date', tblDir = 'desc';
+let snCaseId = null, rptCaseId = null;
+let currentSN = null; // loaded site notes for validation
+
+// ═══════════════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════════════
+let selUid = null, pinStr = '';
+
+async function initLogin() {
+  try {
+    document.getElementById('loginErr').textContent = 'Connecting…';
+    USERS = await dbGet('users', {active:'true'}, '*');
+    USERS.sort((a,b)=>a.name.localeCompare(b.name));
+    const grid = document.getElementById('userGrid');
+    const icons = {admin:'👔',engineer:'🚗',typist:'⌨️',staff:'📋'};
+    grid.innerHTML = USERS.map(u=>`
+      <button class="ubtn" data-id="${u.id}" onclick="selUser('${u.id}','${u.name}')">
+        <span class="ui">${icons[u.role]||'👤'}</span>${u.name}
+      </button>`).join('');
+    document.getElementById('loginErr').textContent = '';
+    renderDots();
+  } catch(e) {
+    document.getElementById('loginErr').textContent = 'Connection failed: '+e.message;
+  }
+}
+
+function selUser(id, name) {
+  selUid = id; pinStr = '';
+  document.querySelectorAll('.ubtn').forEach(b=>b.classList.toggle('sel',b.dataset.id===id));
+  document.getElementById('pinLabel').textContent = `Enter PIN for ${name}`;
+  document.getElementById('loginErr').textContent = '';
+  renderDots();
+}
+
+function pk(k) {
+  if(!selUid){document.getElementById('loginErr').textContent='Select your name first';return;}
+  if(pinStr.length>=6) return;
+  pinStr+=k; renderDots();
+  if(pinStr.length===6) setTimeout(plogin,120);
+}
+
+function pdel(){pinStr=pinStr.slice(0,-1);renderDots();}
+
+function renderDots(){
+  document.getElementById('pinDots').innerHTML=
+    Array.from({length:6},(_,i)=>`<div class="pin-dot${i<pinStr.length?' on':''}"></div>`).join('');
+}
+
+async function plogin() {
+  if(!selUid||pinStr.length<4){document.getElementById('loginErr').textContent='Enter your full PIN';return;}
+  const user = USERS.find(u=>u.id===selUid);
+  if(!user||user.pin!==pinStr){
+    document.getElementById('loginErr').textContent='Incorrect PIN. Try again.';
+    pinStr='';renderDots();return;
+  }
+  CU = user;
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').classList.add('on');
+  initApp();
+}
+
+function logout(){
+  CU=null;selUid=null;pinStr='';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('app').classList.remove('on');
+  document.querySelectorAll('.ubtn').forEach(b=>b.classList.remove('sel'));
+  document.getElementById('pinLabel').textContent='Select your name to login';
+  document.getElementById('loginErr').textContent='';
+  renderDots();
+}
+
+// ═══════════════════════════════════════════
+// APP INIT
+// ═══════════════════════════════════════════
+function initApp(){
+  document.getElementById('upill').textContent = `${CU.name} · ${CU.role}`;
+  buildNav();
+  setPeriod('month');
+  loadData();
+  initCaseForm();
+  initWorkTab();
+  // Hide admin-only dashboard elements for non-admin
+  if(CU.role!=='admin'){
+    const af=document.getElementById('adminDashFilters');
+    if(af) af.style.display='none';
+    const sc=document.getElementById('d_overdue');
+    // Keep overdue visible but adjust label
+  }
+}
+
+function buildNav(){
+  const tabs=[];
+  // Dashboard always first for everyone
+  tabs.push({id:'dash',label:'📊 Dashboard'});
+  if(CU.can_add_cases||CU.role==='admin') tabs.push({id:'cases',label:'📋 Cases'});
+  if(CU.role==='admin') tabs.push({id:'assign',label:'👥 Assign'});
+  if(CU.can_visit||CU.can_type||CU.role==='admin') tabs.push({id:'work',label:'🚗 My Work'});
+  if(CU.role==='admin'){
+    tabs.push({id:'lr',label:'🗺 Rates'});
+    tabs.push({id:'admin',label:'⚙ Admin'});
+  }
+  document.getElementById('navtabs').innerHTML=tabs.map(t=>
+    `<button class="ntab" data-tab="${t.id}" onclick="goTab('${t.id}')">${t.label}</button>`).join('');
+  if(tabs.length>0) goTab(tabs[0].id);
+}
+
+function goTab(id){
+  document.querySelectorAll('.ntab').forEach(b=>b.classList.toggle('on',b.dataset.tab===id));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  const pg=document.getElementById('pg-'+id);
+  if(pg) pg.classList.add('on');
+  if(id==='dash') renderDash();
+  if(id==='lr') renderLR();
+  if(id==='admin') renderAdmin();
+  if(id==='assign') renderAssign();
+}
+
+// ═══════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════
+async function loadData(){
+  try{
+    [CASES,TRACKING,BANKS,LRATES]=await Promise.all([
+      dbGet('cases'),
+      dbGet('tracking'),
+      dbGet('banks',{active:'true'},'*'),
+      dbGet('land_rates')
+    ]);
+    // Remove old DOMContentLoaded listener conflict
+
+    CASES.sort((a,b)=>new Date(b.received_date+' '+b.received_time)-new Date(a.received_date+' '+a.received_time));
+    afterLoad();
+  }catch(e){toast('Load error: '+e.message,'err');}
+}
+
+function afterLoad(){
+  populateBankDropdowns();
+  renderRecent();
+  populateVisitPicker();
+  populateReportPicker();
+  populateAssignPicker();
+  renderAssign();
+  if(document.getElementById('pg-dash').classList.contains('on')) renderDash();
+  if(document.getElementById('pg-lr').classList.contains('on')) renderLR();
+}
+
+function trk(caseId){return TRACKING.find(t=>t.case_ref===caseId)||null;}
+
+function populateBankDropdowns(){
+  ['c_bank','d_bank'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    const v=el.value;
+    const prefix=id==='d_bank'?'<option value="">All Banks</option>':'<option value="">Select bank…</option>';
+    el.innerHTML=prefix+BANKS.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
+    el.value=v;
+  });
+}
+
+// ═══════════════════════════════════════════
+// CASE INTAKE
+// ═══════════════════════════════════════════
+function initCaseForm(){
+  const now=new Date();
+  document.getElementById('c_date').value=now.toISOString().split('T')[0];
+  document.getElementById('c_time').value=now.toTimeString().slice(0,5);
+  document.getElementById('caseDatePill').textContent=
+    'Entry for '+now.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+
+function genId(){
+  const d=new Date();
+  return `DC-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${Math.random().toString(36).substring(2,6).toUpperCase()}`;
+}
+
+async function addCase(){
+  const date=g('c_date'),time=g('c_time'),bankId=g('c_bank'),
+    name=g('c_name').trim(),appid=g('c_appid').trim();
+  if(!date){toast('Date required','err');return;}
+  if(!time){toast('Time required','err');return;}
+  if(!bankId){toast('Select bank','err');return;}
+  if(!name){toast('Borrower name required','err');return;}
+  if(!appid){toast('Application ID required','err');return;}
+  if(!g('c_loc').trim()){toast('Property location required','err');return;}
+  const bank=BANKS.find(b=>b.id===bankId);
+  const btn=document.getElementById('addCaseBtn');
+  btn.disabled=true;btn.textContent='Saving…';
+  try{
+    await dbInsert('cases',{
+      case_id:genId(),received_date:date,received_time:time,
+      staff_name:CU.name,bank_id:bankId,bank_name:bank?.name||'',
+      loan_product:g('c_product')==='-- Add New Product --'?g('newProductName'):g('c_product'),
+      case_name:name,application_id:appid,
+      property_location:g('c_loc').trim(),
+      client_phone:g('c_phone').trim(),
+      distance:parseFloat(g('c_dist'))||null,
+      notes:g('c_notes').trim(),status:'received'
+    });
+    toast('Case saved ✓','ok');
+    resetCaseForm();
+    loadData();
+  }catch(e){toast('Error: '+e.message,'err');}
+  btn.disabled=false;btn.textContent='Submit Case';
+}
+
+function resetCaseForm(){
+  ['c_bank','c_product','c_name','c_appid','c_loc','c_dist','c_notes'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  initCaseForm();
+}
+
+function caseStatus(c){
+  const t=trk(c.case_id);
+  if(t?.report_complete) return 'report_done';
+  if(t?.visit_complete) return 'visit_done';
+  if(t?.engineer_name||t?.typist_name) return 'assigned';
+  return 'received';
+}
+
+function statusLabel(s){return s.replace('_',' ');}
+
+function renderRecent(){
+  const el=document.getElementById('recentList');
+  if(!CASES.length){el.innerHTML='<div class="empty">No cases yet</div>';return;}
+  el.innerHTML=CASES.slice(0,15).map(c=>{
+    const s=caseStatus(c);
+    const t=trk(c.case_id);
+    return `<div class="cc s-${s}">
+      <div class="cc-top">
+        <div><div class="cc-bank">${c.bank_name}</div><div class="cc-name">${c.case_name||'Unnamed'}</div></div>
+        <span class="badge b-${s}">${statusLabel(s)}</span>
+      </div>
+      <div class="cc-meta">${c.received_date} ${c.received_time||''} · ${c.application_id||'—'}
+        ${t?.engineer_name?`<br>Engineer: <b>${t.engineer_name}</b>`:''}
+        ${t?.typist_name?` · Typist: <b>${t.typist_name}</b>`:''}
+      </div>
+      ${CU.role==='admin'?`<button class="btn bd" style="margin-top:8px;padding:9px;" onclick="askDelete('${c.case_id}','${(c.case_name||'').replace(/'/g,'')}')">Delete Case</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+function askDelete(caseId,name){
+  document.getElementById('modal_title').textContent='Delete Case?';
+  document.getElementById('modal_msg').textContent=`Permanently delete "${name}" and all its data?`;
+  document.getElementById('modal_ok').onclick=()=>doDelete(caseId);
+  document.getElementById('modal').classList.add('open');
+}
+
+async function doDelete(caseId){
+  closeModal();
+  try{
+    await dbDelete('cases',{case_id:caseId});
+    toast('Case deleted ✓','ok');
+    loadData();
+  }catch(e){toast('Delete error: '+e.message,'err');}
+}
+
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+
+// ═══════════════════════════════════════════
+// ASSIGN TAB
+// ═══════════════════════════════════════════
+function populateAssignPicker(){
+  const el=document.getElementById('asgn_case');
+  if(!el) return;
+  const v=el.value;
+  el.innerHTML='<option value="">Select case…</option>'+
+    CASES.map(c=>{
+      const s=caseStatus(c);
+      const ic=s==='report_done'?'✅':s==='visit_done'?'🔄':s==='assigned'?'🚗':'⏳';
+      return `<option value="${c.case_id}">${c.bank_name} – ${c.case_name||'Unnamed'} (${c.received_date}) ${ic}</option>`;
+    }).join('');
+  el.value=v;
+  // Populate staff dropdowns
+  const engs=USERS.filter(u=>u.can_visit&&u.active);
+  const typs=USERS.filter(u=>u.can_type&&u.active);
+  const ae=document.getElementById('asgn_eng');
+  const at=document.getElementById('asgn_typ');
+  if(ae) ae.innerHTML='<option value="">Select…</option>'+engs.map(u=>`<option>${u.name}</option>`).join('');
+  if(at) at.innerHTML='<option value="">Select…</option>'+typs.map(u=>`<option>${u.name}</option>`).join('');
+}
+
+function onAssignPick(){
+  const id=g('asgn_case');
+  const sumEl=document.getElementById('asgn_summary');
+  const formEl=document.getElementById('asgn_form');
+  if(!id){sumEl.style.display='none';formEl.style.display='none';return;}
+  const c=CASES.find(x=>x.case_id===id);
+  const t=trk(id);
+  sumEl.innerHTML=`<b>${c.bank_name}</b> · ${c.case_name||'—'}<br>
+    Received: ${c.received_date} ${c.received_time||''}<br>
+    Engineer: <b>${t?.engineer_name||'Not assigned'}</b> · Typist: <b>${t?.typist_name||'Not assigned'}</b>`;
+  sumEl.style.display='block';
+  if(t){
+    document.getElementById('asgn_eng').value=t.engineer_name||'';
+    document.getElementById('asgn_typ').value=t.typist_name||'';
+  }
+  formEl.style.display='block';
+}
+
+async function saveAssign(){
+  const id=g('asgn_case');
+  if(!id){toast('Select a case','err');return;}
+  const eng=g('asgn_eng'),typ=g('asgn_typ');
+  if(!eng&&!typ){toast('Select engineer or typist','err');return;}
+  const c=CASES.find(x=>x.case_id===id);
+  const t=trk(id);
+  try{
+    if(t){
+      await dbUpdate('tracking',{case_ref:id},{engineer_name:eng||t.engineer_name,typist_name:typ||t.typist_name});
+    }else{
+      await dbInsert('tracking',{case_ref:id,case_id:c.id,engineer_name:eng,typist_name:typ});
+    }
+    await dbUpdate('cases',{case_id:id},{status:'assigned'});
+    toast('Assignment saved ✓','ok');
+    loadData();
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+function renderAssign(){
+  const el=document.getElementById('unassignedList');
+  if(!el) return;
+  const ua=CASES.filter(c=>{const t=trk(c.case_id);return!t||(!t.engineer_name&&!t.typist_name);});
+  if(!ua.length){el.innerHTML='<div class="empty">All cases assigned ✓</div>';return;}
+  el.innerHTML=ua.map(c=>`<div class="cc s-received">
+    <div class="cc-top"><div><div class="cc-bank">${c.bank_name}</div><div class="cc-name">${c.case_name||'Unnamed'}</div></div>
+    <span class="badge b-received">Unassigned</span></div>
+    <div class="cc-meta">${c.received_date} · ${c.application_id||'—'}</div>
+  </div>`).join('');
+}
+
+// ═══════════════════════════════════════════
+// MY WORK TAB
+// ═══════════════════════════════════════════
+function switchWork(role){
+  document.querySelectorAll('[data-w]').forEach(b=>b.classList.toggle('on',b.dataset.w===role));
+  document.getElementById('wv-visit').style.display=role==='visit'?'block':'none';
+  document.getElementById('wv-report').style.display=role==='report'?'block':'none';
+}
+
+function initWorkTab(){
+  // Hide site visit button for pure typists
+  if(CU.role==='typist'||(!CU.can_visit&&CU.can_type)){
+    const visitBtn=document.querySelector('[data-w="visit"]');
+    if(visitBtn) visitBtn.style.display='none';
+    switchWork('report');
+  }
+}
+
+// ── VISIT ──
+function populateVisitPicker(){
+  const el=document.getElementById('v_case');
+  if(!el) return;
+  let cases=CASES;
+  if(CU.role!=='admin'){
+    cases=CASES.filter(c=>{const t=trk(c.case_id);return t&&t.engineer_name&&t.engineer_name.toLowerCase()===CU.name.toLowerCase();});
+  }
+  el.innerHTML='<option value="">Select case…</option>'+cases.map(c=>{
+    const t=trk(c.case_id);
+    return `<option value="${c.case_id}">${c.bank_name} – ${c.case_name||'Unnamed'} ${t?.visit_complete?'✅':'⏳'}</option>`;
+  }).join('');
+}
+
+async function onVisitPick(){
+  const id=g('v_case');
+  const sumEl=document.getElementById('v_summary');
+  const formEl=document.getElementById('v_form');
+  const snEl=document.getElementById('sn_card');
+  if(!id){sumEl.style.display='none';formEl.style.display='none';snEl.style.display='none';snCaseId=null;return;}
+  // Clear all site notes fields before loading new case
+  clearSiteNotes();
+  const c=CASES.find(x=>x.case_id===id);
+  const t=trk(id);
+  sumEl.innerHTML=`<b>${c.bank_name}</b> · ${c.case_name||'—'}<br>
+    App ID: ${c.application_id||'—'} · Location: ${c.property_location||'—'}<br>
+    Received: <b>${c.received_date} ${c.received_time||''}</b>`;
+  sumEl.style.display='block';
+  document.getElementById('v_date').value=t?.visit_date||'';
+  document.getElementById('v_time').value=t?.visit_time||'';
+  setVisit(!!t?.visit_complete);
+  formEl.style.display='block';
+  snCaseId=id;
+  snEl.style.display='block';
+  // Load existing site notes
+  try{
+    const sn=await dbGetOne('site_notes',{case_ref:id});
+    if(sn) fillSN(sn);
+  }catch(e){}
+  sitePhotos=[];renderPhotos();
+  // Auto-fetch GPS if not already filled
+  if(!document.getElementById('sn_lat').value) {
+    setTimeout(autoFetchGPS, 800);
+  }
+}
+
+function setVisit(v){
+  visitDone=v;
+  document.getElementById('v_tog').classList.toggle('on',v);
+  document.getElementById('v_chk').style.display=v?'block':'none';
+}
+function togVisit(){setVisit(!visitDone);}
+
+async function saveVisit(){
+  const id=g('v_case');
+  if(!id){toast('Select a case','err');return;}
+  const vd=g('v_date'),vt=g('v_time');
+  if(visitDone&&(!vd||!vt)){
+    toast('Visit date and time required to mark complete','err');
+    document.getElementById('v_date').classList.add('err');
+    document.getElementById('v_time').classList.add('err');
+    return;
+  }
+  document.getElementById('v_date').classList.remove('err');
+  document.getElementById('v_time').classList.remove('err');
+  const c=CASES.find(x=>x.case_id===id);
+  const t=trk(id);
+  try{
+    const payload={
+      case_ref:id,case_id:c.id,
+      engineer_name:t?.engineer_name||CU.name,
+      typist_name:t?.typist_name||'',
+      visit_date:vd||null,visit_time:vt||null,
+      visit_complete:visitDone,
+      visit_completed_at:visitDone?new Date().toISOString():null,
+      submit_date:t?.submit_date||null,submit_time:t?.submit_time||null,
+      report_complete:t?.report_complete||false,
+      delay_reason:g('v_delay_reason')||null
+    };
+    if(t) await dbUpdate('tracking',{case_ref:id},payload);
+    else await dbInsert('tracking',payload);
+    if(visitDone) await dbUpdate('cases',{case_id:id},{status:'visit_done'});
+    if(visitDone){
+      showSuccess('👍','Site Visit Complete!','Visit and site notes saved successfully. Great work, '+CU.name+'!');
+    } else {
+      toast('Visit update saved ✓','ok');
+    }
+    loadData();
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+// ── SITE NOTES ──
+function clearSiteNotes(){
+  // Clear all text inputs and selects in site notes card
+  const card = document.getElementById('sn_card');
+  if(!card) return;
+  card.querySelectorAll('input[type="text"],input[type="number"],input[type="tel"],textarea,select').forEach(el=>{
+    el.value='';
+  });
+  // Clear document checkboxes
+  document.querySelectorAll('#docsAvailGrid .doc-check').forEach(el=>{
+    el.classList.remove('doc-checked');
+    el.style.background='#fff';
+    el.style.borderColor='var(--border)';
+    el.style.color='var(--text)';
+    const box=el.querySelector('.dchk-box');
+    if(box){box.style.background='transparent';box.style.borderColor='var(--border)';}
+  });
+  // Hide estimate box
+  const estBox=document.getElementById('sn_est_box');
+  if(estBox) estBox.style.display='none';
+  // Reset GPS status
+  const gpsStatus=document.getElementById('gps_status');
+  if(gpsStatus) gpsStatus.textContent='Tap Fetch to auto-detect your location';
+  // Clear photos
+  sitePhotos=[];
+  renderPhotos();
+  // Reset sections
+  document.getElementById('sn_residential_section').style.display='none';
+  document.getElementById('sn_commercial_section').style.display='none';
+}
+
+function clearReportForm(){
+  const fields=['r_applicant','r_coapplicant','r_loanno','r_presentliab','r_prevliab',
+    'r_inspdate','r_owner','r_owneraddr','r_ownerphone','r_deedno',
+    'r_deeddate','r_sro','r_deeddesc','r_cents','r_landrate','r_guideline',
+    'r_mktrange','r_bua','r_constrate','r_dep','r_residual','r_remarks','r_conditions'];
+  fields.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.value='';
+  });
+  // Reset selects to first option
+  ['r_ownership','r_status'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.selectedIndex=0;
+  });
+  // Reset FSV
+  const fsvEl=document.getElementById('r_fsvpct');
+  if(fsvEl) fsvEl.value='75';
+  // Reset report date
+  document.getElementById('r_reportdate').value=new Date().toISOString().split('T')[0];
+  // Reset valuation display
+  ['r_landval','r_bldggross','r_depamt','r_bldgnet','r_fmv','r_fsv'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.textContent='—';
+  });
+  // Reset mode
+  setReportMode('online');
+  setReport(false);
+  // Clear validation
+  const panel=document.getElementById('val_panel');
+  if(panel) panel.className='vp';
+  const ackRow=document.getElementById('ack_row');
+  if(ackRow) ackRow.classList.remove('vis','ck');
+  ackDone=false;
+  curWarnings=[];
+}
+
+function gSN(){
+  return {
+    prop_type:g('sn_type'),
+    id_owner_site:g('sn_own_site'),id_owner_deed:g('sn_own_deed'),id_owner_sketch:g('sn_own_sketch'),
+    id_survey_site:g('sn_sy_site'),id_survey_deed:g('sn_sy_deed'),id_survey_sketch:g('sn_sy_sketch'),
+    id_door:g('sn_door'),id_door_deed:g('sn_door_deed'),id_door_sketch:g('sn_door_sk'),
+    id_village_site:g('sn_village'),id_village_deed:g('sn_vil_deed'),id_village_sketch:g('sn_vil_sk'),
+    taluk:g('sn_taluk'),district:g('sn_district'),local_body:g('sn_localbody'),
+    bnd_n_deed:g('bn_deed'),bnd_n_sketch:g('bn_sk'),bnd_n_site:g('bn_site'),
+    bnd_s_deed:g('bs_deed'),bnd_s_sketch:g('bs_sk'),bnd_s_site:g('bs_site'),
+    bnd_e_deed:g('be_deed'),bnd_e_sketch:g('be_sk'),bnd_e_site:g('be_site'),
+    bnd_w_deed:g('bw_deed'),bnd_w_sketch:g('bw_sk'),bnd_w_site:g('bw_site'),
+    demarcation:g('sn_demarcation'),shape:g('sn_shape'),
+    area_doc:g('sn_area_doc'),area_site:g('sn_area_site'),
+    road_type:g('sn_road'),road_width:g('sn_road_width'),
+    bua_doc:pf('sn_bua_doc'),bua_site:pf('sn_bua_site'),
+    const_type:g('sn_const'),floors:pf('sn_floors'),condition:g('sn_cond'),
+    age:pf('sn_age'),mkt_range:g('sn_mkt_range'),
+    comparable1:g('sn_comp1'),comparable2:g('sn_comp2'),
+    land_rate:pf('sn_land_rate'),land_cents:pf('sn_land_cents'),
+    bldg_rate:pf('sn_bldg_rate'),bldg_area:pf('sn_bldg_area'),
+    lat:g('sn_lat'),lon:g('sn_lon'),
+    remarks:g('sn_remarks'),
+    broker_name:g('sn_broker_name'),
+    broker_phone:g('sn_broker_phone'),
+    docs_available:getCheckedDocs(),
+    pending_docs:g('sn_pending_docs'),
+    res_type:g('sn_res_type'),
+    res_rent:pf('sn_res_rent'),
+    bedrooms:pf('sn_bedrooms'),
+    comm_rent_sqft:pf('sn_comm_rent_sqft'),
+    comm_area:pf('sn_comm_area')
+  };
+}
+
+function fillSN(d){
+  const map={
+    sn_type:'prop_type',sn_own_site:'id_owner_site',sn_own_deed:'id_owner_deed',sn_own_sketch:'id_owner_sketch',
+    sn_sy_site:'id_survey_site',sn_sy_deed:'id_survey_deed',sn_sy_sketch:'id_survey_sketch',
+    sn_door:'id_door',sn_door_deed:'id_door_deed',sn_door_sk:'id_door_sketch',
+    sn_village:'id_village_site',sn_vil_deed:'id_village_deed',sn_vil_sk:'id_village_sketch',
+    sn_taluk:'taluk',sn_district:'district',sn_localbody:'local_body',
+    bn_deed:'bnd_n_deed',bn_sk:'bnd_n_sketch',bn_site:'bnd_n_site',
+    bs_deed:'bnd_s_deed',bs_sk:'bnd_s_sketch',bs_site:'bnd_s_site',
+    be_deed:'bnd_e_deed',be_sk:'bnd_e_sketch',be_site:'bnd_e_site',
+    bw_deed:'bnd_w_deed',bw_sk:'bnd_w_sketch',bw_site:'bnd_w_site',
+    sn_demarcation:'demarcation',sn_shape:'shape',
+    sn_area_doc:'area_doc',sn_area_site:'area_site',
+    sn_road:'road_type',sn_road_width:'road_width',
+    sn_bua_doc:'bua_doc',sn_bua_site:'bua_site',
+    sn_const:'const_type',sn_floors:'floors',sn_cond:'condition',
+    sn_age:'age',sn_mkt_range:'mkt_range',
+    sn_comp1:'comparable1',sn_comp2:'comparable2',
+    sn_land_rate:'land_rate',sn_land_cents:'land_cents',
+    sn_bldg_rate:'bldg_rate',sn_bldg_area:'bldg_area',
+    sn_lat:'lat',sn_lon:'lon',sn_remarks:'remarks',
+    sn_pending_docs:'pending_docs',
+    sn_broker_name:'broker_name',sn_broker_phone:'broker_phone',
+    sn_res_type:'res_type',sn_res_rent:'res_rent',
+    sn_bedrooms:'bedrooms',
+    sn_comm_rent_sqft:'comm_rent_sqft',sn_comm_area:'comm_area'
+  };
+  Object.entries(map).forEach(([elId,field])=>{
+    const el=document.getElementById(elId);
+    if(el&&d[field]!=null) el.value=d[field];
+  });
+  calcSiteEst();
+  onPropTypeChange();
+  if(d.docs_available) setCheckedDocs(d.docs_available);
+}
+
+async function saveSiteNotes(){
+  if(!snCaseId){toast('No case selected','err');return;}
+  const lat=g('sn_lat'),lon=g('sn_lon');
+  const lr=pf('sn_land_rate'),lc=pf('sn_land_cents');
+  const areaSite=g('sn_area_site');
+  if(!lat||!lon){toast('GPS coordinates required','err');return;}
+  if(!lr||!lc){toast('Land rate and area required in section 5','err');return;}
+  if(!areaSite){toast('Land area at site required in section 3','err');return;}
+  const c=CASES.find(x=>x.case_id===snCaseId);
+  const sn=gSN();
+  const payload={...sn,case_ref:snCaseId,case_id:c.id,engineer_name:CU.name};
+  try{
+    const existing=await dbGetOne('site_notes',{case_ref:snCaseId});
+    if(existing) await dbUpdate('site_notes',{case_ref:snCaseId},sn);
+    else await dbInsert('site_notes',payload);
+    currentSN=sn;
+    // Auto-write to land rate DB (pending approval)
+    if(sn.land_rate && sn.land_cents){
+      const c2=CASES.find(x=>x.case_id===snCaseId);
+      try{
+        const existLR=await dbGetOne('land_rates',{case_ref:snCaseId});
+        const lrData={
+          case_ref:snCaseId,case_id:c2?.id,
+          engineer_name:CU.name,
+          village:sn.id_village_site,taluk:sn.taluk,district:sn.district,
+          lat:sn.lat,lon:sn.lon,prop_type:sn.prop_type,
+          bank_name:c2?.bank_name,
+          land_rate_per_cent:sn.land_rate,
+          bldg_rate_per_sqft:sn.bldg_rate||null,
+          mkt_range:sn.mkt_range,
+          broker_name:sn.broker_name||null,
+          broker_phone:sn.broker_phone||null,
+          valuation_date:new Date().toISOString().split('T')[0],
+          confidence:'pending',source:'site_notes'
+        };
+        if(existLR) await dbUpdate('land_rates',{case_ref:snCaseId},lrData);
+        else await dbInsert('land_rates',lrData);
+      }catch(e){}
+    }
+    // Auto-write rental data if filled
+    if(sn.res_rent || sn.comm_rent_sqft){
+      const c2=CASES.find(x=>x.case_id===snCaseId);
+      try{
+        const rentalData={
+          case_ref:snCaseId,case_id:c2?.id,
+          engineer_name:CU.name,
+          village:sn.id_village_site,taluk:sn.taluk,district:sn.district,
+          lat:sn.lat,lon:sn.lon,prop_type:sn.prop_type,
+          bank_name:c2?.bank_name,
+          res_type:sn.res_type||null,res_rent:sn.res_rent||null,
+          comm_rent_sqft:sn.comm_rent_sqft||null,comm_area:sn.comm_area||null,
+          mkt_range:sn.mkt_range,
+          broker_name:sn.broker_name||null,
+          broker_phone:sn.broker_phone||null,
+          valuation_date:new Date().toISOString().split('T')[0],
+          confidence:'pending'
+        };
+        await dbInsert('rental_rates',rentalData);
+      }catch(e){}
+    }
+    toast('Site notes saved ✓','ok');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+function calcSiteEst(){
+  const lr=pf('sn_land_rate')||0,lc=pf('sn_land_cents')||0;
+  const br=pf('sn_bldg_rate')||0,ba=pf('sn_bldg_area')||0;
+  const lv=lr*lc,bv=br*ba,tot=lv+bv;
+  const box=document.getElementById('sn_est_box');
+  if(lv>0||bv>0){
+    box.style.display='block';
+    document.getElementById('se_land').textContent='₹ '+Math.round(lv).toLocaleString('en-IN');
+    document.getElementById('se_bldg').textContent='₹ '+Math.round(bv).toLocaleString('en-IN');
+    document.getElementById('se_tot').textContent='₹ '+Math.round(tot).toLocaleString('en-IN');
+  }else box.style.display='none';
+}
+
+function fetchGPS(){
+  const status=document.getElementById('gps_status');
+  status.textContent='📡 Fetching your location…';
+  if(!navigator.geolocation){
+    status.textContent='GPS not supported on this browser';
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      document.getElementById('sn_lat').value=pos.coords.latitude.toFixed(6);
+      document.getElementById('sn_lon').value=pos.coords.longitude.toFixed(6);
+      status.textContent=`✅ Location fetched (±${Math.round(pos.coords.accuracy)}m accuracy)`;
+    },
+    err=>{
+      if(err.code===1) status.textContent='❌ Location permission denied — please allow in browser settings';
+      else if(err.code===2) status.textContent='❌ Location unavailable — try moving outdoors';
+      else status.textContent='❌ GPS timeout — tap again';
+    },
+    {enableHighAccuracy:true, timeout:15000, maximumAge:0}
+  );
+}
+
+function autoFetchGPS(){
+  if(!navigator.geolocation) return;
+  const status=document.getElementById('gps_status');
+  status.textContent='📡 Auto-fetching location…';
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      document.getElementById('sn_lat').value=pos.coords.latitude.toFixed(6);
+      document.getElementById('sn_lon').value=pos.coords.longitude.toFixed(6);
+      status.textContent=`✅ Location auto-fetched (±${Math.round(pos.coords.accuracy)}m)`;
+    },
+    err=>{
+      status.textContent='Tap the GPS button to fetch location';
+    },
+    {enableHighAccuracy:true, timeout:15000, maximumAge:0}
+  );
+}
+
+function addPhotos(e){
+  [...e.target.files].forEach(f=>{
+    const r=new FileReader();
+    r.onload=ev=>{sitePhotos.push({name:f.name,data:ev.target.result});renderPhotos();};
+    r.readAsDataURL(f);
+  });
+  e.target.value='';
+}
+function renderPhotos(){
+  document.getElementById('photoGrid').innerHTML=sitePhotos.map((p,i)=>`
+    <div class="pthumb"><img src="${p.data}"><button class="prm" onclick="sitePhotos.splice(${i},1);renderPhotos()">×</button></div>`).join('');
+}
+
+function downloadSiteNotesPDF(){
+  if(!snCaseId){toast('No case selected','err');return;}
+  const sn=gSN();
+  const c=CASES.find(x=>x.case_id===snCaseId)||{};
+  const fw=window.open('','_blank');
+  fw.document.write(buildSNPDF(c,sn));
+  fw.document.close();
+}
+
+function downloadSiteNotesWord(){
+  if(!snCaseId){toast('No case selected','err');return;}
+  const sn=gSN();
+  const c=CASES.find(x=>x.case_id===snCaseId)||{};
+  const content=buildSNWord(c,sn);
+  const blob=new Blob([content],{type:'application/msword'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`SiteNotes_${(c.case_name||'draft').replace(/\s+/g,'_')}_${c.received_date||'draft'}.doc`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Site Notes Word downloaded ✓','ok');
+}
+
+function buildSNWord(c,sn){
+  const photoHTML=sitePhotos.length>0?`<h3>Photos</h3><p>(${sitePhotos.length} photo(s) taken on site)</p>`:'';
+  return `<html><head><meta charset="utf-8">
+  <style>body{font-family:Arial;font-size:11pt;}h1,h2{text-align:center;}h3{font-size:11pt;background:#DCDCDC;padding:4px 8px;margin:12px 0 6px;}table{width:100%;border-collapse:collapse;margin:6pt 0;}th,td{border:1px solid #999;padding:5px 7px;font-size:10pt;}th{background:#DCDCDC;font-weight:bold;text-align:left;}td:first-child{font-weight:bold;width:25%;}.footer{margin-top:30px;display:flex;justify-content:space-between;font-size:9.5pt;}</style>
+  </head><body>
+  <h1>DC VALUATION & ADVISORY</h1>
+  <h2>SITE TECHNICAL NOTES</h2>
+  <p style="text-align:center;font-size:10pt;">Case: <b>${c.case_name||'—'}</b> | Bank: <b>${c.bank_name||'—'}</b> | App ID: <b>${c.application_id||'—'}</b> | Date: <b>${c.received_date||'—'}</b></p>
+  <h3>1. Property Identification</h3>
+  <table><tr><th>Particulars</th><th>As per Site</th><th>Title Deed</th><th>Location Sketch</th></tr>
+  <tr><td>Owner Name</td><td>${sn.id_owner_site||'—'}</td><td>${sn.id_owner_deed||'—'}</td><td>${sn.id_owner_sketch||'—'}</td></tr>
+  <tr><td>Survey No.</td><td>${sn.id_survey_site||'—'}</td><td>${sn.id_survey_deed||'—'}</td><td>${sn.id_survey_sketch||'—'}</td></tr>
+  <tr><td>Door No.</td><td>${sn.id_door||'—'}</td><td>${sn.id_door_deed||'—'}</td><td>${sn.id_door_sketch||'—'}</td></tr>
+  <tr><td>Village</td><td>${sn.id_village_site||'—'}</td><td>${sn.id_village_deed||'—'}</td><td>${sn.id_village_sketch||'—'}</td></tr></table>
+  <p style="font-size:10pt;">Taluk: <b>${sn.taluk||'—'}</b> &nbsp;|&nbsp; District: <b>${sn.district||'—'}</b> &nbsp;|&nbsp; Local Body: <b>${sn.local_body||'—'}</b></p>
+  <h3>2. Boundary Demarcation</h3>
+  <table><tr><th>Direction</th><th>As per Title Deed</th><th>Location Sketch</th><th>Physical Visit</th></tr>
+  <tr><td>North</td><td>${sn.bnd_n_deed||'—'}</td><td>${sn.bnd_n_sketch||'—'}</td><td>${sn.bnd_n_site||'—'}</td></tr>
+  <tr><td>South</td><td>${sn.bnd_s_deed||'—'}</td><td>${sn.bnd_s_sketch||'—'}</td><td>${sn.bnd_s_site||'—'}</td></tr>
+  <tr><td>East</td><td>${sn.bnd_e_deed||'—'}</td><td>${sn.bnd_e_sketch||'—'}</td><td>${sn.bnd_e_site||'—'}</td></tr>
+  <tr><td>West</td><td>${sn.bnd_w_deed||'—'}</td><td>${sn.bnd_w_sketch||'—'}</td><td>${sn.bnd_w_site||'—'}</td></tr></table>
+  <p style="font-size:10pt;">Demarcation: <b>${sn.demarcation||'—'}</b> &nbsp;|&nbsp; Shape: <b>${sn.shape||'—'}</b></p>
+  <h3>3. Land & Building Measurements</h3>
+  <table>
+  <tr><td>Land Area (Document)</td><td>${sn.area_doc||'—'}</td><td>Land Area (Site)</td><td>${sn.area_site||'—'}</td></tr>
+  <tr><td>Road Type</td><td>${sn.road_type||'—'}</td><td>Road Width</td><td>${sn.road_width||'—'}</td></tr>
+  <tr><td>BUA (Document)</td><td>${sn.bua_doc||'—'} sqft</td><td>BUA (Site)</td><td>${sn.bua_site||'—'} sqft</td></tr>
+  <tr><td>Construction Type</td><td>${sn.const_type||'—'}</td><td>No. of Floors</td><td>${sn.floors||'—'}</td></tr>
+  <tr><td>Overall Condition</td><td>${sn.condition||'—'}</td><td>Age of Building</td><td>${sn.age||'—'} years</td></tr>
+  </table>
+  <h3>4. Market Rate & Age of Building</h3>
+  <table>
+  <tr><td>Prevailing Market Rate</td><td>${sn.mkt_range||'—'}</td><td>Age of Building</td><td>${sn.age||'—'} years</td></tr>
+  <tr><td>Comparable Sale 1</td><td colspan="3">${sn.comparable1||'—'}</td></tr>
+  <tr><td>Comparable Sale 2</td><td colspan="3">${sn.comparable2||'—'}</td></tr>
+  </table>
+  <h3>5. Adopted Rate (Engineer's Estimate)</h3>
+  <table>
+  <tr><td>Land Rate</td><td>Rs. ${(sn.land_rate||0).toLocaleString('en-IN')}/cent</td><td>Land Area</td><td>${sn.land_cents||'—'} cents</td></tr>
+  <tr><td>Land Value</td><td colspan="3"><b>Rs. ${Math.round((sn.land_rate||0)*(sn.land_cents||0)).toLocaleString('en-IN')}</b></td></tr>
+  <tr><td>Building Rate</td><td>Rs. ${(sn.bldg_rate||0).toLocaleString('en-IN')}/sqft</td><td>BUA for Valuation</td><td>${sn.bldg_area||'—'} sqft</td></tr>
+  <tr><td>Building Value</td><td colspan="3"><b>Rs. ${Math.round((sn.bldg_rate||0)*(sn.bldg_area||0)).toLocaleString('en-IN')}</b></td></tr>
+  <tr><td><b>Estimated Total</b></td><td colspan="3"><b>Rs. ${Math.round((sn.land_rate||0)*(sn.land_cents||0)+(sn.bldg_rate||0)*(sn.bldg_area||0)).toLocaleString('en-IN')}</b></td></tr>
+  </table>
+  <h3>6. GPS Coordinates</h3>
+  <table><tr><td>Latitude</td><td>${sn.lat||'—'}</td><td>Longitude</td><td>${sn.lon||'—'}</td></tr></table>
+  <h3>7. General Remarks & Concerns</h3>
+  <p style="line-height:1.8;">${sn.remarks||'No remarks entered.'}</p>
+  ${photoHTML}
+  <br><br>
+  <table style="border:none;"><tr style="border:none;">
+    <td style="border:none;">Place: Alappuzha<br>Date: ${c.received_date||'—'}</td>
+    <td style="border:none;text-align:right;"><br>________________________<br>Engineer: <b>${CU?.name||'—'}</b><br>DC Valuation &amp; Advisory</td>
+  </tr></table>
+  </body></html>`;
+}
+
+function buildSNPDF(c,sn){
+  const photos=sitePhotos.length>0?`<h3>Photos</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">${sitePhotos.map(p=>`<img src="${p.data}" style="width:100%;border-radius:6px;">`).join('')}</div>`:'';
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Site Notes – ${c.case_name||''}</title>
+  <style>body{font-family:Arial;font-size:10pt;padding:20px;}h1,h2{text-align:center;}h3{font-size:10pt;background:#E8E8E8;padding:4px 8px;margin:12px 0 6px;}table{width:100%;border-collapse:collapse;font-size:9.5pt;}th,td{border:1px solid #bbb;padding:4px 6px;}th{background:#E8E8E8;font-weight:bold;text-align:left;}td:first-child{font-weight:bold;width:30%;}.footer{margin-top:30px;display:flex;justify-content:space-between;font-size:9pt;}@media print{body{padding:10px;}}</style>
+  </head><body>
+  <h1>DC VALUATION & ADVISORY</h1><h2>SITE TECHNICAL NOTES</h2>
+  <p style="text-align:center;font-size:9pt;margin-bottom:12px;">Case: <b>${c.case_name||'—'}</b> | Bank: <b>${c.bank_name||'—'}</b> | App ID: <b>${c.application_id||'—'}</b> | Date: <b>${c.received_date||'—'}</b></p>
+  <h3>1. Property Identification</h3>
+  <table><tr><th>Particulars</th><th>As per Site</th><th>Title Deed</th><th>Location Sketch</th></tr>
+  <tr><td>Owner Name</td><td>${sn.id_owner_site||'—'}</td><td>${sn.id_owner_deed||'—'}</td><td>${sn.id_owner_sketch||'—'}</td></tr>
+  <tr><td>Survey No.</td><td>${sn.id_survey_site||'—'}</td><td>${sn.id_survey_deed||'—'}</td><td>${sn.id_survey_sketch||'—'}</td></tr>
+  <tr><td>Door No.</td><td>${sn.id_door||'—'}</td><td>${sn.id_door_deed||'—'}</td><td>${sn.id_door_sketch||'—'}</td></tr>
+  <tr><td>Village</td><td>${sn.id_village_site||'—'}</td><td>${sn.id_village_deed||'—'}</td><td>${sn.id_village_sketch||'—'}</td></tr></table>
+  <p style="margin-top:6px;font-size:9pt;">Taluk: <b>${sn.taluk||'—'}</b> | District: <b>${sn.district||'—'}</b> | Local Body: <b>${sn.local_body||'—'}</b></p>
+  <h3>2. Boundary Demarcation</h3>
+  <table><tr><th>Direction</th><th>Title Deed</th><th>Location Sketch</th><th>Physical Visit</th></tr>
+  <tr><td>North</td><td>${sn.bnd_n_deed||'—'}</td><td>${sn.bnd_n_sketch||'—'}</td><td>${sn.bnd_n_site||'—'}</td></tr>
+  <tr><td>South</td><td>${sn.bnd_s_deed||'—'}</td><td>${sn.bnd_s_sketch||'—'}</td><td>${sn.bnd_s_site||'—'}</td></tr>
+  <tr><td>East</td><td>${sn.bnd_e_deed||'—'}</td><td>${sn.bnd_e_sketch||'—'}</td><td>${sn.bnd_e_site||'—'}</td></tr>
+  <tr><td>West</td><td>${sn.bnd_w_deed||'—'}</td><td>${sn.bnd_w_sketch||'—'}</td><td>${sn.bnd_w_site||'—'}</td></tr></table>
+  <p style="margin-top:6px;font-size:9pt;">Demarcation: <b>${sn.demarcation||'—'}</b> | Shape: <b>${sn.shape||'—'}</b></p>
+  <h3>3. Land & Building Measurements</h3>
+  <table><tr><td>Land Area (Doc)</td><td>${sn.area_doc||'—'}</td><td>Land Area (Site)</td><td>${sn.area_site||'—'}</td></tr>
+  <tr><td>Road Type</td><td>${sn.road_type||'—'}</td><td>Road Width</td><td>${sn.road_width||'—'}</td></tr>
+  <tr><td>BUA (Doc)</td><td>${sn.bua_doc||'—'} sqft</td><td>BUA (Site)</td><td>${sn.bua_site||'—'} sqft</td></tr>
+  <tr><td>Construction</td><td>${sn.const_type||'—'}</td><td>Floors</td><td>${sn.floors||'—'}</td></tr>
+  <tr><td>Condition</td><td>${sn.condition||'—'}</td><td>Age</td><td>${sn.age||'—'} yrs</td></tr></table>
+  <h3>4. Market Rate & Comparables</h3>
+  <p>Market Rate Range: <b>${sn.mkt_range||'—'}</b></p>
+  <p>Comparable 1: ${sn.comparable1||'—'}</p>
+  <p>Comparable 2: ${sn.comparable2||'—'}</p>
+  <h3>5. Adopted Rate (Engineer's Estimate)</h3>
+  <table><tr><td>Land Rate</td><td>Rs. ${(sn.land_rate||0).toLocaleString('en-IN')}/cent</td><td>Land Area</td><td>${sn.land_cents||'—'} cents</td></tr>
+  <tr><td>Building Rate</td><td>Rs. ${(sn.bldg_rate||0).toLocaleString('en-IN')}/sqft</td><td>BUA</td><td>${sn.bldg_area||'—'} sqft</td></tr>
+  <tr><td colspan="2"><b>Estimated Total</b></td><td colspan="2"><b>Rs. ${Math.round((sn.land_rate||0)*(sn.land_cents||0)+(sn.bldg_rate||0)*(sn.bldg_area||0)).toLocaleString('en-IN')}</b></td></tr></table>
+  <h3>6. GPS Coordinates</h3>
+  <p>Latitude: <b>${sn.lat||'—'}</b> | Longitude: <b>${sn.lon||'—'}</b></p>
+  <h3>7. Remarks & Concerns</h3>
+  <p style="line-height:1.6;">${sn.remarks||'—'}</p>
+  ${photos}
+  <div class="footer"><span>Engineer: <b>${CU?.name||'—'}</b></span><span>DC Valuation & Advisory | Dhanish Nair | IBBI/RV/04/2022/14602</span></div>
+  <scr`+'ipt>window.onload=function(){window.print()}</scr'+'ipt></body></html>';
+}
+
+// ── REPORT ──
+function populateReportPicker(){
+  const el=document.getElementById('r_case');
+  if(!el) return;
+  let cases=CASES;
+  if(CU.role!=='admin'){
+    cases=CASES.filter(c=>{const t=trk(c.case_id);return t&&t.typist_name&&t.typist_name.toLowerCase()===CU.name.toLowerCase();});
+  }
+  el.innerHTML='<option value="">Select case…</option>'+cases.map(c=>{
+    const t=trk(c.case_id);
+    return `<option value="${c.case_id}">${c.bank_name} – ${c.case_name||'Unnamed'} ${t?.report_complete?'✅':'⏳'}</option>`;
+  }).join('');
+}
+
+async function onReportPick(){
+  const id=g('r_case');
+  const sumEl=document.getElementById('r_summary');
+  const formEl=document.getElementById('r_form');
+  if(!id){sumEl.style.display='none';formEl.style.display='none';rptCaseId=null;currentSN=null;return;}
+  rptCaseId=id;
+  clearReportForm();
+  const c=CASES.find(x=>x.case_id===id);
+  const t=trk(id);
+  sumEl.innerHTML=`<b>${c.bank_name}</b> · ${c.case_name||'—'}<br>
+    ${t?.visit_complete?'<span style="color:var(--green)">✅ Visit complete</span>':'<span style="color:var(--amber)">⚠ Visit not yet marked complete</span>'}`;
+  sumEl.style.display='block';
+  // Pre-fill
+  document.getElementById('r_loanno').value=c.application_id||'';
+  document.getElementById('r_reportdate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('r_inspdate').value=t?.visit_date||'';
+  // Load site notes and pre-fill report
+  try{
+    currentSN=await dbGetOne('site_notes',{case_ref:id});
+    if(currentSN){
+      // Pre-fill valuation fields from site notes
+      if(currentSN.land_cents) document.getElementById('r_cents').value=currentSN.land_cents;
+      if(currentSN.land_rate) document.getElementById('r_landrate').value=currentSN.land_rate;
+      if(currentSN.bua_site) document.getElementById('r_bua').value=currentSN.bua_site;
+      if(currentSN.bldg_rate) document.getElementById('r_constrate').value=currentSN.bldg_rate;
+      if(currentSN.mkt_range) document.getElementById('r_mktrange').value=currentSN.mkt_range;
+      if(currentSN.age) document.getElementById('r_residual').value=Math.max(0,60-parseInt(currentSN.age||0));
+      // Pre-fill owner from site notes property identification
+      if(currentSN.id_owner_site&&!g('r_owner')) document.getElementById('r_owner').value=currentSN.id_owner_site;
+      // Pre-fill remarks
+      if(currentSN.remarks&&!g('r_remarks')) document.getElementById('r_remarks').value=currentSN.remarks;
+    } else {
+      // No site notes found — warn typist
+      const sumEl=document.getElementById('r_summary');
+      sumEl.innerHTML+='<div style="color:var(--red);font-size:12px;margin-top:6px;">⚠ No site notes found for this case. Ask engineer to complete site visit first.</div>';
+    }
+  }catch(e){console.error('Site notes load error:',e);}
+  // Load existing draft
+  try{
+    const draft=await dbGetOne('report_drafts',{case_ref:id});
+    if(draft) fillDraft(draft);
+  }catch(e){}
+  setReport(!!t?.report_complete);
+  calcRpt();
+  formEl.style.display='block';
+  runValidation();
+}
+
+function fillDraft(d){
+  const map={r_applicant:'applicant',r_coapplicant:'coapplicant',r_loanno:'loan_no',
+    r_presentliab:'present_liab',r_prevliab:'prev_liab',r_inspdate:'insp_date',
+    r_reportdate:'report_date',r_owner:'owner_name',r_owneraddr:'owner_addr',
+    r_ownerphone:'owner_phone',r_ownership:'ownership',r_deedno:'deed_no',
+    r_deeddate:'deed_date',r_sro:'sro',r_deeddesc:'deed_desc',
+    r_cents:'land_cents',r_landrate:'land_rate',r_guideline:'guideline_rate',
+    r_mktrange:'mkt_range',r_bua:'bua',r_constrate:'const_rate',
+    r_dep:'dep_pct',r_fsvpct:'fsv_pct',r_residual:'residual_age',
+    r_remarks:'remarks',r_conditions:'report_conditions',r_status:'report_status'};
+  Object.entries(map).forEach(([elId,field])=>{
+    const el=document.getElementById(elId);
+    if(el&&d[field]!=null) el.value=d[field];
+  });
+}
+
+function setReport(v){
+  reportDone=v;
+  document.getElementById('r_tog').classList.toggle('on',v);
+  document.getElementById('r_chk').style.display=v?'block':'none';
+}
+function togReport(){setReport(!reportDone);}
+
+function calcRpt(){
+  const lc=pf('r_cents')||0,lr=pf('r_landrate')||0;
+  const bua=pf('r_bua')||0,cr=pf('r_constrate')||0;
+  const dep=pf('r_dep')||0,fsvP=pf('r_fsvpct')||75;
+  const lv=lc*lr,bg=bua*cr,da=bg*(dep/100),bn=bg-da,fmv=lv+bn,fsv=fmv*(fsvP/100);
+  const f=v=>v>0?'₹ '+Math.round(v).toLocaleString('en-IN'):'—';
+  document.getElementById('r_landval').textContent=f(lv);
+  document.getElementById('r_bldggross').textContent=f(bg);
+  document.getElementById('r_depamt').textContent=f(da);
+  document.getElementById('r_bldgnet').textContent=f(bn);
+  document.getElementById('r_fmv').textContent=f(fmv);
+  document.getElementById('r_fsv').textContent=f(fsv);
+  document.getElementById('r_fsvlbl').textContent=`Forced Sale Value (${fsvP}%)`;
+  runValidation();
+}
+
+let curWarnings=[];
+function runValidation(){
+  if(!rptCaseId) return;
+  const sn=currentSN;
+  const warns=[],docWarns=[];
+  if(!sn){docWarns.push('No site notes found — engineer must complete site notes first');}
+  else{
+    const tLR=pf('r_landrate')||0,eLR=sn.land_rate||0;
+    if(tLR>0&&eLR>0){const d=Math.abs(tLR-eLR)/eLR*100;if(d>0.1)warns.push(`Land Rate: You entered Rs. ${tLR.toLocaleString('en-IN')}/cent, engineer estimated Rs. ${eLR.toLocaleString('en-IN')}/cent (${d.toFixed(1)}% diff)`);}
+    const tCR=pf('r_constrate')||0,eCR=sn.bldg_rate||0;
+    if(tCR>0&&eCR>0){const d=Math.abs(tCR-eCR)/eCR*100;if(d>0.1)warns.push(`Building Rate: You entered Rs. ${tCR.toLocaleString('en-IN')}/sqft, engineer estimated Rs. ${eCR.toLocaleString('en-IN')}/sqft (${d.toFixed(1)}% diff)`);}
+    const tBUA=pf('r_bua')||0,eBUA=sn.bua_site||0;
+    if(tBUA>0&&eBUA>0&&tBUA!==eBUA)warns.push(`BUA: You entered ${tBUA} sqft, engineer measured ${eBUA} sqft — confirm which is used`);
+    const tC=pf('r_cents')||0,eC=sn.land_cents||0;
+    if(tC>0&&eC>0&&Math.abs(tC-eC)>0.01)warns.push(`Land Area: You entered ${tC} cents, engineer recorded ${eC} cents — verify against deed`);
+  }
+  curWarnings=[...docWarns,...warns];
+  const panel=document.getElementById('val_panel');
+  const ackRow=document.getElementById('ack_row');
+  if(curWarnings.length===0){
+    panel.className='vp ok';
+    document.getElementById('val_title').innerHTML='✅ All checks passed';
+    document.getElementById('val_items').innerHTML='';
+    ackRow.classList.remove('vis');
+    ackDone=true;
+  }else{
+    panel.className='vp warn';
+    document.getElementById('val_title').innerHTML=`⚠ ${curWarnings.length} item${curWarnings.length>1?'s':''} to review`;
+    document.getElementById('val_items').innerHTML=[
+      ...docWarns.map(w=>`<div class="vpi doc">🔴 ${w}</div>`),
+      ...warns.map(w=>`<div class="vpi">⚠️ ${w}</div>`)
+    ].join('');
+    ackRow.classList.add('vis');
+    ackDone=false;
+    document.getElementById('ack_row').classList.remove('ck');
+  }
+}
+
+function toggleAck(){
+  ackDone=!ackDone;
+  document.getElementById('ack_row').classList.toggle('ck',ackDone);
+}
+
+async function submitReport(){
+  if(!rptCaseId){toast('No case selected','err');return;}
+  if(curWarnings.length>0&&!ackDone){
+    toast('Please acknowledge warnings first','err');
+    document.getElementById('ack_row').scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  if(!g('r_applicant')){toast('Applicant name required','err');return;}
+  if(!g('r_reportdate')){toast('Report date required','err');return;}
+  if(!g('r_owner')){toast('Owner name required','err');return;}
+  if(!g('r_cents')||!g('r_landrate')){toast('Land rate and area required','err');return;}
+  const c=CASES.find(x=>x.case_id===rptCaseId);
+  const now=new Date();
+  const draft={
+    case_ref:rptCaseId,case_id:c.id,typist_name:CU.name,
+    applicant:g('r_applicant'),coapplicant:g('r_coapplicant'),loan_no:g('r_loanno'),
+    present_liab:pf('r_presentliab'),prev_liab:pf('r_prevliab'),
+    insp_date:g('r_inspdate')||null,report_date:g('r_reportdate')||null,
+    owner_name:g('r_owner'),owner_addr:g('r_owneraddr'),owner_phone:g('r_ownerphone'),
+    ownership:g('r_ownership'),deed_no:g('r_deedno'),deed_date:g('r_deeddate')||null,
+    sro:g('r_sro'),deed_desc:g('r_deeddesc'),
+    land_cents:pf('r_cents'),land_rate:pf('r_landrate'),
+    guideline_rate:g('r_guideline'),mkt_range:g('r_mktrange'),
+    bua:pf('r_bua'),const_rate:pf('r_constrate'),dep_pct:pf('r_dep'),
+    fsv_pct:pf('r_fsvpct'),residual_age:pf('r_residual'),
+    remarks:g('r_remarks'),report_conditions:g('r_conditions'),
+    report_status:g('r_status'),warnings_acknowledged:ackDone
+  };
+  try{
+    const existing=await dbGetOne('report_drafts',{case_ref:rptCaseId});
+    if(existing) await dbUpdate('report_drafts',{case_ref:rptCaseId},draft);
+    else await dbInsert('report_drafts',draft);
+    if(reportDone){
+      const t=trk(rptCaseId);
+      const tPayload={
+        submit_date:now.toISOString().split('T')[0],
+        submit_time:now.toTimeString().slice(0,5),
+        report_complete:true,
+        report_completed_at:now.toISOString(),
+        report_conditions:g('r_conditions')
+      };
+      if(t) await dbUpdate('tracking',{case_ref:rptCaseId},tPayload);
+      await dbUpdate('cases',{case_id:rptCaseId},{status:'report_done'});
+      // Write to land rate DB
+      if(currentSN&&currentSN.land_rate&&currentSN.land_cents){
+        await dbInsert('land_rates',{
+          case_ref:rptCaseId,case_id:c.id,
+          village:currentSN.id_village_site,taluk:currentSN.taluk,district:currentSN.district,
+          lat:currentSN.lat,lon:currentSN.lon,prop_type:currentSN.prop_type,
+          land_rate_per_cent:pf('r_landrate'),bldg_rate_per_sqft:pf('r_constrate'),
+          valuation_date:g('r_reportdate')||now.toISOString().split('T')[0],
+          bank_name:c.bank_name
+        });
+      }
+    }
+    if(reportDone){
+      showSuccess('👍','Report Complete!','Report submitted successfully. Excellent work, '+CU.name+'!');
+    } else {
+      toast('Report draft saved ✓','ok');
+    }
+    loadData();
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+function genReport(fmt){
+  if(curWarnings.length>0&&!ackDone){toast('Acknowledge warnings first','err');return;}
+  if(!rptCaseId){toast('No case selected','err');return;}
+  const c=CASES.find(x=>x.case_id===rptCaseId)||{};
+  const lc=pf('r_cents')||0,lr=pf('r_landrate')||0;
+  const bua=pf('r_bua')||0,cr=pf('r_constrate')||0;
+  const dep=pf('r_dep')||0,fsvP=pf('r_fsvpct')||75;
+  const lv=lc*lr,bg=bua*cr,da=bg*(dep/100),bn=bg-da,fmv=lv+bn,fsv=fmv*(fsvP/100);
+  const d={
+    bank:c.bank_name,caseName:c.case_name,appId:c.application_id,
+    applicant:g('r_applicant'),coapplicant:g('r_coapplicant')||'NA',loanNo:g('r_loanno'),
+    presentLiab:pf('r_presentliab'),prevLiab:pf('r_prevliab'),
+    inspDate:g('r_inspdate'),reportDate:g('r_reportdate'),
+    owner:g('r_owner'),ownerAddr:g('r_owneraddr'),ownerPhone:g('r_ownerphone'),
+    ownership:g('r_ownership'),deedNo:g('r_deedno'),deedDate:g('r_deeddate'),
+    sro:g('r_sro'),deedDesc:g('r_deeddesc'),
+    landCents:lc,landRate:lr,landVal:lv,
+    bua,constRate:cr,bldgGross:bg,dep,depAmt:da,bldgNet:bn,fmv,fsv,fsvP,
+    guideline:g('r_guideline'),mktRange:g('r_mktrange'),
+    remarks:g('r_remarks'),conditions:g('r_conditions'),status:g('r_status'),
+    sn:currentSN||{}
+  };
+  if(fmt==='pdf'){
+    const fw=window.open('','_blank');
+    fw.document.write(buildRptHTML(d));
+    fw.document.close();
+  }else{
+    const blob=new Blob([buildRptWord(d)],{type:'application/msword'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=`ValuationReport_${(d.applicant||'draft').replace(/\s+/g,'_')}_${d.reportDate||'draft'}.doc`;
+    a.click();URL.revokeObjectURL(url);
+    toast('Word document downloaded ✓','ok');
+  }
+}
+
+function fmtR(v){return v>0?'₹ '+Math.round(v).toLocaleString('en-IN'):'—';}
+
+function n2w(n){
+  if(!n)return'Zero';
+  const o=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+  const t=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  function c(n){if(n<20)return o[n];if(n<100)return t[Math.floor(n/10)]+(n%10?' '+o[n%10]:'');if(n<1000)return o[Math.floor(n/100)]+' Hundred'+(n%100?' '+c(n%100):'');if(n<100000)return c(Math.floor(n/1000))+' Thousand'+(n%1000?' '+c(n%1000):'');if(n<10000000)return c(Math.floor(n/100000))+' Lakh'+(n%100000?' '+c(n%100000):'');return c(Math.floor(n/10000000))+' Crore'+(n%10000000?' '+c(n%10000000):'');}
+  return c(Math.round(n));
+}
+
+function rptStyles(){return `<style>*{box-sizing:border-box;}body{font-family:Arial;font-size:10.5pt;padding:20px;}.hdr{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px;}h2{font-size:12pt;font-weight:bold;}h3{font-size:10.5pt;background:#E8E8E8;padding:4px 8px;margin:14px 0 6px;}table{width:100%;border-collapse:collapse;margin-bottom:8px;}th,td{border:1px solid #aaa;padding:4px 6px;font-size:10pt;}th{background:#E8E8E8;font-weight:bold;text-align:left;}td:first-child{font-weight:bold;}.tot{background:#f0f0f0;font-weight:bold;}.footer{margin-top:30px;display:flex;justify-content:space-between;font-size:9.5pt;}@media print{body{padding:10px;}}</style>`;}
+
+function buildRptHTML(d){
+  const sn=d.sn;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Valuation Report</title>${rptStyles()}</head><body>
+  <div class="hdr"><h2>DC VALUATION & ADVISORY</h2>
+  <p>Dhanyam, Sanathanapuram P.O., Kalarcode, Alappuzha – 688 003</p>
+  <p>Dhanish Nair | IBBI/RV/04/2022/14602 | 8089277424 | nair.dhanish993@gmail.com</p>
+  <h2 style="margin-top:8px;">VALUATION REPORT</h2>
+  <p>Bank: ${d.bank} | Ref: ${d.loanNo||'—'} | Status: <b>${d.status}</b></p></div>
+  <h3>I. General Details</h3>
+  <table><tr><td>Applicant</td><td>${d.applicant||'—'}</td><td>Co-Applicant</td><td>${d.coapplicant||'—'}</td></tr>
+  <tr><td>Loan/App No.</td><td>${d.loanNo||'—'}</td><td>Date of Inspection</td><td>${d.inspDate||'—'}</td></tr>
+  <tr><td>Date of Report</td><td>${d.reportDate||'—'}</td><td>Report Status</td><td><b>${d.status}</b></td></tr>
+  <tr><td>Owner Name</td><td>${d.owner||'—'}</td><td>Phone</td><td>${d.ownerPhone||'—'}</td></tr>
+  <tr><td>Owner Address</td><td colspan="3">${d.ownerAddr||'—'}</td></tr>
+  <tr><td>Ownership</td><td>${d.ownership||'—'}</td><td>Deed No.</td><td>${d.deedNo||'—'}</td></tr>
+  <tr><td>SRO</td><td>${d.sro||'—'}</td><td>Deed Date</td><td>${d.deedDate||'—'}</td></tr>
+  <tr><td>Description</td><td colspan="3">${d.deedDesc||'—'}</td></tr></table>
+  <h3>II. Property Details</h3>
+  <table><tr><td>Survey No.</td><td>${sn.id_survey_site||'—'}</td><td>Village</td><td>${sn.id_village_site||'—'}</td></tr>
+  <tr><td>Taluk</td><td>${sn.taluk||'—'}</td><td>District</td><td>${sn.district||'—'}</td></tr>
+  <tr><td>GPS</td><td colspan="3">${sn.lat||'—'}, ${sn.lon||'—'}</td></tr>
+  <tr><td>Land Area (Doc)</td><td>${sn.area_doc||'—'}</td><td>Land Area (Site)</td><td>${sn.area_site||'—'}</td></tr>
+  <tr><td>BUA (Site)</td><td>${sn.bua_site||'—'} sqft</td><td>Construction</td><td>${sn.const_type||'—'}</td></tr>
+  <tr><td>Age</td><td>${sn.age||'—'} years</td><td>Residual Age</td><td>${d.residual||'—'} years</td></tr></table>
+  <h3>III. Boundaries</h3>
+  <table><tr><th>Direction</th><th>Title Deed</th><th>Location Sketch</th><th>Physical Visit</th></tr>
+  <tr><td>North</td><td>${sn.bnd_n_deed||'—'}</td><td>${sn.bnd_n_sketch||'—'}</td><td>${sn.bnd_n_site||'—'}</td></tr>
+  <tr><td>South</td><td>${sn.bnd_s_deed||'—'}</td><td>${sn.bnd_s_sketch||'—'}</td><td>${sn.bnd_s_site||'—'}</td></tr>
+  <tr><td>East</td><td>${sn.bnd_e_deed||'—'}</td><td>${sn.bnd_e_sketch||'—'}</td><td>${sn.bnd_e_site||'—'}</td></tr>
+  <tr><td>West</td><td>${sn.bnd_w_deed||'—'}</td><td>${sn.bnd_w_sketch||'—'}</td><td>${sn.bnd_w_site||'—'}</td></tr></table>
+  <h3>IV. Valuation</h3>
+  <table><tr><th>Particulars</th><th>Area</th><th>Rate</th><th>Value (Rs.)</th></tr>
+  <tr><td>Land Value</td><td>${d.landCents} cents</td><td>Rs. ${d.landRate.toLocaleString('en-IN')}/cent</td><td><b>${fmtR(d.landVal)}</b></td></tr>
+  <tr><td>Building Cost</td><td>${d.bua} sqft</td><td>Rs. ${d.constRate.toLocaleString('en-IN')}/sqft</td><td><b>${fmtR(d.bldgGross)}</b></td></tr>
+  <tr><td>Depreciation (${d.dep}%)</td><td></td><td></td><td>${fmtR(d.depAmt)}</td></tr>
+  <tr><td>Net Building Value</td><td></td><td></td><td><b>${fmtR(d.bldgNet)}</b></td></tr>
+  <tr class="tot"><td colspan="3"><b>FAIR MARKET VALUE</b></td><td><b>${fmtR(d.fmv)}</b></td></tr>
+  <tr><td colspan="3">Forced Sale Value (${d.fsvP}%)</td><td><b>${fmtR(d.fsv)}</b></td></tr></table>
+  <p><b>FMV in Words:</b> ${n2w(Math.round(d.fmv))} Rupees Only</p>
+  <p style="margin-top:4px;"><b>Guideline Rate:</b> ${d.guideline||'—'} | <b>Market Rate:</b> ${d.mktRange||'—'}</p>
+  <h3>V. Remarks</h3><p style="line-height:1.6;">${d.remarks||'—'}</p>
+  <p style="margin-top:6px;"><b>Market Analysis:</b> ${sn.mkt_range?'Average ongoing rate in the locality is '+sn.mkt_range+'.':''} ${sn.comparable1?'Comparable: '+sn.comparable1+'.':''} ${sn.comparable2?'Comparable: '+sn.comparable2+'.':''}</p>
+  ${d.conditions?`<p style="margin-top:6px;"><b>Conditions:</b> ${d.conditions}</p>`:''}
+  <h3>Declaration</h3>
+  <p style="font-size:9.5pt;line-height:1.5;">I, Dhanish Nair, have personally visited the property and identified the same based on the documents provided. I have no direct or indirect interest in the property being valued. The information furnished is true and correct to my knowledge.</p>
+  <div class="footer">
+    <div>Place: Alappuzha<br>Date: ${d.reportDate||'—'}</div>
+    <div style="text-align:right;"><br>________________________<br>DC Valuation & Advisory<br>Dhanish Nair | IBBI/RV/04/2022/14602</div>
+  </div>
+  <scr`+'ipt>window.onload=function(){window.print()}</scr'+'ipt></body></html>';
+}
+
+function buildRptWord(d){
+  const sn=d.sn;
+  return `<html><head><meta charset="utf-8"><style>body{font-family:Arial;font-size:11pt;}h1,h2{text-align:center;}h3{background:#DCDCDC;padding:4px 6px;}table{width:100%;border-collapse:collapse;margin:6pt 0;}th,td{border:1px solid #999;padding:4px 6px;font-size:10pt;}th{background:#DCDCDC;font-weight:bold;}.tot{background:#f0f0f0;font-weight:bold;}</style></head><body>
+  <h1>DC VALUATION & ADVISORY</h1>
+  <p style="text-align:center;">Dhanyam, Sanathanapuram P.O., Kalarcode, Alappuzha – 688 003<br>Dhanish Nair | IBBI/RV/04/2022/14602 | 8089277424</p>
+  <h2>VALUATION REPORT</h2>
+  <p style="text-align:center;">Bank: ${d.bank} | Ref: ${d.loanNo||'—'} | Status: ${d.status}</p><hr>
+  <h3>I. Applicant & Property</h3>
+  <table><tr><th>Particulars</th><th>Details</th><th>Particulars</th><th>Details</th></tr>
+  <tr><td>Applicant</td><td>${d.applicant||'—'}</td><td>Co-Applicant</td><td>${d.coapplicant||'—'}</td></tr>
+  <tr><td>Date of Inspection</td><td>${d.inspDate||'—'}</td><td>Date of Report</td><td>${d.reportDate||'—'}</td></tr>
+  <tr><td>Owner</td><td>${d.owner||'—'}</td><td>Phone</td><td>${d.ownerPhone||'—'}</td></tr>
+  <tr><td>Village</td><td>${sn.id_village_site||'—'}</td><td>Taluk</td><td>${sn.taluk||'—'}</td></tr>
+  <tr><td>District</td><td>${sn.district||'—'}</td><td>GPS</td><td>${sn.lat||'—'}, ${sn.lon||'—'}</td></tr>
+  <tr><td>Survey No.</td><td>${sn.id_survey_site||'—'}</td><td>Land Area (Site)</td><td>${sn.area_site||'—'}</td></tr>
+  <tr><td>BUA (Site)</td><td>${sn.bua_site||'—'} sqft</td><td>Age</td><td>${sn.age||'—'} years</td></tr></table>
+  <h3>II. Boundaries</h3>
+  <table><tr><th>Dir</th><th>Title Deed</th><th>Sketch</th><th>Site Visit</th></tr>
+  <tr><td>North</td><td>${sn.bnd_n_deed||'—'}</td><td>${sn.bnd_n_sketch||'—'}</td><td>${sn.bnd_n_site||'—'}</td></tr>
+  <tr><td>South</td><td>${sn.bnd_s_deed||'—'}</td><td>${sn.bnd_s_sketch||'—'}</td><td>${sn.bnd_s_site||'—'}</td></tr>
+  <tr><td>East</td><td>${sn.bnd_e_deed||'—'}</td><td>${sn.bnd_e_sketch||'—'}</td><td>${sn.bnd_e_site||'—'}</td></tr>
+  <tr><td>West</td><td>${sn.bnd_w_deed||'—'}</td><td>${sn.bnd_w_sketch||'—'}</td><td>${sn.bnd_w_site||'—'}</td></tr></table>
+  <h3>III. Valuation</h3>
+  <table><tr><th>Particulars</th><th>Area</th><th>Rate</th><th>Value (Rs.)</th></tr>
+  <tr><td>Land Value</td><td>${d.landCents} cents</td><td>Rs. ${d.landRate.toLocaleString('en-IN')}/cent</td><td><b>${fmtR(d.landVal)}</b></td></tr>
+  <tr><td>Building Cost</td><td>${d.bua} sqft</td><td>Rs. ${d.constRate.toLocaleString('en-IN')}/sqft</td><td><b>${fmtR(d.bldgGross)}</b></td></tr>
+  <tr><td>Depreciation (${d.dep}%)</td><td></td><td></td><td>${fmtR(d.depAmt)}</td></tr>
+  <tr><td>Net Building Value</td><td></td><td></td><td><b>${fmtR(d.bldgNet)}</b></td></tr>
+  <tr class="tot"><td colspan="3">FAIR MARKET VALUE</td><td><b>${fmtR(d.fmv)}</b></td></tr>
+  <tr><td colspan="3">Forced Sale Value (${d.fsvP}%)</td><td><b>${fmtR(d.fsv)}</b></td></tr></table>
+  <p><b>FMV in Words:</b> ${n2w(Math.round(d.fmv))} Rupees Only</p>
+  <p><b>Guideline Rate:</b> ${d.guideline||'—'} | <b>Market Rate:</b> ${d.mktRange||'—'}</p>
+  <h3>IV. Remarks</h3><p>${d.remarks||'—'}</p>
+  ${d.conditions?`<p><b>Conditions:</b> ${d.conditions}</p>`:''}
+  <br><br><table style="border:none;"><tr style="border:none;">
+  <td style="border:none;">Place: Alappuzha<br>Date: ${d.reportDate||'—'}</td>
+  <td style="border:none;text-align:right;"><br><br>________________________<br>DC Valuation & Advisory<br>Dhanish Nair | IBBI/RV/04/2022/14602</td>
+  </tr></table></body></html>`;
+}
+
+// ═══════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════
+function setPeriod(p){
+  curPeriod=p;
+  document.querySelectorAll('.pbtn').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
+  const now=new Date();now.setHours(0,0,0,0);
+  if(p==='today'){periodFrom=new Date(now);periodTo=new Date(now.getTime()+86399999);}
+  else if(p==='week'){const m=new Date(now);m.setDate(now.getDate()-((now.getDay()+6)%7));periodFrom=m;periodTo=new Date();}
+  else if(p==='month'){periodFrom=new Date(now.getFullYear(),now.getMonth(),1);periodTo=new Date();}
+  else{periodFrom=null;periodTo=null;}
+  const labels={today:'Today',week:'This Week',month:'This Month',all:'All Time'};
+  const el=document.getElementById('d_overtitle');
+  if(el) el.textContent='Overview — '+labels[p];
+  renderDash();
+}
+
+function applyPeriod(cases){
+  if(!periodFrom&&!periodTo) return cases;
+  return cases.filter(c=>{
+    const d=new Date(c.received_date);
+    if(periodFrom&&d<periodFrom) return false;
+    if(periodTo&&d>periodTo) return false;
+    return true;
+  });
+}
+
+function calcTAT(c,t){
+  if(!t?.report_complete||!t?.submit_date||!t?.submit_time) return null;
+  const recv=new Date(c.received_date+'T'+(c.received_time||'09:00'));
+  const sub=new Date(t.submit_date+'T'+t.submit_time);
+  const h=(sub-recv)/3600000;
+  return isNaN(h)||h<0?null:h;
+}
+
+function fmtTAT(h){
+  if(h===null||h===undefined) return '—';
+  const d=Math.floor(h/24),r=Math.round(h%24);
+  return d===0?`${r}h`:`${d}d ${r}h`;
+}
+
+function renderDash(){
+  // For non-admin, filter to their cases only
+  const bankFilter=g('d_bank');
+  let cases=applyPeriod(CASES);
+  if(CU&&CU.role!=='admin'){
+    cases=cases.filter(c=>{
+      const t=trk(c.case_id);
+      return t&&(t.engineer_name===CU.name||t.typist_name===CU.name);
+    });
+  }
+  if(bankFilter) cases=cases.filter(c=>c.bank_id===bankFilter);
+  const keys=new Set(cases.map(c=>c.case_id));
+  const tracking=TRACKING.filter(t=>keys.has(t.case_ref));
+
+  const total=cases.length;
+  const assigned=tracking.filter(t=>t.engineer_name||t.typist_name).length;
+  const visitsDone=tracking.filter(t=>t.visit_complete).length;
+  const reportsDone=tracking.filter(t=>t.report_complete).length;
+  const tatList=cases.map(c=>({c,t:calcTAT(c,trk(c.case_id))})).filter(x=>x.t!==null);
+  const avgTAT=tatList.length?tatList.reduce((s,x)=>s+x.t,0)/tatList.length:null;
+  const overdue=tatList.filter(x=>x.t>48);
+
+  const kpi=document.getElementById('d_kpi');
+  kpi.innerHTML=`
+    <div class="kbox"><div class="kval">${total}</div><div class="klbl">Total Cases</div></div>
+    <div class="kbox"><div class="kval">${assigned}</div><div class="klbl">Assigned</div></div>
+    <div class="kbox kr"><div class="kval">${total-visitsDone}</div><div class="klbl">Pending Visits</div></div>
+    <div class="kbox ka"><div class="kval">${total-reportsDone}</div><div class="klbl">Pending Reports</div></div>
+    <div class="kbox kg"><div class="kval">${reportsDone}</div><div class="klbl">Completed</div></div>
+    <div class="kbox${overdue.length>0?' kr':''}"><div class="kval">${fmtTAT(avgTAT)}</div><div class="klbl">Avg TAT</div></div>`;
+
+  const oc=document.getElementById('d_overdue');
+  if(overdue.length>0){
+    oc.style.display='block';
+    document.getElementById('d_overdue_list').innerHTML=overdue.sort((a,b)=>b.t-a.t).map(x=>`
+      <div class="cc s-report_done" style="border-left-color:var(--red);">
+        <div class="cc-top"><div><div class="cc-bank">${x.c.bank_name}</div><div class="cc-name">${x.c.case_name||'Unnamed'}</div></div>
+        <span class="badge" style="background:var(--rbg);color:var(--red);">${fmtTAT(x.t)}</span></div>
+      </div>`).join('');
+  }else oc.style.display='none';
+
+  // Bank breakdown
+  const bkMap={};
+  cases.forEach(c=>{
+    if(!bkMap[c.bank_name])bkMap[c.bank_name]={t:0,v:0,d:0};
+    bkMap[c.bank_name].t++;
+    const t=trk(c.case_id);
+    if(t?.visit_complete)bkMap[c.bank_name].v++;
+    if(t?.report_complete)bkMap[c.bank_name].d++;
+  });
+  document.getElementById('d_banks').innerHTML=Object.keys(bkMap).length===0?'<div class="empty">No data</div>':
+    Object.entries(bkMap).sort((a,b)=>b[1].t-a[1].t).map(([n,d])=>`
+    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
+      <span style="font-weight:600;">${n}</span>
+      <span style="color:var(--muted);font-size:12px;"><b style="color:var(--p)">${d.t}</b> cases · <b>${d.v}</b> visited · <b style="color:var(--green)">${d.d}</b> done</span>
+    </div>`).join('');
+
+  // Staff performance
+  const engs={},typs={};
+  tracking.forEach(t=>{
+    if(t.engineer_name){if(!engs[t.engineer_name])engs[t.engineer_name]=0;if(t.visit_complete)engs[t.engineer_name]++;}
+    if(t.typist_name){
+      if(!typs[t.typist_name])typs[t.typist_name]={d:0,ts:0,tc:0};
+      if(t.report_complete){
+        typs[t.typist_name].d++;
+        const c=cases.find(x=>x.case_id===t.case_ref);
+        if(c){const tat=calcTAT(c,t);if(tat!==null){typs[t.typist_name].ts+=tat;typs[t.typist_name].tc++;}}
+      }
+    }
+  });
+  let spHTML='';
+  if(Object.keys(engs).length>0){
+    spHTML+='<p style="font-size:11px;font-weight:700;color:var(--p);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">🚗 Engineers</p>';
+    spHTML+=Object.entries(engs).sort((a,b)=>b[1]-a[1]).map(([n,c])=>`
+      <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
+        <span style="font-weight:600;">${n}</span><span style="color:var(--p);font-weight:600;">${c} visits</span></div>`).join('');
+  }
+  if(Object.keys(typs).length>0){
+    spHTML+='<p style="font-size:11px;font-weight:700;color:var(--p);text-transform:uppercase;letter-spacing:0.5px;margin:14px 0 8px;">⌨️ Typists</p>';
+    spHTML+=Object.entries(typs).sort((a,b)=>b[1].d-a[1].d).map(([n,d])=>{
+      const avg=d.tc?d.ts/d.tc:null;
+      return`<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
+        <span style="font-weight:600;">${n}</span>
+        <span style="color:var(--muted);font-size:12px;"><b style="color:var(--p)">${d.d}</b> reports · avg <b style="color:var(--blue)">${fmtTAT(avg)}</b></span></div>`;}).join('');
+  }
+  document.getElementById('d_staff').innerHTML=spHTML||'<div class="empty">No staff data yet</div>';
+
+  // Month-on-Month
+  const moData={};
+  CASES.forEach(c=>{
+    const d=new Date(c.received_date);if(isNaN(d))return;
+    const mk=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const ml=d.toLocaleDateString('en-IN',{month:'short',year:'numeric'});
+    if(!moData[mk])moData[mk]={l:ml,t:0,bk:{},ts:0,tc:0,sk:d.getFullYear()*100+d.getMonth()};
+    moData[mk].t++;
+    moData[mk].bk[c.bank_name]=(moData[mk].bk[c.bank_name]||0)+1;
+    const t=trk(c.case_id);
+    if(t){const tat=calcTAT(c,t);if(tat!==null){moData[mk].ts+=tat;moData[mk].tc++;}}
+  });
+  const now2=new Date();
+  const curMk=`${now2.getFullYear()}-${String(now2.getMonth()+1).padStart(2,'0')}`;
+  const sortedMo=Object.keys(moData).sort((a,b)=>moData[b].sk-moData[a].sk);
+  document.getElementById('d_months').innerHTML=sortedMo.map(mk=>{
+    const m=moData[mk];
+    const tb=Object.entries(m.bk).sort((a,b)=>b[1]-a[1])[0];
+    const avg=m.tc?m.ts/m.tc:null;
+    return`<tr class="${mk===curMk?'cur':''}">
+      <td>${m.l}</td><td class="mnum">${m.t}</td>
+      <td>${tb?`${tb[0]} (${tb[1]})`:'—'}</td>
+      <td class="mtat${avg>48?' ov':''}">${fmtTAT(avg)}</td></tr>`;
+  }).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--muted);">No data</td></tr>';
+
+  // Month filter for table
+  const mf=document.getElementById('d_mfilter');
+  const mv=mf.value;
+  mf.innerHTML='<option value="">All Months</option>'+sortedMo.map(mk=>`<option value="${mk}">${moData[mk].l}</option>`).join('');
+  mf.value=mv;
+
+  renderCasesTable();
+}
+
+function tsort(f){
+  if(tblSort===f)tblDir=tblDir==='asc'?'desc':'asc';
+  else{tblSort=f;tblDir=f==='date'?'desc':'asc';}
+  ['date','bank','name','visit','report','tat'].forEach(x=>{
+    const el=document.getElementById('ts_'+x);
+    if(el)el.textContent=x===tblSort?(tblDir==='asc'?'▲':'▼'):'';
+  });
+  renderCasesTable();
+}
+
+function renderCasesTable(){
+  const search=(g('d_search')||'').toLowerCase();
+  const monthF=g('d_mfilter');
+  const bankF=g('d_bank');
+  let cases=applyPeriod(CASES);
+  if(bankF)cases=cases.filter(c=>c.bank_id===bankF);
+  if(monthF)cases=cases.filter(c=>{
+    const d=new Date(c.received_date);
+    return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`===monthF;
+  });
+  if(search)cases=cases.filter(c=>{
+    const t=trk(c.case_id);
+    return[c.case_name,c.bank_name,t?.engineer_name,t?.typist_name].join(' ').toLowerCase().includes(search);
+  });
+  cases=[...cases].sort((a,b)=>{
+    const ta=trk(a.case_id),tb=trk(b.case_id);
+    let cmp=0;
+    if(tblSort==='date')cmp=new Date(a.received_date)-new Date(b.received_date);
+    else if(tblSort==='bank')cmp=a.bank_name.localeCompare(b.bank_name);
+    else if(tblSort==='name')cmp=(a.case_name||'').localeCompare(b.case_name||'');
+    else if(tblSort==='visit')cmp=(ta?.visit_complete?1:0)-(tb?.visit_complete?1:0);
+    else if(tblSort==='report')cmp=(ta?.report_complete?1:0)-(tb?.report_complete?1:0);
+    else if(tblSort==='tat'){const ha=calcTAT(a,ta),hb=calcTAT(b,tb);cmp=(ha||0)-(hb||0);}
+    return tblDir==='asc'?cmp:-cmp;
+  });
+  const tatVals=cases.map(c=>calcTAT(c,trk(c.case_id))).filter(h=>h!==null);
+  const avgT=tatVals.length?tatVals.reduce((s,h)=>s+h,0)/tatVals.length:null;
+  const ov=avgT!==null&&avgT>48;
+  document.getElementById('d_sumbar').innerHTML=`
+    <div class="si"><div class="sv">${cases.length}</div><div class="sl">Total Cases</div></div>
+    <div class="sdiv"></div>
+    <div class="si"><div class="sv${ov?' ov':''}">${fmtTAT(avgT)}</div><div class="sl">Avg TAT</div></div>`;
+  document.getElementById('d_count').textContent=`Showing ${cases.length} of ${CASES.length} cases`;
+  const bd=val=>val
+    ?`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--gbg);color:var(--green);">Done</span>`
+    :`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--abg);color:#92600A;">Pending</span>`;
+  document.getElementById('d_table').innerHTML=cases.length===0
+    ?'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">No cases</td></tr>'
+    :cases.map(c=>{
+      const t=trk(c.case_id);const tat=calcTAT(c,t);
+      return`<tr>
+        <td>${c.received_date}</td>
+        <td style="color:var(--p);font-weight:600;">${c.bank_name}</td>
+        <td style="font-weight:600;">${c.case_name||'Unnamed'}</td>
+        <td>${t?bd(t.visit_complete):bd(false)}</td>
+        <td>${t?bd(t.report_complete):bd(false)}</td>
+        <td style="font-weight:600;color:${tat>48?'var(--red)':'var(--blue)'}">${fmtTAT(tat)}</td>
+      </tr>`;}).join('');
+}
+
+// ═══════════════════════════════════════════
+// CASE LIST DOWNLOAD
+// ═══════════════════════════════════════════
+function downloadCaseList(){
+  // Get currently filtered cases
+  const search=(g('d_search')||'').toLowerCase();
+  const monthF=g('d_mfilter');
+  const bankF=g('d_bank');
+  let cases=applyPeriod(CASES);
+  if(bankF) cases=cases.filter(c=>c.bank_id===bankF);
+  if(monthF) cases=cases.filter(c=>{
+    const d=new Date(c.received_date);
+    return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`===monthF;
+  });
+  if(search) cases=cases.filter(c=>{
+    const t=trk(c.case_id);
+    return[c.case_name,c.bank_name,c.application_id,t?.engineer_name,t?.typist_name].join(' ').toLowerCase().includes(search);
+  });
+
+  const now=new Date();
+  const periodLabel=monthF||`${curPeriod} period`;
+
+  // Build print window
+  const fw=window.open('','_blank');
+  const rows=cases.map((c,i)=>{
+    const t=trk(c.case_id);
+    const tat=calcTAT(c,t);
+    const tatStr=fmtTAT(tat);
+    const tatOver=tat!==null&&tat>48;
+    return `<tr>
+      <td>${i+1}</td>
+      <td>${c.case_id}</td>
+      <td>${c.received_date}<br><span style="font-size:9pt;color:#666;">${c.received_time||'—'}</span></td>
+      <td><b>${c.bank_name}</b></td>
+      <td>${c.loan_product||'—'}</td>
+      <td><b>${c.case_name||'—'}</b></td>
+      <td>${c.application_id||'—'}</td>
+      <td>${c.property_location||'—'}</td>
+      <td>${t?.engineer_name||'—'}</td>
+      <td>${t?.typist_name||'—'}</td>
+      <td>${t?.visit_complete?'✅ Done<br><span style="font-size:9pt;color:#666;">'+(t.visit_date||'')+'</span>':'⏳ Pending'}</td>
+      <td>${t?.report_complete?'✅ Done<br><span style="font-size:9pt;color:#666;">'+(t.submit_date||'')+' '+(t.submit_time||'')+'</span>':'⏳ Pending'}</td>
+      <td style="font-weight:700;color:${tatOver?'#C62828':'#1565C0'}">${tatStr}</td>
+      <td>${c.client_phone||'—'}</td>
+    </tr>`;
+  }).join('');
+
+  const summary={
+    total:cases.length,
+    visited:cases.filter(c=>trk(c.case_id)?.visit_complete).length,
+    completed:cases.filter(c=>trk(c.case_id)?.report_complete).length,
+    overTAT:cases.filter(c=>{const t=calcTAT(c,trk(c.case_id));return t!==null&&t>48;}).length
+  };
+
+  fw.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
+  <title>DC Valuation — Case List</title>
+  <style>
+    *{box-sizing:border-box;}
+    body{font-family:Arial;font-size:10pt;padding:20px;}
+    .hdr{text-align:center;border-bottom:2px solid #4A1A6B;padding-bottom:10px;margin-bottom:14px;}
+    h1{font-size:14pt;color:#4A1A6B;font-weight:bold;}
+    h2{font-size:11pt;color:#6B2D9A;margin-top:4px;}
+    .summary{display:flex;gap:20px;background:#F3ECF9;padding:10px 14px;border-radius:8px;margin-bottom:14px;}
+    .sum-item{text-align:center;}
+    .sum-val{font-size:18pt;font-weight:bold;color:#4A1A6B;line-height:1;}
+    .sum-lbl{font-size:8pt;color:#6b5c7a;margin-top:2px;}
+    table{width:100%;border-collapse:collapse;font-size:8.5pt;}
+    th{background:#4A1A6B;color:#fff;padding:6px 5px;text-align:left;font-size:8pt;}
+    td{padding:6px 5px;border-bottom:1px solid #E8E8E8;vertical-align:top;}
+    tr:nth-child(even) td{background:#faf8fd;}
+    .footer{margin-top:20px;font-size:8.5pt;color:#666;display:flex;justify-content:space-between;}
+    @media print{body{padding:10px;}.no-print{display:none;}}
+  </style></head><body>
+  <div class="hdr">
+    <h1>DC VALUATION & ADVISORY</h1>
+    <h2>Case List — ${periodLabel}</h2>
+    <p style="font-size:9pt;color:#666;">Generated: ${now.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})} ${now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</p>
+  </div>
+  <div class="summary">
+    <div class="sum-item"><div class="sum-val">${summary.total}</div><div class="sum-lbl">Total Cases</div></div>
+    <div class="sum-item"><div class="sum-val">${summary.visited}</div><div class="sum-lbl">Visited</div></div>
+    <div class="sum-item"><div class="sum-val">${summary.completed}</div><div class="sum-lbl">Completed</div></div>
+    <div class="sum-item"><div class="sum-val" style="color:#C62828">${summary.overTAT}</div><div class="sum-lbl">TAT > 48h</div></div>
+  </div>
+  <table>
+    <thead><tr>
+      <th>#</th><th>Case ID</th><th>Received Date & Time</th><th>Bank</th>
+      <th>Product</th><th>Borrower Name</th><th>App ID</th>
+      <th>Location</th><th>Engineer</th><th>Typist</th>
+      <th>Visit</th><th>Report</th><th>TAT</th><th>Client Phone</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="footer">
+    <span>DC Valuation & Advisory | Dhanish Nair | IBBI/RV/04/2022/14602</span>
+    <span>Total: ${summary.total} cases</span>
+  </div>
+  <scr"+"ipt>window.onload=function(){window.print()}</scr"+"ipt>
+  </body></html>`);
+  fw.document.close();
+}
+
+// ═══════════════════════════════════════════
+// BULK UPLOAD — LAND RATES & RENTAL
+// ═══════════════════════════════════════════
+
+// CSV Template download for Land Rates
+
+
+// ── Template Downloads ──
+function downloadLRTemplate(){
+  const h='Date,District,Taluk,Village / Area,Locality / Zone,Land Use,Road Type,Rate/Cent (Rs),Area (Cents),Source / Evidence,Confidence,Remarks,Lat,Long,Broker Name,Broker Phone';
+  const s='01-04-2026,Alappuzha,Ambalappuzha,Kalarcode,Residential Area,Residential,Tar Road,300000,9.5,Field Survey,High,Near main road,9.380736,76.362305,Rajan,9876543210';
+  const blob=new Blob([h+String.fromCharCode(13,10)+s],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='DC_LandRate_Template.csv';a.click();
+  URL.revokeObjectURL(url);toast('Template downloaded','ok');
+}
+function downloadRentalTemplate(){
+  const h='Date,District,Taluk,Village / Area,Property Type,Monthly Rent (Rs),Area (Sqft),Furnished,Tenant Type,Source / Evidence,Remarks,Lat,Long,Broker Name,Broker Phone';
+  const s='01-04-2026,Alappuzha,Ambalappuzha,Kalarcode,2 BHK Flat,12000,900,Furnished,Family,Field Survey,Near town centre,9.380736,76.362305,Rajan,9876543210';
+  const blob=new Blob([h+String.fromCharCode(13,10)+s],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='DC_RentalRate_Template.csv';a.click();
+  URL.revokeObjectURL(url);toast('Template downloaded','ok');
+}
+// ── CSV Parser ──
+function parseCSV(text){
+  const lines = text.trim().split(/\r?\n/).filter(l=>l.trim());
+  const headers = lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+  return lines.slice(1).map(line=>{
+    const vals = [];
+    let cur='', inQuote=false;
+    for(let ch of line){
+      if(ch==='"') inQuote=!inQuote;
+      else if(ch===','&&!inQuote){vals.push(cur.trim());cur='';}
+      else cur+=ch;
+    }
+    vals.push(cur.trim());
+    const obj={};
+    headers.forEach((h,i)=>obj[h]=vals[i]||'');
+    return obj;
+  });
+}
+
+// ── Land Rate CSV Preview ──
+let lrCSVData = [];
+function previewLRCSV(e){
+  const file = e.target.files[0];
+  if(!file){return;}
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try{
+      lrCSVData = parseCSV(ev.target.result);
+      // Also handle Dhanish's Excel format columns
+      const previewBox = document.getElementById('lrPreviewBox');
+      const previewTitle = document.getElementById('lrPreviewTitle');
+      const previewList = document.getElementById('lrPreviewList');
+      previewTitle.textContent = `${lrCSVData.length} records found — preview below:`;
+      previewList.innerHTML = lrCSVData.slice(0,5).map((r,i)=>`
+        <div style="padding:6px 0;border-bottom:1px solid var(--border);${i===lrCSVData.length-1?'border:none':''}">
+          <b>${r['Village / Area']||r['Village']||'—'}</b>, ${r['Taluk']||'—'}, ${r['District']||'—'}<br>
+          <span style="color:var(--p);font-weight:600;">Rs. ${Number(r['Rate/Cent (Rs)']||r['Rate/Cent (₹)']||0).toLocaleString('en-IN')}/cent</span>
+          · ${r['Land Use']||'—'} · ${r['Confidence']||'High'}
+        </div>`).join('') + (lrCSVData.length>5?`<div style="padding:6px 0;color:var(--muted);font-size:11px;">...and ${lrCSVData.length-5} more records</div>`:'');
+      previewBox.style.display = 'block';
+    }catch(err){toast('Error reading CSV: '+err.message,'err');}
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+async function confirmLRUpload(){
+  if(!lrCSVData.length){toast('No data to upload','err');return;}
+  const btn = document.querySelector('#lrPreviewBox .btn.bp');
+  btn.disabled=true; btn.textContent='Uploading…';
+  let success=0, failed=0;
+  for(const r of lrCSVData){
+    try{
+      // Map both Dhanish's Excel format and our CSV template format
+      const rate = parseFloat(r['Rate/Cent (Rs)']||r['Rate/Cent (₹)']||0);
+      if(!rate) continue;
+      // Parse date
+      let vDate = r['Date']||new Date().toISOString().split('T')[0];
+      if(vDate && vDate.includes('-') && vDate.length===10 && vDate[2]==='-'){
+        // DD-MM-YYYY format
+        const parts = vDate.split('-');
+        vDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+      // Parse confidence — map Medium/Verified/Pending to our scale
+      let conf = (r['Confidence']||r['Status']||'high').toLowerCase();
+      if(conf==='verified'||conf==='high') conf='high';
+      else if(conf==='medium'||conf==='low') conf='low';
+      else conf='high'; // default uploaded data to high since admin is uploading
+
+      await dbInsert('land_rates',{
+        village: r['Village / Area']||r['Village']||'',
+        taluk: r['Taluk']||'',
+        district: r['District']||'',
+        lat: r['Lat']||r['lat']||null,
+        lon: r['Long']||r['long']||null,
+        prop_type: r['Land Use']||'Residential',
+        land_rate_per_cent: rate,
+        mkt_range: r['Locality / Zone']||null,
+        broker_name: r['Broker Name']||null,
+        broker_phone: r['Broker Phone']||null,
+        remarks: r['Remarks']||null,
+        valuation_date: vDate,
+        confidence: conf,
+        approved_by: CU.name,
+        approved_at: new Date().toISOString(),
+        source: 'bulk_upload',
+        engineer_name: CU.name
+      });
+      success++;
+    }catch(err){failed++;console.error('Row error:',err);}
+  }
+  btn.disabled=false; btn.textContent='Upload All Records';
+  document.getElementById('lrPreviewBox').style.display='none';
+  lrCSVData=[];
+  toast(`✓ ${success} records uploaded${failed>0?' ('+failed+' failed)':''}`, success>0?'ok':'err');
+  await loadData();
+  renderLR();
+}
+
+// ── Rental CSV Preview ──
+let rentalCSVData = [];
+function previewRentalCSV(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try{
+      rentalCSVData = parseCSV(ev.target.result);
+      const previewBox = document.getElementById('rentalPreviewBox');
+      const previewTitle = document.getElementById('rentalPreviewTitle');
+      const previewList = document.getElementById('rentalPreviewList');
+      previewTitle.textContent = `${rentalCSVData.length} records found — preview below:`;
+      previewList.innerHTML = rentalCSVData.slice(0,5).map((r,i)=>`
+        <div style="padding:6px 0;border-bottom:1px solid var(--border);">
+          <b>${r['Village / Area']||r['Village']||'—'}</b>, ${r['Taluk']||'—'}<br>
+          <span style="color:var(--p);font-weight:600;">${r['Property Type']||'—'}: Rs. ${Number(r['Monthly Rent (Rs)']||r['Monthly Rent (₹)']||0).toLocaleString('en-IN')}/month</span>
+        </div>`).join('') + (rentalCSVData.length>5?`<div style="padding:6px 0;color:var(--muted);font-size:11px;">...and ${rentalCSVData.length-5} more</div>`:'');
+      previewBox.style.display='block';
+    }catch(err){toast('Error reading CSV: '+err.message,'err');}
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+async function confirmRentalUpload(){
+  if(!rentalCSVData.length){toast('No data to upload','err');return;}
+  const btn = document.querySelector('#rentalPreviewBox .btn.bp');
+  btn.disabled=true; btn.textContent='Uploading…';
+  let success=0, failed=0;
+  for(const r of rentalCSVData){
+    try{
+      let vDate = r['Date']||new Date().toISOString().split('T')[0];
+      if(vDate && vDate.includes('-') && vDate.length===10 && vDate[2]==='-'){
+        const parts = vDate.split('-');
+        vDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+      const rent = parseFloat(r['Monthly Rent (Rs)']||r['Monthly Rent (₹)']||0);
+      if(!rent) continue;
+      await dbInsert('rental_rates',{
+        village: r['Village / Area']||r['Village']||'',
+        taluk: r['Taluk']||'',
+        district: r['District']||'',
+        lat: r['Lat']||r['lat']||null,
+        lon: r['Long']||r['long']||null,
+        prop_type: r['Property Type']||'Residential',
+        res_type: r['Property Type']||null,
+        res_rent: rent,
+        comm_rent_sqft: parseFloat(r['Rent/Sqft (Rs)']||r['Rent/Sqft (₹)']||0)||null,
+        comm_area: parseFloat(r['Area (Sqft)']||0)||null,
+        broker_name: r['Broker Name']||null,
+        broker_phone: r['Broker Phone']||null,
+        remarks: r['Remarks']||null,
+        valuation_date: vDate,
+        confidence: 'high',
+        approved_by: CU.name,
+        approved_at: new Date().toISOString(),
+        engineer_name: CU.name
+      });
+      success++;
+    }catch(err){failed++;console.error('Row error:',err);}
+  }
+  btn.disabled=false; btn.textContent='Upload All Records';
+  document.getElementById('rentalPreviewBox').style.display='none';
+  rentalCSVData=[];
+  toast(`✓ ${success} records uploaded${failed>0?' ('+failed+' failed)':''}`, success>0?'ok':'err');
+  renderRental();
+}
+
+// ═══════════════════════════════════════════
+// LAND RATES
+// ═══════════════════════════════════════════
+function renderLR(){
+  const el=document.getElementById('lr_list');
+  const search=(g('lr_search')||'').toLowerCase();
+  let rates=LRATES;
+  if(search)rates=rates.filter(r=>[r.village,r.taluk,r.district,r.prop_type].join(' ').toLowerCase().includes(search));
+  if(!rates.length){el.innerHTML='<div class="empty">No rate records yet. Complete valuations to build this database automatically.</div>';return;}
+  el.innerHTML=rates.map(r=>`
+    <div class="lrrow">
+      <div>
+        <div class="lrplace">${r.village||'—'}, ${r.taluk||'—'}</div>
+        <div class="lrmeta">${r.district||'—'} · ${r.prop_type||'—'}</div>
+        <div class="lrmeta">${r.bank_name||'—'} · ${r.valuation_date||'—'}</div>
+      </div>
+      <div>
+        <div class="lrrate">₹ ${(r.land_rate_per_cent||0).toLocaleString('en-IN')}/cent</div>
+        ${r.bldg_rate_per_sqft?`<div class="lrmeta">Bldg: ₹${r.bldg_rate_per_sqft.toLocaleString('en-IN')}/sqft</div>`:''}
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════
+// ADMIN
+// ═══════════════════════════════════════════
+function renderAdmin(){
+  document.getElementById('admin_users').innerHTML=USERS.map(u=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
+      <span><b>${u.name}</b> <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--ptint);color:var(--p);">${u.role}</span></span>
+      <span style="font-family:monospace;font-size:15px;color:var(--p);font-weight:700;">••••••</span>
+    </div>`).join('');
+  document.getElementById('admin_banks').innerHTML=BANKS.map(b=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
+      <b>${b.name}</b>
+      <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--ptint);color:var(--p);">${b.template}</span>
+    </div>`).join('');
+}
+
+function showAddUser(){document.getElementById('addUserCard').style.display='block';}
+function showAddBank(){document.getElementById('addBankCard').style.display='block';}
+
+async function addUser(){
+  const name=g('nu_name').trim(),pin=g('nu_pin').trim(),role=g('nu_role');
+  if(!name){toast('Name required','err');return;}
+  if(pin.length<4){toast('PIN must be at least 4 digits','err');return;}
+  try{
+    await dbInsert('users',{name,pin,role,can_add_cases:true,can_visit:['admin','engineer'].includes(role),can_type:['admin','engineer','typist'].includes(role),active:true});
+    toast(`${name} added ✓`,'ok');
+    document.getElementById('nu_name').value='';document.getElementById('nu_pin').value='';
+    document.getElementById('addUserCard').style.display='none';
+    USERS=await dbGet('users',{active:'true'},'*');
+    renderAdmin();
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+async function addBank(){
+  const name=g('nb_name').trim(),tpl=g('nb_tpl');
+  if(!name){toast('Bank name required','err');return;}
+  try{
+    await dbInsert('banks',{name,template:tpl,active:true});
+    toast(`${name} added ✓`,'ok');
+    document.getElementById('nb_name').value='';
+    document.getElementById('addBankCard').style.display='none';
+    BANKS=await dbGet('banks',{active:'true'},'*');
+    renderAdmin();populateBankDropdowns();
+    populateAssignPicker();
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+async function changePin(){
+  const cur=g('cp_cur'),nw=g('cp_new'),cf=g('cp_conf');
+  if(cur!==CU.pin){toast('Current PIN incorrect','err');return;}
+  if(nw.length<4){toast('New PIN must be 4+ digits','err');return;}
+  if(nw!==cf){toast('PINs do not match','err');return;}
+  try{
+    await dbUpdate('users',{id:CU.id},{pin:nw});
+    CU.pin=nw;
+    toast('PIN updated ✓','ok');
+    ['cp_cur','cp_new','cp_conf'].forEach(id=>document.getElementById(id).value='');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+// ═══════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════
+function g(id){const e=document.getElementById(id);return e?e.value:'';}
+function pf(id){return parseFloat(g(id))||null;}
+
+function toast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast '+(type||'');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+function showSuccess(emoji,title,msg){
+  document.getElementById('successEmoji').textContent=emoji;
+  document.getElementById('successTitle').textContent=title;
+  document.getElementById('successMsg').textContent=msg;
+  const ov=document.getElementById('successOverlay');
+  ov.style.display='flex';
+}
+function closeSuccess(){document.getElementById('successOverlay').style.display='none';}
+
+// ── Quick add bank from cases tab ──
+function showQuickAddBank(){
+  const row=document.getElementById('quickAddBankRow');
+  row.style.display=row.style.display==='none'?'block':'none';
+}
+async function quickAddBank(){
+  const name=document.getElementById('quickBankName').value.trim();
+  if(!name){toast('Enter bank name','err');return;}
+  try{
+    await dbInsert('banks',{name,template:'generic',active:true});
+    toast(name+' added ✓','ok');
+    document.getElementById('quickBankName').value='';
+    document.getElementById('quickAddBankRow').style.display='none';
+    BANKS=await dbGet('banks',{active:'true'},'*');
+    populateBankDropdowns();
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+// ── New loan product ──
+function initProductListener(){
+  const prod=document.getElementById('c_product');
+  if(prod){
+    prod.addEventListener('change',()=>{
+      const row=document.getElementById('newProductRow');
+      if(prod.value==='-- Add New Product --'){
+        row.style.display='block';
+        document.getElementById('newProductName').focus();
+      }else{
+        row.style.display='none';
+      }
+    });
+    const inp=document.getElementById('newProductName');
+    if(inp){
+      inp.addEventListener('blur',()=>{
+        const name=inp.value.trim();
+        if(name){
+          const opt=document.createElement('option');
+          opt.value=name;opt.textContent=name;
+          prod.insertBefore(opt,prod.lastElementChild);
+          prod.value=name;
+          document.getElementById('newProductRow').style.display='none';
+        }
+      });
+    }
+  }
+}
+
+// ── Custom property type ──
+function showCustomPropType(){
+  const row=document.getElementById('customPropTypeRow');
+  row.style.display=row.style.display==='none'?'block':'none';
+}
+function applyCustomPropType(){
+  const name=document.getElementById('customPropType').value.trim();
+  if(!name) return;
+  const sel=document.getElementById('sn_type');
+  const opt=document.createElement('option');
+  opt.value=name;opt.textContent=name;
+  sel.appendChild(opt);
+  sel.value=name;
+  document.getElementById('customPropTypeRow').style.display='none';
+  onPropTypeChange();
+}
+
+// ── Property type change — show/hide sections ──
+function onPropTypeChange(){
+  const val=g('sn_type').toLowerCase();
+  const isRes=val.includes('residential')||val.includes('apartment')||val.includes('house')||val.includes('bhk')||val.includes('villa');
+  const isComm=val.includes('commercial')||val.includes('shop');
+  const isVacant=val.includes('vacant')||val.includes('agricultural')||val.includes('plot');
+  document.getElementById('sn_residential_section').style.display=isRes?'block':'none';
+  document.getElementById('sn_commercial_section').style.display=isComm?'block':'none';
+  const bldgSec=document.getElementById('sn_bldg_section');
+  if(bldgSec) bldgSec.style.display=isVacant?'none':'block';
+}
+
+// ── Document checklist ──
+function togDoc(el){
+  const checked=el.classList.toggle('doc-checked');
+  el.style.background=checked?'var(--gbg)':'#fff';
+  el.style.borderColor=checked?'var(--green)':'var(--border)';
+  el.style.color=checked?'var(--green)':'var(--text)';
+  const box=el.querySelector('.dchk-box');
+  if(box){box.style.background=checked?'var(--green)':'transparent';box.style.borderColor=checked?'var(--green)':'var(--border)';}
+}
+function getCheckedDocs(){
+  return [...document.querySelectorAll('#docsAvailGrid .doc-check.doc-checked')].map(el=>el.dataset.doc);
+}
+function setCheckedDocs(docs){
+  document.querySelectorAll('#docsAvailGrid .doc-check').forEach(el=>{
+    if(docs&&docs.includes(el.dataset.doc)) togDoc(el);
+  });
+}
+
+// ── Report mode (online/offline) ──
+let reportMode='online';
+function setReportMode(mode){
+  reportMode=mode;
+  document.getElementById('online_mode_form').style.display=mode==='online'?'block':'none';
+  document.getElementById('offline_mode_card').style.display=mode==='offline'?'block':'none';
+  document.getElementById('mode_online_btn').className='btn '+(mode==='online'?'bp':'bs');
+  document.getElementById('mode_offline_btn').className='btn '+(mode==='offline'?'bp':'bs');
+}
+
+async function submitOfflineReport(){
+  if(!rptCaseId){toast('No case selected','err');return;}
+  const c=CASES.find(x=>x.case_id===rptCaseId);
+  if(!c){toast('Case not found','err');return;}
+  const now=new Date();
+  try{
+    // Save draft
+    const existing=await dbGetOne('report_drafts',{case_ref:rptCaseId});
+    const draft={
+      case_ref:rptCaseId,
+      case_id:c.id,
+      typist_name:CU.name,
+      report_mode:'offline',
+      loan_no:g('r_offline_ref')||c.application_id,
+      report_date:g('r_offline_date')||now.toISOString().split('T')[0],
+      report_status:'Positive',
+      report_conditions:g('r_offline_delay')||null
+    };
+    if(existing) await dbUpdate('report_drafts',{case_ref:rptCaseId},draft);
+    else await dbInsert('report_drafts',draft);
+
+    // Update tracking
+    const t=trk(rptCaseId);
+    const tPayload={
+      submit_date:now.toISOString().split('T')[0],
+      submit_time:now.toTimeString().slice(0,5),
+      report_complete:true,
+      report_completed_at:now.toISOString(),
+      delay_reason:g('r_offline_delay')||null
+    };
+    if(t){
+      await dbUpdate('tracking',{case_ref:rptCaseId},tPayload);
+    } else {
+      // Create tracking record if doesn't exist
+      await dbInsert('tracking',{
+        case_ref:rptCaseId,
+        case_id:c.id,
+        typist_name:CU.name,
+        engineer_name:'',
+        ...tPayload
+      });
+    }
+    await dbUpdate('cases',{case_id:rptCaseId},{status:'report_done'});
+    showSuccess('👍','Report Complete!','Offline report marked complete. Great work, '+CU.name+'!');
+    loadData();
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+// ── Land rate sub-tabs ──
+function switchLR(tab){
+  ['approved','pending','rental'].forEach(t=>{
+    document.getElementById('lr-'+t).style.display=t===tab?'block':'none';
+    document.querySelectorAll('[data-lr]').forEach(b=>b.classList.toggle('on',b.dataset.lr===tab));
+  });
+  if(tab==='pending') renderLRPending();
+  if(tab==='rental') renderRental();
+}
+
+let rentalFilter='all';
+function filterRental(f){
+  rentalFilter=f;
+  document.querySelectorAll('[data-rt]').forEach(b=>b.classList.toggle('on',b.dataset.rt===f));
+  renderRental();
+}
+
+// ── Land Rate Approval ──
+async function approveLandRate(id,confidence){
+  try{
+    await dbUpdate('land_rates',{id},{
+      confidence,approved_by:CU.name,approved_at:new Date().toISOString()
+    });
+    toast(confidence==='high'?'✅ Approved — High Confidence':confidence==='low'?'⚠ Approved — Low Confidence':'❌ Rejected','ok');
+    await loadData();
+    renderLRPending();
+    renderLR();
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+async function approveRentalRate(id,confidence){
+  try{
+    await dbUpdate('rental_rates',{id},{
+      confidence,approved_by:CU.name,approved_at:new Date().toISOString()
+    });
+    toast('Rental rate updated ✓','ok');
+    renderRental();
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+function renderLRPending(){
+  const el=document.getElementById('lr_pending_list');
+  const pending=LRATES.filter(r=>r.confidence==='pending'||!r.confidence);
+  if(!pending.length){el.innerHTML='<div class="empty">No pending approvals ✓</div>';return;}
+  el.innerHTML=pending.map(r=>`
+    <div style="padding:14px;border:1.5px solid var(--border);border-radius:12px;margin-bottom:10px;background:#fff;">
+      <div style="font-weight:600;font-size:14px;">${r.village||'—'}, ${r.taluk||'—'}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;">${r.district||'—'} · ${r.prop_type||'—'} · ${r.bank_name||'—'}</div>
+      <div style="font-size:12px;color:var(--muted);">Engineer: ${r.engineer_name||'—'} · ${r.valuation_date||'—'}</div>
+      <div style="font-size:15px;font-weight:700;color:var(--p);margin:8px 0;">₹ ${(r.land_rate_per_cent||0).toLocaleString('en-IN')}/cent</div>
+      ${r.mkt_range?`<div style="font-size:12px;color:var(--muted);">Market range: ${r.mkt_range}</div>`:''}
+      ${r.broker_name?`<div style="font-size:12px;color:var(--blue);margin-top:4px;">🧑‍💼 Broker: <b>${r.broker_name}</b>${r.broker_phone?` · <a href="tel:${r.broker_phone}" style="color:var(--blue);font-weight:700;">📞 ${r.broker_phone}</a>`:''}</div>`:''}
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px;">
+        <button onclick="approveLandRate('${r.id}','high')" style="padding:9px;border-radius:9px;border:none;background:var(--gbg);color:var(--green);font-weight:700;font-size:12px;cursor:pointer;">✅ High</button>
+        <button onclick="approveLandRate('${r.id}','low')" style="padding:9px;border-radius:9px;border:none;background:var(--abg);color:#B8860B;font-weight:700;font-size:12px;cursor:pointer;">⚠ Low</button>
+        <button onclick="approveLandRate('${r.id}','rejected')" style="padding:9px;border-radius:9px;border:none;background:var(--rbg);color:var(--red);font-weight:700;font-size:12px;cursor:pointer;">❌ Reject</button>
+      </div>
+    </div>`).join('');
+}
+
+async function renderRental(){
+  const el=document.getElementById('rental_list');
+  const pendEl=document.getElementById('rental_pending_list');
+  try{
+    const rates=await dbGet('rental_rates');
+    const search=(g('rental_search')||'').toLowerCase();
+    let approved=rates.filter(r=>r.confidence==='high');
+    const pending=rates.filter(r=>r.confidence==='pending'||!r.confidence);
+    if(search) approved=approved.filter(r=>[r.village,r.taluk,r.district].join(' ').toLowerCase().includes(search));
+    if(rentalFilter==='residential') approved=approved.filter(r=>r.res_type);
+    el.innerHTML=approved.length===0?'<div class="empty">No approved rental rates yet</div>':
+      approved.map(r=>`
+        <div class="lrrow">
+          <div>
+            <div class="lrplace">${r.village||'—'}, ${r.taluk||'—'}</div>
+            <div class="lrmeta">${r.district||'—'} · ${r.valuation_date||'—'}</div>
+            ${r.res_type?`<div class="lrmeta">Type: ${r.res_type}</div>`:''}
+          </div>
+          <div>
+            ${r.res_rent?`<div class="lrrate">₹ ${r.res_rent.toLocaleString('en-IN')}/month</div>`:''}
+            ${r.comm_rent_sqft?`<div class="lrrate">₹ ${r.comm_rent_sqft}/sqft/month</div>`:''}
+          </div>
+        </div>`).join('');
+    pendEl.innerHTML=pending.length===0?'<div class="empty">No pending rental approvals ✓</div>':
+      pending.map(r=>`
+        <div style="padding:14px;border:1.5px solid var(--border);border-radius:12px;margin-bottom:10px;background:#fff;">
+          <div style="font-weight:600;">${r.village||'—'}, ${r.taluk||'—'} · ${r.district||'—'}</div>
+          <div style="font-size:12px;color:var(--muted);">Engineer: ${r.engineer_name||'—'}</div>
+          ${r.res_type?`<div style="font-size:14px;font-weight:700;color:var(--p);margin:6px 0;">${r.res_type}: ₹ ${(r.res_rent||0).toLocaleString('en-IN')}/month</div>`:''}
+          ${r.comm_rent_sqft?`<div style="font-size:14px;font-weight:700;color:var(--p);margin:6px 0;">Commercial: ₹ ${r.comm_rent_sqft}/sqft/month</div>`:''}
+          ${r.broker_name?`<div style="font-size:12px;color:var(--blue);margin-top:4px;">🧑‍💼 Broker: <b>${r.broker_name}</b>${r.broker_phone?` · <a href="tel:${r.broker_phone}" style="color:var(--blue);font-weight:700;">📞 ${r.broker_phone}</a>`:''}</div>`:''}
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px;">
+            <button onclick="approveRentalRate('${r.id}','high')" style="padding:9px;border-radius:9px;border:none;background:var(--gbg);color:var(--green);font-weight:700;font-size:12px;cursor:pointer;">✅ High</button>
+            <button onclick="approveRentalRate('${r.id}','low')" style="padding:9px;border-radius:9px;border:none;background:var(--abg);color:#B8860B;font-weight:700;font-size:12px;cursor:pointer;">⚠ Low</button>
+            <button onclick="approveRentalRate('${r.id}','rejected')" style="padding:9px;border-radius:9px;border:none;background:var(--rbg);color:var(--red);font-weight:700;font-size:12px;cursor:pointer;">❌ Reject</button>
+          </div>
+        </div>`).join('');
+  }catch(e){el.innerHTML='<div class="empty">Error loading rental rates</div>';}
+}
+
+// ═══════════════════════════════════════════
+// START
+// ═══════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{initLogin();initProductListener();});
+</script>
+</body>
+</html>
