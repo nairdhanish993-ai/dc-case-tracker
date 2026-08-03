@@ -3524,10 +3524,14 @@ function onExtCasePick(){
   if(!id){sumEl.style.display='none';formEl.style.display='none';return;}
   const c=CASES.find(x=>x.case_id===id);
   const existing=EXTA.find(a=>a.case_ref===id);
+  const t=trk(id);
   extEditingId=existing?existing.id:null;
+  const jobDone=t?.visit_complete&&t?.report_complete;
   sumEl.innerHTML=`<b>${c.bank_name}</b> · ${c.case_name||'—'}<br>
     Loan Product: ${c.loan_product||'—'}<br>
-    ${existing?`<span style="color:var(--p);font-weight:700;">Already assigned to ${existing.valuer_name} — editing existing assignment</span>`:'Not yet assigned to an external valuer'}`;
+    ${existing?`<span style="color:var(--p);font-weight:700;">Already assigned to ${existing.valuer_name} — editing existing assignment</span>`:'Not yet assigned to an external valuer'}<br>
+    ${jobDone?'<span style="color:var(--green);font-weight:700;">✅ Job complete — TAT closed</span>':existing?'<span style="color:var(--amber);font-weight:700;">⏳ Not yet marked complete</span>':''}
+    ${existing&&!jobDone?`<button class="btn bp" onclick="markExtJobComplete()" style="margin-top:10px;padding:10px;">✅ Mark Job Complete (closes TAT)</button>`:''}`;
   sumEl.style.display='block';
   formEl.style.display='block';
   if(existing){
@@ -3591,17 +3595,48 @@ async function saveExtAssign(){
   }catch(e){toast('Error: '+e.message,'err');}
 }
 
+async function markExtJobComplete(){
+  const id=g('ea_case');
+  if(!id){toast('Select a case','err');return;}
+  const existing=EXTA.find(a=>a.case_ref===id);
+  if(!existing){toast('Assign an external valuer to this case first','err');return;}
+  const c=CASES.find(x=>x.case_id===id);
+  const t=trk(id);
+  const now=new Date();
+  const dateStr=now.toISOString().slice(0,10);
+  const timeStr=now.toTimeString().slice(0,5);
+  try{
+    const payload={
+      case_ref:id,case_id:c.id,
+      engineer_name:'[External] '+existing.valuer_name,
+      typist_name:t?.typist_name||'',
+      visit_date:t?.visit_date||dateStr,visit_time:t?.visit_time||timeStr,
+      visit_complete:true,visit_completed_at:now.toISOString(),
+      submit_date:dateStr,submit_time:timeStr,
+      report_complete:true
+    };
+    if(t) await dbUpdate('tracking',{case_ref:id},payload);
+    else await dbInsert('tracking',payload);
+    await dbUpdate('cases',{case_id:id},{status:'report_done'});
+    showSuccess('✅','Job Complete!','TAT closed for this case — '+existing.valuer_name+' has been credited with the work.');
+    loadData();
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
 function renderExtRecent(){
   const el=document.getElementById('ea_recent');
   if(!el) return;
   if(!EXTA.length){el.innerHTML='<div class="empty">No external assignments yet</div>';return;}
-  el.innerHTML=EXTA.slice(0,15).map(a=>`
-    <div style="padding:10px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
+  el.innerHTML=EXTA.slice(0,15).map(a=>{
+    const t=trk(a.case_ref);
+    const jobDone=t?.visit_complete&&t?.report_complete;
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
       <div style="display:flex;justify-content:space-between;"><b>${a.case_ref}</b>
       <span class="badge" style="background:${a.status==='paid'?'var(--gbg)':'var(--abg)'};color:${a.status==='paid'?'var(--green)':'#92600A'};">${a.status==='paid'?'Paid':'Pending'}</span></div>
       <div style="color:var(--muted);">${a.valuer_name} · ${a.bank_name||'—'} · Fee ${fmtR(a.case_fee)} · Commission ${fmtR(a.commission_amount)}</div>
-      <div style="color:var(--muted);">Due: ${a.due_date}</div>
-    </div>`).join('');
+      <div style="color:var(--muted);">Due: ${a.due_date} · ${jobDone?'<span style="color:var(--green);">✅ TAT closed</span>':'<span style="color:var(--amber);">⏳ Job in progress</span>'}</div>
+    </div>`;
+  }).join('');
 }
 
 function renderPayouts(){
