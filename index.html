@@ -1514,7 +1514,14 @@ function populateAssignPicker(){
   const typs=USERS.filter(u=>u.can_type&&u.active);
   const ae=document.getElementById('asgn_eng');
   const at=document.getElementById('asgn_typ');
-  if(ae) ae.innerHTML='<option value="">Select…</option>'+engs.map(u=>`<option>${u.name}</option>`).join('');
+  if(ae){
+    const av=ae.value;
+    let opts='<option value="">Select…</option>';
+    if(engs.length) opts+=`<optgroup label="Internal Engineers">${engs.map(u=>`<option>${u.name}</option>`).join('')}</optgroup>`;
+    if(EXTV.length) opts+=`<optgroup label="External Valuers">${EXTV.map(x=>`<option value="[External] ${x.name}">${x.name} (External)</option>`).join('')}</optgroup>`;
+    ae.innerHTML=opts;
+    ae.value=av;
+  }
   if(at) at.innerHTML='<option value="">Select…</option>'+typs.map(u=>`<option>${u.name}</option>`).join('');
 }
 
@@ -1563,7 +1570,11 @@ async function saveAssign(){
 function renderAssign(){
   const el=document.getElementById('unassignedList');
   if(!el) return;
-  const ua=CASES.filter(c=>{const t=trk(c.case_id);return!t||(!t.engineer_name&&!t.typist_name);});
+  const ua=CASES.filter(c=>{
+    const t=trk(c.case_id);
+    const extAssigned=EXTA.some(a=>a.case_ref===c.case_id);
+    return(!t||(!t.engineer_name&&!t.typist_name))&&!extAssigned;
+  });
   if(!ua.length){el.innerHTML='<div class="empty">All cases assigned ✓</div>';return;}
   el.innerHTML=ua.map(c=>`<div class="cc s-received">
     <div class="cc-top"><div><div class="cc-bank">${c.bank_name}</div><div class="cc-name">${c.case_name||'Unnamed'}</div></div>
@@ -3545,7 +3556,11 @@ function onExtCasePick(){
       ||CRATES.find(r=>r.bank_name===c.bank_name&&!r.loan_product)
       ||CRATES.find(r=>!r.bank_name&&r.loan_product===c.loan_product)
       ||CRATES.find(r=>!r.bank_name&&!r.loan_product);
-    document.getElementById('ea_valuer').value='';
+    // If this case was already handed to an external valuer via the main Assign screen,
+    // pre-select that valuer here so admin only has to fill in the fee.
+    const extName=t?.engineer_name&&t.engineer_name.startsWith('[External] ')?t.engineer_name.slice(11):'';
+    const matched=extName?EXTV.find(v=>v.name===extName):null;
+    document.getElementById('ea_valuer').value=matched?matched.id:'';
     document.getElementById('ea_fee').value='';
     document.getElementById('ea_ctype').value=rate?rate.commission_type:'percent';
     document.getElementById('ea_cval').value=rate?rate.commission_value:'';
@@ -3586,6 +3601,17 @@ async function saveExtAssign(){
   try{
     if(extEditingId) await dbUpdate('valuer_assignments',{id:extEditingId},data);
     else await dbInsert('valuer_assignments',{...data,assigned_date:new Date().toISOString().slice(0,10),status:'pending'});
+    // Reflect the assignment in tracking immediately, same as an internal engineer assignment,
+    // so the main Assign screen stops showing this case as unassigned.
+    const t=trk(caseRef);
+    const trackPayload={
+      case_ref:caseRef,case_id:c.id,
+      engineer_name:'[External] '+valuer.name,
+      typist_name:t?.typist_name||''
+    };
+    if(t) await dbUpdate('tracking',{case_ref:caseRef},trackPayload);
+    else await dbInsert('tracking',{...trackPayload,visit_complete:false,report_complete:false});
+    if(c.status==='received') await dbUpdate('cases',{case_id:caseRef},{status:'assigned'});
     toast('External assignment saved ✓','ok');
     document.getElementById('ea_case').value='';
     document.getElementById('ea_summary').style.display='none';
@@ -3643,20 +3669,27 @@ function renderPayouts(){
   const valuerFilter=g('po_valuer');
   const statusFilter=g('po_status');
   const monthFilter=g('po_month');
-  let list=EXTA.filter(a=>{
+  // Totals ignore the status filter so Pending and Paid are always both visible.
+  const baseList=EXTA.filter(a=>{
     if(valuerFilter&&a.valuer_id!==valuerFilter) return false;
-    if(statusFilter&&a.status!==statusFilter) return false;
     if(monthFilter&&(a.due_date||'').slice(0,7)!==monthFilter) return false;
     return true;
   });
-  list=list.slice().sort((a,b)=>new Date(a.due_date)-new Date(b.due_date));
-  const pendingTotal=list.reduce((s,a)=>s+(a.status==='pending'?Number(a.commission_amount):0),0);
-  const allTotal=list.reduce((s,a)=>s+Number(a.commission_amount),0);
+  const pendingTotal=baseList.filter(a=>a.status==='pending').reduce((s,a)=>s+Number(a.commission_amount),0);
+  const paidTotal=baseList.filter(a=>a.status==='paid').reduce((s,a)=>s+Number(a.commission_amount),0);
   document.getElementById('po_summary').innerHTML=`
-    <div style="display:flex;justify-content:space-between;background:var(--ptint);border-radius:10px;padding:12px;">
-      <span>${list.length} case${list.length===1?'':'s'}</span>
-      <b style="color:var(--p);">${statusFilter==='paid'?fmtR(allTotal)+' paid':fmtR(pendingTotal)+' pending'}</b>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div style="background:var(--abg);border-radius:10px;padding:12px;">
+        <div style="font-size:11px;color:#92600A;font-weight:700;text-transform:uppercase;">Pending</div>
+        <div style="font-size:18px;font-weight:700;color:#92600A;">${fmtR(pendingTotal)}</div>
+      </div>
+      <div style="background:var(--gbg);border-radius:10px;padding:12px;">
+        <div style="font-size:11px;color:var(--green);font-weight:700;text-transform:uppercase;">Paid</div>
+        <div style="font-size:18px;font-weight:700;color:var(--green);">${fmtR(paidTotal)}</div>
+      </div>
     </div>`;
+  let list=baseList.filter(a=>!statusFilter||a.status===statusFilter);
+  list=list.slice().sort((a,b)=>new Date(a.due_date)-new Date(b.due_date));
   const el=document.getElementById('po_list');
   if(!list.length){el.innerHTML='<div class="empty">No matching commission entries</div>';return;}
   const today=new Date().toISOString().slice(0,10);
@@ -3687,11 +3720,16 @@ function renderValuerDirectory(){
   const el=document.getElementById('ev_list');
   if(!el) return;
   if(!EXTV.length){el.innerHTML='<div class="empty">No external valuers added yet</div>';return;}
-  el.innerHTML=EXTV.map(v=>`
-    <div style="padding:10px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
+  el.innerHTML=EXTV.map(v=>{
+    const mine=EXTA.filter(a=>a.valuer_id===v.id);
+    const paid=mine.filter(a=>a.status==='paid').reduce((s,a)=>s+Number(a.commission_amount),0);
+    const pending=mine.filter(a=>a.status==='pending').reduce((s,a)=>s+Number(a.commission_amount),0);
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
       <b>${v.name}</b>${v.phone?' · '+v.phone:''}
       ${v.notes?`<div style="color:var(--muted);margin-top:2px;">${v.notes}</div>`:''}
-    </div>`).join('');
+      <div style="margin-top:4px;color:var(--muted);">Paid: <b style="color:var(--green);">${fmtR(paid)}</b> · Pending: <b style="color:#92600A;">${fmtR(pending)}</b> · ${mine.length} case${mine.length===1?'':'s'}</div>
+    </div>`;
+  }).join('');
 }
 
 function showAddValuer(){document.getElementById('addValuerCard').style.display='block';}
