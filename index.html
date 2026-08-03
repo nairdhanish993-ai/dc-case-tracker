@@ -970,6 +970,116 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
     </div>
   </div>
 
+  <!-- TAB: External Valuers -->
+  <div class="page" id="pg-ext">
+    <div class="dpill">External Valuers & Commission</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin:12px 14px 0;">
+      <button class="pbtn on" data-ext="payouts" onclick="switchExt('payouts')">💰 Payouts</button>
+      <button class="pbtn" data-ext="assign" onclick="switchExt('assign')">➕ Assign</button>
+      <button class="pbtn" data-ext="directory" onclick="switchExt('directory')">👤 Valuers</button>
+      <button class="pbtn" data-ext="rates" onclick="switchExt('rates')">📐 Rates</button>
+    </div>
+
+    <!-- PAYOUTS -->
+    <div id="ext-payouts">
+      <div class="card">
+        <div class="ctitle">Commission Payable</div>
+        <div class="row2">
+          <div><label>Valuer</label><select id="po_valuer" onchange="renderPayouts()"><option value="">All Valuers</option></select></div>
+          <div><label>Status</label><select id="po_status" onchange="renderPayouts()">
+            <option value="pending">Pending</option><option value="paid">Paid</option><option value="">All</option>
+          </select></div>
+        </div>
+        <label>Due Month</label>
+        <input type="month" id="po_month" onchange="renderPayouts()">
+        <div id="po_summary" style="margin-top:12px;"></div>
+        <div id="po_list" style="margin-top:10px;"></div>
+      </div>
+    </div>
+
+    <!-- ASSIGN -->
+    <div id="ext-assign" style="display:none;">
+      <div class="card">
+        <div class="ctitle">Assign Case to External Valuer</div>
+        <label>Case <span class="req">*</span></label>
+        <select id="ea_case" onchange="onExtCasePick()"><option value="">Select case…</option></select>
+        <div id="ea_summary" style="display:none;background:var(--ptint);border-radius:10px;padding:12px;margin-top:10px;font-size:13px;"></div>
+      </div>
+      <div class="card" id="ea_form" style="display:none;">
+        <label>External Valuer <span class="req">*</span></label>
+        <select id="ea_valuer"><option value="">Select valuer…</option></select>
+        <label>Case Fee (₹) <span class="req">*</span></label>
+        <input type="number" id="ea_fee" placeholder="Total fee for this case" oninput="calcExtCommission()">
+        <label>Commission Type</label>
+        <select id="ea_ctype" onchange="calcExtCommission()">
+          <option value="percent">% of Fee</option>
+          <option value="fixed">Fixed Amount</option>
+        </select>
+        <label>Commission Value</label>
+        <input type="number" id="ea_cval" placeholder="e.g. 30 for 30%, or a flat ₹ amount" oninput="calcExtCommission()">
+        <div id="ea_calc" style="font-size:14px;color:var(--p);font-weight:700;margin-top:6px;"></div>
+        <div id="ea_duenote" style="font-size:12px;color:var(--muted);margin-top:2px;"></div>
+        <label>Notes</label>
+        <textarea id="ea_notes" placeholder="Any remarks…"></textarea>
+        <button class="btn bp" onclick="saveExtAssign()" style="margin-top:14px;">Save Assignment</button>
+      </div>
+      <div class="card">
+        <div class="ctitle">Recent External Assignments</div>
+        <div id="ea_recent"></div>
+      </div>
+    </div>
+
+    <!-- DIRECTORY -->
+    <div id="ext-directory" style="display:none;">
+      <div class="card">
+        <div class="ctitle">External Valuers Directory</div>
+        <div id="ev_list"></div>
+        <button class="btn bs" onclick="showAddValuer()" style="margin-top:12px;">+ Add External Valuer</button>
+      </div>
+      <div class="card" id="addValuerCard" style="display:none;">
+        <div class="ctitle">New External Valuer</div>
+        <label>Name <span class="req">*</span></label><input type="text" id="nv_name">
+        <label>Phone</label><input type="tel" id="nv_phone">
+        <label>Notes</label><textarea id="nv_notes" placeholder="e.g. specialises in agri land, Kollam district"></textarea>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button class="btn bp" onclick="addValuer()" style="flex:1;">Save</button>
+          <button class="btn bs" onclick="document.getElementById('addValuerCard').style.display='none'" style="flex:1;">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RATES -->
+    <div id="ext-rates" style="display:none;">
+      <div class="card">
+        <div class="ctitle">Commission Rate Card</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Default commission by bank + loan product. Prefills the Assign form — always editable per case.</p>
+        <div id="cr_list"></div>
+        <button class="btn bs" onclick="showAddRate()" style="margin-top:12px;">+ Add Rate Rule</button>
+      </div>
+      <div class="card" id="addRateCard" style="display:none;">
+        <div class="ctitle">New Rate Rule</div>
+        <label>Bank</label>
+        <select id="nr_bank"><option value="">Any Bank</option></select>
+        <label>Loan Product</label>
+        <select id="nr_product">
+          <option value="">Any Product</option>
+          <option>Home Loan</option><option>LAP (Loan Against Property)</option>
+          <option>Plot Loan</option><option>Construction Loan</option>
+          <option>Commercial Property Loan</option><option>Mortgage Loan</option>
+          <option>NPA / SARFAESI Valuation</option><option>Other Immovable Property</option>
+        </select>
+        <label>Commission Type</label>
+        <select id="nr_ctype"><option value="percent">% of Fee</option><option value="fixed">Fixed Amount</option></select>
+        <label>Commission Value</label>
+        <input type="number" id="nr_cval" placeholder="e.g. 30">
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button class="btn bp" onclick="addRate()" style="flex:1;">Save</button>
+          <button class="btn bs" onclick="document.getElementById('addRateCard').style.display='none'" style="flex:1;">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- TAB: Admin -->
   <div class="page" id="pg-admin">
     <div class="dpill">Admin Panel</div>
@@ -1111,6 +1221,7 @@ async function dbUpsert(table, data, onConflict) {
 // ═══════════════════════════════════════════
 let CU = null; // current user
 let CASES = [], TRACKING = [], USERS = [], BANKS = [], LRATES = [];
+let EXTV = [], CRATES = [], EXTA = [];
 let sitePhotos = [], visitDone = false, reportDone = false, ackDone = false;
 let curPeriod = 'month', periodFrom = null, periodTo = null;
 let tblSort = 'date', tblDir = 'desc';
@@ -1210,6 +1321,7 @@ function buildNav(){
   tabs.push({id:'dash',label:'📊 Dashboard'});
   if(CU.can_add_cases||CU.role==='admin') tabs.push({id:'cases',label:'📋 Cases'});
   if(CU.role==='admin') tabs.push({id:'assign',label:'👥 Assign'});
+  if(CU.role==='admin') tabs.push({id:'ext',label:'🤝 External'});
   if(CU.can_visit||CU.can_type||CU.role==='admin') tabs.push({id:'work',label:'🚗 My Work'});
   if(CU.role==='admin'){
     tabs.push({id:'lr',label:'🗺 Rates'});
@@ -1229,6 +1341,7 @@ function goTab(id){
   if(id==='lr') renderLR();
   if(id==='admin') renderAdmin();
   if(id==='assign') renderAssign();
+  if(id==='ext') renderExt();
 }
 
 // ═══════════════════════════════════════════
@@ -1236,11 +1349,14 @@ function goTab(id){
 // ═══════════════════════════════════════════
 async function loadData(){
   try{
-    [CASES,TRACKING,BANKS,LRATES]=await Promise.all([
+    [CASES,TRACKING,BANKS,LRATES,EXTV,CRATES,EXTA]=await Promise.all([
       dbGet('cases'),
       dbGet('tracking'),
       dbGet('banks',{active:'true'},'*'),
-      dbGet('land_rates')
+      dbGet('land_rates'),
+      dbGet('external_valuers',{active:'true'},'*'),
+      dbGet('commission_rates'),
+      dbGet('valuer_assignments')
     ]);
     // Remove old DOMContentLoaded listener conflict
 
@@ -1256,8 +1372,10 @@ function afterLoad(){
   populateReportPicker();
   populateAssignPicker();
   renderAssign();
+  populateExtPickers();
   if(document.getElementById('pg-dash').classList.contains('on')) renderDash();
   if(document.getElementById('pg-lr').classList.contains('on')) renderLR();
+  if(document.getElementById('pg-ext').classList.contains('on')) renderExt();
 }
 
 function trk(caseId){return TRACKING.find(t=>t.case_ref===caseId)||null;}
@@ -3341,6 +3459,246 @@ function filterRental(f){
   rentalFilter=f;
   document.querySelectorAll('[data-rt]').forEach(b=>b.classList.toggle('on',b.dataset.rt===f));
   renderRental();
+}
+
+// ═══════════════════════════════════════════
+// EXTERNAL VALUERS & COMMISSION
+// ═══════════════════════════════════════════
+let extEditingId=null;
+
+function endOfNextMonth(dateStr){
+  const d=dateStr?new Date(dateStr+'T00:00:00'):new Date();
+  const end=new Date(d.getFullYear(),d.getMonth()+2,0);
+  const mm=String(end.getMonth()+1).padStart(2,'0'),dd=String(end.getDate()).padStart(2,'0');
+  return `${end.getFullYear()}-${mm}-${dd}`;
+}
+
+function switchExt(tab){
+  ['payouts','assign','directory','rates'].forEach(t=>{
+    document.getElementById('ext-'+t).style.display=t===tab?'block':'none';
+  });
+  document.querySelectorAll('[data-ext]').forEach(b=>b.classList.toggle('on',b.dataset.ext===tab));
+  renderExt();
+}
+
+function renderExt(){
+  const active=document.querySelector('[data-ext].on')?.dataset.ext||'payouts';
+  if(active==='payouts') renderPayouts();
+  if(active==='assign') renderExtRecent();
+  if(active==='directory') renderValuerDirectory();
+  if(active==='rates') renderRateCard();
+}
+
+function populateExtPickers(){
+  const po=document.getElementById('po_valuer');
+  if(po){
+    const v=po.value;
+    po.innerHTML='<option value="">All Valuers</option>'+EXTV.map(x=>`<option value="${x.id}">${x.name}</option>`).join('');
+    po.value=v;
+  }
+  const eav=document.getElementById('ea_valuer');
+  if(eav){
+    const v=eav.value;
+    eav.innerHTML='<option value="">Select valuer…</option>'+EXTV.map(x=>`<option value="${x.id}">${x.name}</option>`).join('');
+    eav.value=v;
+  }
+  const eac=document.getElementById('ea_case');
+  if(eac){
+    const v=eac.value;
+    eac.innerHTML='<option value="">Select case…</option>'+CASES.map(c=>
+      `<option value="${c.case_id}">${c.bank_name} – ${c.case_name||'Unnamed'} (${c.received_date})</option>`).join('');
+    eac.value=v;
+  }
+  const nrb=document.getElementById('nr_bank');
+  if(nrb){
+    const v=nrb.value;
+    nrb.innerHTML='<option value="">Any Bank</option>'+BANKS.map(b=>`<option value="${b.name}">${b.name}</option>`).join('');
+    nrb.value=v;
+  }
+}
+
+function onExtCasePick(){
+  const id=g('ea_case');
+  const sumEl=document.getElementById('ea_summary');
+  const formEl=document.getElementById('ea_form');
+  if(!id){sumEl.style.display='none';formEl.style.display='none';return;}
+  const c=CASES.find(x=>x.case_id===id);
+  const existing=EXTA.find(a=>a.case_ref===id);
+  extEditingId=existing?existing.id:null;
+  sumEl.innerHTML=`<b>${c.bank_name}</b> · ${c.case_name||'—'}<br>
+    Loan Product: ${c.loan_product||'—'}<br>
+    ${existing?`<span style="color:var(--p);font-weight:700;">Already assigned to ${existing.valuer_name} — editing existing assignment</span>`:'Not yet assigned to an external valuer'}`;
+  sumEl.style.display='block';
+  formEl.style.display='block';
+  if(existing){
+    document.getElementById('ea_valuer').value=existing.valuer_id||'';
+    document.getElementById('ea_fee').value=existing.case_fee;
+    document.getElementById('ea_ctype').value=existing.commission_type;
+    document.getElementById('ea_cval').value=existing.commission_value;
+    document.getElementById('ea_notes').value=existing.notes||'';
+  }else{
+    const rate=CRATES.find(r=>r.bank_name===c.bank_name&&r.loan_product===c.loan_product)
+      ||CRATES.find(r=>r.bank_name===c.bank_name&&!r.loan_product)
+      ||CRATES.find(r=>!r.bank_name&&r.loan_product===c.loan_product)
+      ||CRATES.find(r=>!r.bank_name&&!r.loan_product);
+    document.getElementById('ea_valuer').value='';
+    document.getElementById('ea_fee').value='';
+    document.getElementById('ea_ctype').value=rate?rate.commission_type:'percent';
+    document.getElementById('ea_cval').value=rate?rate.commission_value:'';
+    document.getElementById('ea_notes').value='';
+  }
+  calcExtCommission();
+}
+
+function calcExtCommission(){
+  const fee=parseFloat(g('ea_fee'))||0;
+  const ctype=g('ea_ctype');
+  const cval=parseFloat(g('ea_cval'))||0;
+  const amount=ctype==='percent'?fee*cval/100:cval;
+  document.getElementById('ea_calc').textContent=(fee||cval)?`Commission: ${fmtR(amount)}`:'';
+  const due=endOfNextMonth();
+  document.getElementById('ea_duenote').textContent=`Payment due by ${new Date(due+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})} (auto — end of next month)`;
+}
+
+async function saveExtAssign(){
+  const caseRef=g('ea_case');
+  if(!caseRef){toast('Select a case','err');return;}
+  const valuerId=g('ea_valuer');
+  if(!valuerId){toast('Select an external valuer','err');return;}
+  const fee=parseFloat(g('ea_fee'))||0;
+  if(fee<=0){toast('Enter the case fee','err');return;}
+  const ctype=g('ea_ctype');
+  const cval=parseFloat(g('ea_cval'))||0;
+  if(cval<=0){toast('Enter the commission value','err');return;}
+  const c=CASES.find(x=>x.case_id===caseRef);
+  const valuer=EXTV.find(x=>x.id===valuerId);
+  const amount=ctype==='percent'?fee*cval/100:cval;
+  const data={
+    case_id:c.id,case_ref:caseRef,valuer_id:valuerId,valuer_name:valuer.name,
+    bank_name:c.bank_name,loan_product:c.loan_product||null,
+    case_fee:fee,commission_type:ctype,commission_value:cval,commission_amount:amount,
+    due_date:endOfNextMonth(),notes:g('ea_notes')||null
+  };
+  try{
+    if(extEditingId) await dbUpdate('valuer_assignments',{id:extEditingId},data);
+    else await dbInsert('valuer_assignments',{...data,assigned_date:new Date().toISOString().slice(0,10),status:'pending'});
+    toast('External assignment saved ✓','ok');
+    document.getElementById('ea_case').value='';
+    document.getElementById('ea_summary').style.display='none';
+    document.getElementById('ea_form').style.display='none';
+    extEditingId=null;
+    loadData();
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+function renderExtRecent(){
+  const el=document.getElementById('ea_recent');
+  if(!el) return;
+  if(!EXTA.length){el.innerHTML='<div class="empty">No external assignments yet</div>';return;}
+  el.innerHTML=EXTA.slice(0,15).map(a=>`
+    <div style="padding:10px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
+      <div style="display:flex;justify-content:space-between;"><b>${a.case_ref}</b>
+      <span class="badge" style="background:${a.status==='paid'?'var(--gbg)':'var(--abg)'};color:${a.status==='paid'?'var(--green)':'#92600A'};">${a.status==='paid'?'Paid':'Pending'}</span></div>
+      <div style="color:var(--muted);">${a.valuer_name} · ${a.bank_name||'—'} · Fee ${fmtR(a.case_fee)} · Commission ${fmtR(a.commission_amount)}</div>
+      <div style="color:var(--muted);">Due: ${a.due_date}</div>
+    </div>`).join('');
+}
+
+function renderPayouts(){
+  const valuerFilter=g('po_valuer');
+  const statusFilter=g('po_status');
+  const monthFilter=g('po_month');
+  let list=EXTA.filter(a=>{
+    if(valuerFilter&&a.valuer_id!==valuerFilter) return false;
+    if(statusFilter&&a.status!==statusFilter) return false;
+    if(monthFilter&&(a.due_date||'').slice(0,7)!==monthFilter) return false;
+    return true;
+  });
+  list=list.slice().sort((a,b)=>new Date(a.due_date)-new Date(b.due_date));
+  const pendingTotal=list.reduce((s,a)=>s+(a.status==='pending'?Number(a.commission_amount):0),0);
+  const allTotal=list.reduce((s,a)=>s+Number(a.commission_amount),0);
+  document.getElementById('po_summary').innerHTML=`
+    <div style="display:flex;justify-content:space-between;background:var(--ptint);border-radius:10px;padding:12px;">
+      <span>${list.length} case${list.length===1?'':'s'}</span>
+      <b style="color:var(--p);">${statusFilter==='paid'?fmtR(allTotal)+' paid':fmtR(pendingTotal)+' pending'}</b>
+    </div>`;
+  const el=document.getElementById('po_list');
+  if(!list.length){el.innerHTML='<div class="empty">No matching commission entries</div>';return;}
+  const today=new Date().toISOString().slice(0,10);
+  el.innerHTML=list.map(a=>{
+    const overdue=a.status==='pending'&&a.due_date<today;
+    return `<div style="padding:12px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
+      <div style="display:flex;justify-content:space-between;">
+        <b>${a.valuer_name}</b>
+        <span class="badge" style="background:${a.status==='paid'?'var(--gbg)':overdue?'var(--rbg)':'var(--abg)'};color:${a.status==='paid'?'var(--green)':overdue?'var(--red)':'#92600A'};">${a.status==='paid'?'Paid':overdue?'Overdue':'Pending'}</span>
+      </div>
+      <div style="color:var(--muted);margin-top:2px;">${a.case_ref} · ${a.bank_name||'—'}${a.loan_product?' · '+a.loan_product:''}</div>
+      <div style="margin-top:4px;">Fee ${fmtR(a.case_fee)} → Commission <b style="color:var(--p);">${fmtR(a.commission_amount)}</b></div>
+      <div style="color:var(--muted);">Due: ${a.due_date}${a.status==='paid'?' · Paid: '+(a.paid_date||''):''}</div>
+      ${a.status==='pending'?`<button class="btn bs" style="margin-top:8px;padding:8px;" onclick="markPaid('${a.id}')">Mark as Paid</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+async function markPaid(id){
+  try{
+    await dbUpdate('valuer_assignments',{id},{status:'paid',paid_date:new Date().toISOString().slice(0,10)});
+    toast('Marked as paid ✓','ok');
+    loadData();
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+function renderValuerDirectory(){
+  const el=document.getElementById('ev_list');
+  if(!el) return;
+  if(!EXTV.length){el.innerHTML='<div class="empty">No external valuers added yet</div>';return;}
+  el.innerHTML=EXTV.map(v=>`
+    <div style="padding:10px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
+      <b>${v.name}</b>${v.phone?' · '+v.phone:''}
+      ${v.notes?`<div style="color:var(--muted);margin-top:2px;">${v.notes}</div>`:''}
+    </div>`).join('');
+}
+
+function showAddValuer(){document.getElementById('addValuerCard').style.display='block';}
+
+async function addValuer(){
+  const name=g('nv_name').trim();
+  if(!name){toast('Name required','err');return;}
+  try{
+    await dbInsert('external_valuers',{name,phone:g('nv_phone')||null,notes:g('nv_notes')||null,active:true});
+    toast(`${name} added ✓`,'ok');
+    document.getElementById('nv_name').value='';document.getElementById('nv_phone').value='';document.getElementById('nv_notes').value='';
+    document.getElementById('addValuerCard').style.display='none';
+    loadData();
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+function renderRateCard(){
+  const el=document.getElementById('cr_list');
+  if(!el) return;
+  if(!CRATES.length){el.innerHTML='<div class="empty">No rate rules yet — commission will need to be entered manually per case</div>';return;}
+  el.innerHTML=CRATES.map(r=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
+      <span><b>${r.bank_name||'Any Bank'}</b> · ${r.loan_product||'Any Product'}</span>
+      <span style="font-weight:700;color:var(--p);">${r.commission_type==='percent'?r.commission_value+'%':fmtR(r.commission_value)}</span>
+    </div>`).join('');
+}
+
+function showAddRate(){document.getElementById('addRateCard').style.display='block';}
+
+async function addRate(){
+  const cval=parseFloat(g('nr_cval'))||0;
+  if(cval<=0){toast('Enter a commission value','err');return;}
+  try{
+    await dbInsert('commission_rates',{
+      bank_name:g('nr_bank')||null,loan_product:g('nr_product')||null,
+      commission_type:g('nr_ctype'),commission_value:cval
+    });
+    toast('Rate rule added ✓','ok');
+    document.getElementById('nr_cval').value='';
+    document.getElementById('addRateCard').style.display='none';
+    loadData();
+  }catch(e){toast('Error: '+e.message,'err');}
 }
 
 // ── Land Rate Approval ──
