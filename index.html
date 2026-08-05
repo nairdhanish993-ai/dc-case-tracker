@@ -1321,7 +1321,7 @@ function buildNav(){
   // Dashboard always first for everyone
   tabs.push({id:'dash',label:'📊 Dashboard'});
   if(CU.can_add_cases||CU.role==='admin') tabs.push({id:'cases',label:'📋 Cases'});
-  if(CU.role==='admin') tabs.push({id:'assign',label:'👥 Assign'});
+  if(CU.role==='admin'||CU.name==='Sreenath') tabs.push({id:'assign',label:'👥 Assign'});
   if(CU.role==='admin') tabs.push({id:'ext',label:'🤝 External'});
   if(CU.can_visit||CU.can_type||CU.role==='admin') tabs.push({id:'work',label:'🚗 My Work'});
   if(CU.role==='admin'){
