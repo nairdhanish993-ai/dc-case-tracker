@@ -859,7 +859,7 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
     <div class="card">
       <div class="ctitle">All Cases</div>
       <div style="display:flex;gap:8px;margin-bottom:10px;">
-        <input type="text" id="d_search" placeholder="Search…" oninput="renderCasesTable()" style="flex:1;">
+        <input type="text" id="d_search" placeholder="Bank, borrower, city/district, app ID…" oninput="renderCasesTable()" style="flex:1;">
         <select id="d_mfilter" onchange="renderCasesTable()" style="width:120px;flex-shrink:0;"></select>
         <button onclick="downloadCaseList()" style="width:42px;height:42px;border-radius:10px;border:1.5px solid var(--p);background:var(--ptint);color:var(--p);font-size:16px;cursor:pointer;flex-shrink:0;" title="Download case list">⬇</button>
       </div>
@@ -872,6 +872,7 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
             <th onclick="tsort('bank')">Bank <span id="ts_bank"></span></th>
             <th onclick="tsort('name')">Borrower <span id="ts_name"></span></th>
             <th>App ID</th>
+            <th>Location</th>
             <th onclick="tsort('visit')">Visit <span id="ts_visit"></span></th>
             <th onclick="tsort('report')">Report Submitted <span id="ts_report"></span></th>
             <th onclick="tsort('tat')">TAT <span id="ts_tat"></span></th>
@@ -993,7 +994,14 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
         <label>Due Month</label>
         <input type="month" id="po_month" onchange="renderPayouts()">
         <div id="po_summary" style="margin-top:12px;"></div>
-        <div id="po_list" style="margin-top:10px;"></div>
+        <div class="twrap" style="margin-top:10px;">
+          <table class="tbl">
+            <thead><tr>
+              <th>Valuer</th><th>Case</th><th>Bank</th><th>Fee</th><th>Commission</th><th>Due</th><th>Status</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="po_list"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -1022,7 +1030,8 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
         <div id="ea_duenote" style="font-size:12px;color:var(--muted);margin-top:2px;"></div>
         <label>Notes</label>
         <textarea id="ea_notes" placeholder="Any remarks…"></textarea>
-        <button class="btn bp" onclick="saveExtAssign()" style="margin-top:14px;">Save Assignment</button>
+        <button class="btn bp" id="ea_savebtn" onclick="saveExtAssign()" style="margin-top:14px;">Save Assignment</button>
+        <button class="btn bd" id="ea_delbtn" onclick="askDeleteExtAssign()" style="margin-top:8px;display:none;">🗑 Remove Assignment</button>
       </div>
       <div class="card">
         <div class="ctitle">Recent External Assignments</div>
@@ -1038,14 +1047,15 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
         <button class="btn bs" onclick="showAddValuer()" style="margin-top:12px;">+ Add External Valuer</button>
       </div>
       <div class="card" id="addValuerCard" style="display:none;">
-        <div class="ctitle">New External Valuer</div>
+        <div class="ctitle" id="valuerCardTitle">New External Valuer</div>
         <label>Name <span class="req">*</span></label><input type="text" id="nv_name">
         <label>Phone</label><input type="tel" id="nv_phone">
         <label>Notes</label><textarea id="nv_notes" placeholder="e.g. specialises in agri land, Kollam district"></textarea>
         <div style="display:flex;gap:8px;margin-top:12px;">
-          <button class="btn bp" onclick="addValuer()" style="flex:1;">Save</button>
-          <button class="btn bs" onclick="document.getElementById('addValuerCard').style.display='none'" style="flex:1;">Cancel</button>
+          <button class="btn bp" id="nv_savebtn" onclick="saveValuer()" style="flex:1;">Save</button>
+          <button class="btn bs" onclick="hideValuerForm()" style="flex:1;">Cancel</button>
         </div>
+        <button class="btn bd" id="nv_delbtn" onclick="askDeactivateValuer()" style="margin-top:8px;width:100%;display:none;">🗑 Remove Valuer</button>
       </div>
     </div>
 
@@ -2661,7 +2671,7 @@ function renderCasesTable(){
   });
   if(search)cases=cases.filter(c=>{
     const t=trk(c.case_id);
-    return[c.case_name,c.bank_name,t?.engineer_name,t?.typist_name].join(' ').toLowerCase().includes(search);
+    return[c.case_name,c.bank_name,c.application_id,c.property_location,t?.engineer_name,t?.typist_name].join(' ').toLowerCase().includes(search);
   });
   cases=[...cases].sort((a,b)=>{
     const ta=trk(a.case_id),tb=trk(b.case_id);
@@ -2686,13 +2696,15 @@ function renderCasesTable(){
     ?`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--gbg);color:var(--green);">Done</span>`
     :`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--abg);color:#92600A;">Pending</span>`;
   document.getElementById('d_table').innerHTML=cases.length===0
-    ?'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">No cases</td></tr>'
+    ?'<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px;">No cases</td></tr>'
     :cases.map(c=>{
       const t=trk(c.case_id);const tat=calcTAT(c,t);
       return`<tr>
         <td>${c.received_date}</td>
         <td style="color:var(--p);font-weight:600;">${c.bank_name}</td>
         <td style="font-weight:600;">${c.case_name||'Unnamed'}</td>
+        <td>${c.application_id||'—'}</td>
+        <td>${c.property_location||'—'}</td>
         <td>${t?bd(t.visit_complete):bd(false)}</td>
         <td>${t?bd(t.report_complete):bd(false)}</td>
         <td style="font-weight:600;color:${tat>48?'var(--red)':'var(--blue)'}">${fmtTAT(tat)}</td>
@@ -2715,7 +2727,7 @@ function downloadCaseList(){
   });
   if(search) cases=cases.filter(c=>{
     const t=trk(c.case_id);
-    return[c.case_name,c.bank_name,c.application_id,t?.engineer_name,t?.typist_name].join(' ').toLowerCase().includes(search);
+    return[c.case_name,c.bank_name,c.application_id,c.property_location,t?.engineer_name,t?.typist_name].join(' ').toLowerCase().includes(search);
   });
 
   const now=new Date();
@@ -3517,8 +3529,11 @@ function populateExtPickers(){
   const eac=document.getElementById('ea_case');
   if(eac){
     const v=eac.value;
-    eac.innerHTML='<option value="">Select case…</option>'+CASES.map(c=>
-      `<option value="${c.case_id}">${c.bank_name} – ${c.case_name||'Unnamed'} (${c.received_date})</option>`).join('');
+    eac.innerHTML='<option value="">Select case…</option>'+CASES.map(c=>{
+      const a=EXTA.find(x=>x.case_ref===c.case_id);
+      const tag=a?` — 🤝 ${a.valuer_name} (${a.status==='paid'?'paid':'pending'})`:'';
+      return `<option value="${c.case_id}">${c.bank_name} – ${c.case_name||'Unnamed'} (${c.received_date})${tag}</option>`;
+    }).join('');
     eac.value=v;
   }
   const nrb=document.getElementById('nr_bank');
@@ -3552,6 +3567,8 @@ function onExtCasePick(){
     ${existing&&!visitDone?`<button class="btn bp" onclick="markExtVisitComplete()" style="margin-top:10px;padding:10px;">✅ Mark Visit Complete</button>`:''}`;
   sumEl.style.display='block';
   formEl.style.display='block';
+  document.getElementById('ea_savebtn').textContent=existing?'Update Assignment':'Save Assignment';
+  document.getElementById('ea_delbtn').style.display=existing?'block':'none';
   if(existing){
     document.getElementById('ea_valuer').value=existing.valuer_id||'';
     document.getElementById('ea_fee').value=existing.case_fee;
@@ -3623,6 +3640,35 @@ async function saveExtAssign(){
     document.getElementById('ea_case').value='';
     document.getElementById('ea_summary').style.display='none';
     document.getElementById('ea_form').style.display='none';
+    extEditingId=null;
+    loadData();
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+function askDeleteExtAssign(idOverride,caseRefOverride,valuerNameOverride){
+  const id=idOverride||extEditingId;
+  const a=EXTA.find(x=>x.id===id);
+  if(!a){toast('Nothing to remove','err');return;}
+  document.getElementById('modal_title').textContent='Remove Assignment?';
+  document.getElementById('modal_msg').textContent=`Remove ${a.valuer_name}'s assignment and commission entry for case ${a.case_ref}? This cannot be undone.`;
+  document.getElementById('modal_ok').onclick=()=>doDeleteExtAssign(a.id,a.case_ref,a.valuer_name);
+  document.getElementById('modal').classList.add('open');
+}
+
+async function doDeleteExtAssign(id,caseRef,valuerName){
+  closeModal();
+  try{
+    await dbDelete('valuer_assignments',{id});
+    const t=trk(caseRef);
+    if(t&&t.engineer_name==='[External] '+valuerName){
+      await dbUpdate('tracking',{case_ref:caseRef},{engineer_name:''});
+    }
+    toast('Assignment removed ✓','ok');
+    if(g('ea_case')===caseRef){
+      document.getElementById('ea_case').value='';
+      document.getElementById('ea_summary').style.display='none';
+      document.getElementById('ea_form').style.display='none';
+    }
     extEditingId=null;
     loadData();
   }catch(e){toast('Error: '+e.message,'err');}
@@ -3701,21 +3747,31 @@ function renderPayouts(){
   let list=baseList.filter(a=>!statusFilter||a.status===statusFilter);
   list=list.slice().sort((a,b)=>new Date(a.due_date)-new Date(b.due_date));
   const el=document.getElementById('po_list');
-  if(!list.length){el.innerHTML='<div class="empty">No matching commission entries</div>';return;}
+  if(!list.length){el.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px;">No matching commission entries</td></tr>';return;}
   const today=new Date().toISOString().slice(0,10);
   el.innerHTML=list.map(a=>{
     const overdue=a.status==='pending'&&a.due_date<today;
-    return `<div style="padding:12px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
-      <div style="display:flex;justify-content:space-between;">
-        <b>${a.valuer_name}</b>
-        <span class="badge" style="background:${a.status==='paid'?'var(--gbg)':overdue?'var(--rbg)':'var(--abg)'};color:${a.status==='paid'?'var(--green)':overdue?'var(--red)':'#92600A'};">${a.status==='paid'?'Paid':overdue?'Overdue':'Pending'}</span>
-      </div>
-      <div style="color:var(--muted);margin-top:2px;">${a.case_ref} · ${a.bank_name||'—'}${a.loan_product?' · '+a.loan_product:''}</div>
-      <div style="margin-top:4px;">Fee ${fmtR(a.case_fee)} → Commission <b style="color:var(--p);">${fmtR(a.commission_amount)}</b></div>
-      <div style="color:var(--muted);">Due: ${a.due_date}${a.status==='paid'?' · Paid: '+(a.paid_date||''):''}</div>
-      ${a.status==='pending'?`<button class="btn bs" style="margin-top:8px;padding:8px;" onclick="markPaid('${a.id}')">Mark as Paid</button>`:''}
-    </div>`;
+    return `<tr>
+      <td style="font-weight:600;">${a.valuer_name}</td>
+      <td>${a.case_ref}</td>
+      <td>${a.bank_name||'—'}</td>
+      <td>${fmtR(a.case_fee)}</td>
+      <td style="font-weight:600;color:var(--p);">${fmtR(a.commission_amount)}</td>
+      <td>${a.due_date}${a.status==='paid'?'<br><span style="color:var(--muted);font-size:10px;">Paid '+(a.paid_date||'')+'</span>':''}</td>
+      <td><span class="badge" style="background:${a.status==='paid'?'var(--gbg)':overdue?'var(--rbg)':'var(--abg)'};color:${a.status==='paid'?'var(--green)':overdue?'var(--red)':'#92600A'};">${a.status==='paid'?'Paid':overdue?'Overdue':'Pending'}</span></td>
+      <td>
+        ${a.status==='pending'?`<button class="btn bs" style="padding:6px 8px;font-size:11px;" onclick="markPaid('${a.id}')">Mark Paid</button>`:''}
+        <button class="btn bs" style="padding:6px 8px;font-size:11px;" onclick="editExtAssignFromPayout('${a.case_ref}')">Edit</button>
+        <button class="btn bd" style="padding:6px 8px;font-size:11px;" onclick="askDeleteExtAssign('${a.id}','${a.case_ref}','${a.valuer_name.replace(/'/g,'')}')">Delete</button>
+      </td>
+    </tr>`;
   }).join('');
+}
+
+function editExtAssignFromPayout(caseRef){
+  switchExt('assign');
+  document.getElementById('ea_case').value=caseRef;
+  onExtCasePick();
 }
 
 async function markPaid(id){
@@ -3735,23 +3791,75 @@ function renderValuerDirectory(){
     const paid=mine.filter(a=>a.status==='paid').reduce((s,a)=>s+Number(a.commission_amount),0);
     const pending=mine.filter(a=>a.status==='pending').reduce((s,a)=>s+Number(a.commission_amount),0);
     return `<div style="padding:10px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
-      <b>${v.name}</b>${v.phone?' · '+v.phone:''}
+      <div style="display:flex;justify-content:space-between;align-items:start;">
+        <span><b>${v.name}</b>${v.phone?' · '+v.phone:''}</span>
+        <button class="btn bs" style="padding:5px 10px;font-size:11px;flex-shrink:0;" onclick="editValuer('${v.id}')">Edit</button>
+      </div>
       ${v.notes?`<div style="color:var(--muted);margin-top:2px;">${v.notes}</div>`:''}
       <div style="margin-top:4px;color:var(--muted);">Paid: <b style="color:var(--green);">${fmtR(paid)}</b> · Pending: <b style="color:#92600A;">${fmtR(pending)}</b> · ${mine.length} case${mine.length===1?'':'s'}</div>
     </div>`;
   }).join('');
 }
 
-function showAddValuer(){document.getElementById('addValuerCard').style.display='block';}
+let evEditingId=null;
 
-async function addValuer(){
+function showAddValuer(){
+  evEditingId=null;
+  document.getElementById('valuerCardTitle').textContent='New External Valuer';
+  document.getElementById('nv_savebtn').textContent='Save';
+  document.getElementById('nv_delbtn').style.display='none';
+  document.getElementById('nv_name').value='';
+  document.getElementById('nv_phone').value='';
+  document.getElementById('nv_notes').value='';
+  document.getElementById('addValuerCard').style.display='block';
+}
+
+function hideValuerForm(){
+  document.getElementById('addValuerCard').style.display='none';
+  evEditingId=null;
+}
+
+function editValuer(id){
+  const v=EXTV.find(x=>x.id===id);
+  if(!v) return;
+  evEditingId=id;
+  document.getElementById('valuerCardTitle').textContent='Edit External Valuer';
+  document.getElementById('nv_savebtn').textContent='Update';
+  document.getElementById('nv_delbtn').style.display='block';
+  document.getElementById('nv_name').value=v.name;
+  document.getElementById('nv_phone').value=v.phone||'';
+  document.getElementById('nv_notes').value=v.notes||'';
+  document.getElementById('addValuerCard').style.display='block';
+}
+
+async function saveValuer(){
   const name=g('nv_name').trim();
   if(!name){toast('Name required','err');return;}
   try{
-    await dbInsert('external_valuers',{name,phone:g('nv_phone')||null,notes:g('nv_notes')||null,active:true});
-    toast(`${name} added ✓`,'ok');
-    document.getElementById('nv_name').value='';document.getElementById('nv_phone').value='';document.getElementById('nv_notes').value='';
-    document.getElementById('addValuerCard').style.display='none';
+    const data={name,phone:g('nv_phone')||null,notes:g('nv_notes')||null};
+    if(evEditingId) await dbUpdate('external_valuers',{id:evEditingId},data);
+    else await dbInsert('external_valuers',{...data,active:true});
+    toast(`${name} ${evEditingId?'updated':'added'} ✓`,'ok');
+    hideValuerForm();
+    loadData();
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+function askDeactivateValuer(){
+  const v=EXTV.find(x=>x.id===evEditingId);
+  if(!v) return;
+  document.getElementById('modal_title').textContent='Remove Valuer?';
+  document.getElementById('modal_msg').textContent=`Remove ${v.name} from the active directory? Their past case assignments and payment history stay on record — you just won't be able to assign them new cases.`;
+  document.getElementById('modal_ok').onclick=()=>doDeactivateValuer(v.id);
+  document.getElementById('modal').classList.add('open');
+}
+
+async function doDeactivateValuer(id){
+  closeModal();
+  try{
+    await dbUpdate('external_valuers',{id},{active:false});
+    toast('Valuer removed ✓','ok');
+    hideValuerForm();
     loadData();
   }catch(e){toast('Error: '+e.message,'err');}
 }
