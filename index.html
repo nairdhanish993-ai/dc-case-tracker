@@ -243,23 +243,12 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
     <p>data · numbers · decisions</p>
   </div>
   <div class="login-card">
-    <div class="user-grid" id="userGrid"></div>
-    <p class="pin-label" id="pinLabel">Select your name to login</p>
-    <div class="pin-dots" id="pinDots"></div>
-    <div class="pin-pad">
-      <button class="pkey" onclick="pk('1')">1</button>
-      <button class="pkey" onclick="pk('2')">2</button>
-      <button class="pkey" onclick="pk('3')">3</button>
-      <button class="pkey" onclick="pk('4')">4</button>
-      <button class="pkey" onclick="pk('5')">5</button>
-      <button class="pkey" onclick="pk('6')">6</button>
-      <button class="pkey" onclick="pk('7')">7</button>
-      <button class="pkey" onclick="pk('8')">8</button>
-      <button class="pkey" onclick="pk('9')">9</button>
-      <button class="pkey sm" onclick="pdel()">⌫</button>
-      <button class="pkey" onclick="pk('0')">0</button>
-      <button class="pkey sm" onclick="plogin()">Login</button>
-    </div>
+    <p class="pin-label" style="text-align:left;margin-bottom:6px;">Username</p>
+    <input type="text" id="li_username" placeholder="Enter your name" list="userSuggestions" autocomplete="off" style="margin-bottom:14px;" onkeydown="if(event.key==='Enter')document.getElementById('li_pin').focus()">
+    <datalist id="userSuggestions"></datalist>
+    <p class="pin-label" style="text-align:left;margin-bottom:6px;">PIN</p>
+    <input type="password" id="li_pin" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Enter your PIN" autocomplete="off" style="margin-bottom:14px;" onkeydown="if(event.key==='Enter')plogin()">
+    <button class="btn bp" style="width:100%;" onclick="plogin()">Login</button>
     <p class="login-err" id="loginErr"></p>
   </div>
 </div>
@@ -1263,8 +1252,6 @@ let currentSN = null; // loaded site notes for validation
 // ═══════════════════════════════════════════
 // LOGIN
 // ═══════════════════════════════════════════
-let selUid = null, pinStr = '';
-
 async function initLogin() {
   try {
     document.getElementById('loginErr').textContent = 'Connecting…';
@@ -1274,62 +1261,36 @@ async function initLogin() {
     ]);
     USERS.sort((a,b)=>a.name.localeCompare(b.name));
     EXTV.sort((a,b)=>a.name.localeCompare(b.name));
-    const grid = document.getElementById('userGrid');
-    const icons = {admin:'👔',engineer:'🚗',typist:'⌨️',staff:'📋'};
-    grid.innerHTML = USERS.map(u=>`
-      <button class="ubtn" data-id="${u.id}" onclick="selUser('${u.id}','${u.name}','staff')">
-        <span class="ui">${icons[u.role]||'👤'}</span>${u.name}
-      </button>`).join('')
-      + EXTV.map(v=>`
-      <button class="ubtn" data-id="${v.id}" onclick="selUser('${v.id}','${v.name}','valuer')">
-        <span class="ui">🤝</span>${v.name}<br><span style="font-size:9px;opacity:0.7;">External</span>
-      </button>`).join('');
+    document.getElementById('userSuggestions').innerHTML =
+      [...USERS.map(u=>u.name), ...EXTV.map(v=>v.name)].map(n=>`<option value="${n}">`).join('');
     document.getElementById('loginErr').textContent = '';
-    renderDots();
   } catch(e) {
     document.getElementById('loginErr').textContent = 'Connection failed: '+e.message;
   }
 }
 
-let selKind='staff';
-function selUser(id, name, kind) {
-  selUid = id; pinStr = ''; selKind = kind||'staff';
-  document.querySelectorAll('.ubtn').forEach(b=>b.classList.toggle('sel',b.dataset.id===id));
-  document.getElementById('pinLabel').textContent = `Enter PIN for ${name}`;
-  document.getElementById('loginErr').textContent = '';
-  renderDots();
-}
-
-function pk(k) {
-  if(!selUid){document.getElementById('loginErr').textContent='Select your name first';return;}
-  if(pinStr.length>=6) return;
-  pinStr+=k; renderDots();
-  if(pinStr.length===6) setTimeout(plogin,120);
-}
-
-function pdel(){pinStr=pinStr.slice(0,-1);renderDots();}
-
-function renderDots(){
-  document.getElementById('pinDots').innerHTML=
-    Array.from({length:6},(_,i)=>`<div class="pin-dot${i<pinStr.length?' on':''}"></div>`).join('');
-}
-
 async function plogin() {
-  if(!selUid||pinStr.length<4){document.getElementById('loginErr').textContent='Enter your full PIN';return;}
-  if(selKind==='valuer'){
-    const valuer=EXTV.find(v=>v.id===selUid);
-    if(!valuer||valuer.pin!==pinStr){
+  const username=g('li_username').trim();
+  const pin=g('li_pin').trim();
+  if(!username){document.getElementById('loginErr').textContent='Enter your username';return;}
+  if(pin.length<4){document.getElementById('loginErr').textContent='Enter your full PIN';return;}
+  const user=USERS.find(u=>u.name.toLowerCase()===username.toLowerCase());
+  const valuer=!user?EXTV.find(v=>v.name.toLowerCase()===username.toLowerCase()):null;
+  if(user){
+    if(user.pin!==pin){
       document.getElementById('loginErr').textContent='Incorrect PIN. Try again.';
-      pinStr='';renderDots();return;
+      document.getElementById('li_pin').value='';return;
+    }
+    CU=user;
+  } else if(valuer){
+    if(valuer.pin!==pin){
+      document.getElementById('loginErr').textContent='Incorrect PIN. Try again.';
+      document.getElementById('li_pin').value='';return;
     }
     CU={id:valuer.id,name:valuer.name,role:'external',isExternal:true,phone:valuer.phone};
   } else {
-    const user = USERS.find(u=>u.id===selUid);
-    if(!user||user.pin!==pinStr){
-      document.getElementById('loginErr').textContent='Incorrect PIN. Try again.';
-      pinStr='';renderDots();return;
-    }
-    CU = user;
+    document.getElementById('loginErr').textContent='Username not found';
+    document.getElementById('li_pin').value='';return;
   }
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('app').classList.add('on');
@@ -1337,13 +1298,12 @@ async function plogin() {
 }
 
 function logout(){
-  CU=null;selUid=null;pinStr='';selKind='staff';
+  CU=null;
+  document.getElementById('li_username').value='';
+  document.getElementById('li_pin').value='';
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('app').classList.remove('on');
-  document.querySelectorAll('.ubtn').forEach(b=>b.classList.remove('sel'));
-  document.getElementById('pinLabel').textContent='Select your name to login';
   document.getElementById('loginErr').textContent='';
-  renderDots();
 }
 
 // ═══════════════════════════════════════════
