@@ -374,7 +374,9 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
         <div id="v_summary" style="display:none;background:var(--ptint);border-radius:10px;padding:12px;margin-top:10px;font-size:13px;"></div>
       </div>
 
-      <div class="card" id="v_form" style="display:none;">
+      <div id="v_progress" style="display:none;margin:0 14px 12px;background:var(--ptint);border-radius:10px;padding:10px 12px;font-size:12px;font-weight:700;color:var(--p);text-align:center;"></div>
+
+      <div class="card" id="v_step1" style="display:none;">
         <div class="ctitle">Step 1 — Schedule Visit</div>
         <div class="row2">
           <div><label>Scheduled Date <span class="req">*</span></label><input type="date" id="v_sched_date"></div>
@@ -389,29 +391,18 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
         </select>
         <label>Note (optional)</label>
         <textarea id="v_sched_note" placeholder="e.g. Client confirmed for 10am, contact John on arrival…" style="min-height:50px;"></textarea>
-        <button class="btn bs" onclick="saveSchedule()" style="margin-top:12px;">Save Schedule</button>
+        <button class="btn bp" onclick="saveSchedule()" style="margin-top:12px;">Save Schedule</button>
         <p class="hint" id="v_sched_saved" style="color:var(--green);margin-top:6px;display:none;">✅ Schedule saved</p>
+      </div>
 
-        <div style="height:1px;background:var(--border);margin:16px 0;"></div>
-
-        <div class="ctitle" style="margin-bottom:10px;">Step 2 — Mark Visit Complete</div>
-        <div class="row2">
-          <div><label>Visit Date <span class="req">*</span></label><input type="date" id="v_date"></div>
-          <div><label>Visit Time <span class="req">*</span></label><input type="time" id="v_time"></div>
-        </div>
-        <div class="ctog" id="v_tog" onclick="togVisit()">
-          <div class="ctbox" id="v_box"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display:none" id="v_chk"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <span class="cttxt">Mark Visit Complete</span>
-        </div>
-        <p class="hint">Visit date and time required to mark complete</p>
-        <label style="margin-top:10px;">Reason for Delay (if TAT > 2 days)</label>
-        <textarea id="v_delay_reason" placeholder="e.g. Client unavailable, documents pending…" style="min-height:50px;"></textarea>
-        <button class="btn bp" onclick="saveVisit()" style="margin-top:12px;">Save Visit</button>
+      <div class="card" id="v_locked_notes" style="display:none;">
+        <div class="ctitle">Step 2 — Site Inspection Notes</div>
+        <p class="hint">🔒 Save the schedule above first to unlock this.</p>
       </div>
 
       <!-- SITE NOTES -->
       <div class="card" id="sn_card" style="display:none;">
-        <div class="ctitle">Site Technical Notes</div>
+        <div class="ctitle">Step 2 — Site Technical Notes</div>
 
         <div class="snh">1. Property Identification</div>
         <label>Property Type <span class="req">*</span></label>
@@ -638,6 +629,27 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           Download Site Notes Word
         </button>
+      </div>
+
+      <div class="card" id="v_locked_complete" style="display:none;">
+        <div class="ctitle">Step 3 — Mark Visit Complete</div>
+        <p class="hint">🔒 Save site inspection notes (with GPS coordinates and site details) above first to unlock this.</p>
+      </div>
+
+      <div class="card" id="v_step3" style="display:none;">
+        <div class="ctitle">Step 3 — Mark Visit Complete</div>
+        <div class="row2">
+          <div><label>Visit Date <span class="req">*</span></label><input type="date" id="v_date"></div>
+          <div><label>Visit Time <span class="req">*</span></label><input type="time" id="v_time"></div>
+        </div>
+        <div class="ctog" id="v_tog" onclick="togVisit()">
+          <div class="ctbox" id="v_box"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display:none" id="v_chk"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span class="cttxt">Mark Visit Complete</span>
+        </div>
+        <p class="hint">Visit date and time required to mark complete</p>
+        <label style="margin-top:10px;">Reason for Delay (if TAT > 2 days)</label>
+        <textarea id="v_delay_reason" placeholder="e.g. Client unavailable, documents pending…" style="min-height:50px;"></textarea>
+        <button class="btn bp" onclick="saveVisit()" style="margin-top:12px;">Save Visit</button>
       </div>
     </div>
 
@@ -1632,6 +1644,7 @@ function initWorkTab(){
 function populateVisitPicker(){
   const el=document.getElementById('v_case');
   if(!el) return;
+  const v=el.value;
   let cases=CASES;
   if(CU.isExternal){
     cases=CASES.filter(c=>{const t=trk(c.case_id);return t&&t.engineer_name==='[External] '+CU.name;});
@@ -1642,14 +1655,23 @@ function populateVisitPicker(){
     const t=trk(c.case_id);
     return `<option value="${c.case_id}">${c.bank_name} – ${c.case_name||'Unnamed'} ${t?.visit_complete?'✅':'⏳'}</option>`;
   }).join('');
+  if(v&&cases.some(c=>c.case_id===v)){
+    el.value=v;
+    refreshVisitSteps(v);
+  }
 }
+
+let visitSNExists=false;
 
 async function onVisitPick(){
   const id=g('v_case');
   const sumEl=document.getElementById('v_summary');
-  const formEl=document.getElementById('v_form');
-  const snEl=document.getElementById('sn_card');
-  if(!id){sumEl.style.display='none';formEl.style.display='none';snEl.style.display='none';snCaseId=null;return;}
+  if(!id){
+    sumEl.style.display='none';
+    ['v_step1','v_locked_notes','sn_card','v_locked_complete','v_step3','v_progress'].forEach(x=>document.getElementById(x).style.display='none');
+    snCaseId=null;visitSNExists=false;
+    return;
+  }
   // Clear all site notes fields before loading new case
   clearSiteNotes();
   const c=CASES.find(x=>x.case_id===id);
@@ -1672,19 +1694,36 @@ async function onVisitPick(){
     document.getElementById('v_sched_saved').style.display='none';
   }
   setVisit(!!t?.visit_complete);
-  formEl.style.display='block';
   snCaseId=id;
-  snEl.style.display='block';
   // Load existing site notes
+  let sn=null;
   try{
-    const sn=await dbGetOne('site_notes',{case_ref:id});
+    sn=await dbGetOne('site_notes',{case_ref:id});
     if(sn) fillSN(sn);
   }catch(e){}
+  visitSNExists=!!sn;
   sitePhotos=[];renderPhotos();
+  refreshVisitSteps(id,t);
   // Auto-fetch GPS if not already filled
   if(!document.getElementById('sn_lat').value) {
     setTimeout(autoFetchGPS, 800);
   }
+}
+
+function refreshVisitSteps(id,t){
+  t=t||trk(id);
+  const scheduled=!!t?.scheduled_date;
+  document.getElementById('v_step1').style.display='block';
+  document.getElementById('v_locked_notes').style.display=scheduled?'none':'block';
+  document.getElementById('sn_card').style.display=scheduled?'block':'none';
+  document.getElementById('v_locked_complete').style.display=(scheduled&&!visitSNExists)?'block':'none';
+  document.getElementById('v_step3').style.display=visitSNExists?'block':'none';
+  const prog=document.getElementById('v_progress');
+  prog.style.display='block';
+  if(t?.visit_complete) prog.textContent='✅ Visit complete';
+  else if(visitSNExists) prog.textContent='Step 3 of 3 — Mark visit complete';
+  else if(scheduled) prog.textContent='Step 2 of 3 — Fill in site inspection notes';
+  else prog.textContent='Step 1 of 3 — Schedule the visit';
 }
 
 function setVisit(v){
@@ -1938,7 +1977,9 @@ async function saveSiteNotes(){
         await dbInsert('rental_rates',rentalData);
       }catch(e){}
     }
-    toast('Site notes saved ✓','ok');
+    visitSNExists=true;
+    refreshVisitSteps(snCaseId);
+    toast('Site notes saved ✓ — Step 3 unlocked','ok');
   }catch(e){toast('Error: '+e.message,'err');}
 }
 
@@ -3156,6 +3197,7 @@ async function saveSchedule(){
     statusEl.style.display='block';
     statusEl.textContent = '✅ Schedule saved — '+sd+' at '+st;
     toast('Schedule saved ✓','ok');
+    refreshVisitSteps(id,payload);
     loadData();
   }catch(e){toast('Error: '+e.message,'err');}
 }
