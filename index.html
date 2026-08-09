@@ -794,6 +794,24 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
     </div>
   </div>
 
+  <!-- TAB: My Fees (External Valuers) -->
+  <div class="page" id="pg-myfees">
+    <div class="dpill">My Fees</div>
+    <div class="card">
+      <div class="ctitle">Commission Summary</div>
+      <div id="mf_summary"></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">My Cases</div>
+      <div class="twrap">
+        <table class="tbl">
+          <thead><tr><th>Case</th><th>Bank</th><th>Fee</th><th>My Commission</th><th>Due</th><th>Status</th></tr></thead>
+          <tbody id="mf_list"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- TAB: Dashboard (Admin) -->
   <div class="page" id="pg-dash">
     <div class="dpill">Dashboard</div>
@@ -1050,6 +1068,9 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
         <div class="ctitle" id="valuerCardTitle">New External Valuer</div>
         <label>Name <span class="req">*</span></label><input type="text" id="nv_name">
         <label>Phone</label><input type="tel" id="nv_phone">
+        <label>Login PIN (4-6 digits) <span class="req">*</span></label>
+        <input type="text" id="nv_pin" maxlength="6" placeholder="e.g. 445566">
+        <p class="hint">This is what they'll use to log in and see only their own cases and fees.</p>
         <label>Notes</label><textarea id="nv_notes" placeholder="e.g. specialises in agri land, Kollam district"></textarea>
         <div style="display:flex;gap:8px;margin-top:12px;">
           <button class="btn bp" id="nv_savebtn" onclick="saveValuer()" style="flex:1;">Save</button>
@@ -1247,13 +1268,21 @@ let selUid = null, pinStr = '';
 async function initLogin() {
   try {
     document.getElementById('loginErr').textContent = 'Connecting…';
-    USERS = await dbGet('users', {active:'true'}, '*');
+    [USERS, EXTV] = await Promise.all([
+      dbGet('users', {active:'true'}, '*'),
+      dbGet('external_valuers', {active:'true'}, '*')
+    ]);
     USERS.sort((a,b)=>a.name.localeCompare(b.name));
+    EXTV.sort((a,b)=>a.name.localeCompare(b.name));
     const grid = document.getElementById('userGrid');
     const icons = {admin:'👔',engineer:'🚗',typist:'⌨️',staff:'📋'};
     grid.innerHTML = USERS.map(u=>`
-      <button class="ubtn" data-id="${u.id}" onclick="selUser('${u.id}','${u.name}')">
+      <button class="ubtn" data-id="${u.id}" onclick="selUser('${u.id}','${u.name}','staff')">
         <span class="ui">${icons[u.role]||'👤'}</span>${u.name}
+      </button>`).join('')
+      + EXTV.map(v=>`
+      <button class="ubtn" data-id="${v.id}" onclick="selUser('${v.id}','${v.name}','valuer')">
+        <span class="ui">🤝</span>${v.name}<br><span style="font-size:9px;opacity:0.7;">External</span>
       </button>`).join('');
     document.getElementById('loginErr').textContent = '';
     renderDots();
@@ -1262,8 +1291,9 @@ async function initLogin() {
   }
 }
 
-function selUser(id, name) {
-  selUid = id; pinStr = '';
+let selKind='staff';
+function selUser(id, name, kind) {
+  selUid = id; pinStr = ''; selKind = kind||'staff';
   document.querySelectorAll('.ubtn').forEach(b=>b.classList.toggle('sel',b.dataset.id===id));
   document.getElementById('pinLabel').textContent = `Enter PIN for ${name}`;
   document.getElementById('loginErr').textContent = '';
@@ -1286,19 +1316,28 @@ function renderDots(){
 
 async function plogin() {
   if(!selUid||pinStr.length<4){document.getElementById('loginErr').textContent='Enter your full PIN';return;}
-  const user = USERS.find(u=>u.id===selUid);
-  if(!user||user.pin!==pinStr){
-    document.getElementById('loginErr').textContent='Incorrect PIN. Try again.';
-    pinStr='';renderDots();return;
+  if(selKind==='valuer'){
+    const valuer=EXTV.find(v=>v.id===selUid);
+    if(!valuer||valuer.pin!==pinStr){
+      document.getElementById('loginErr').textContent='Incorrect PIN. Try again.';
+      pinStr='';renderDots();return;
+    }
+    CU={id:valuer.id,name:valuer.name,role:'external',isExternal:true,phone:valuer.phone};
+  } else {
+    const user = USERS.find(u=>u.id===selUid);
+    if(!user||user.pin!==pinStr){
+      document.getElementById('loginErr').textContent='Incorrect PIN. Try again.';
+      pinStr='';renderDots();return;
+    }
+    CU = user;
   }
-  CU = user;
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('app').classList.add('on');
   initApp();
 }
 
 function logout(){
-  CU=null;selUid=null;pinStr='';
+  CU=null;selUid=null;pinStr='';selKind='staff';
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('app').classList.remove('on');
   document.querySelectorAll('.ubtn').forEach(b=>b.classList.remove('sel'));
@@ -1328,6 +1367,14 @@ function initApp(){
 
 function buildNav(){
   const tabs=[];
+  if(CU.isExternal){
+    tabs.push({id:'work',label:'🚗 My Work'});
+    tabs.push({id:'myfees',label:'💰 My Fees'});
+    document.getElementById('navtabs').innerHTML=tabs.map(t=>
+      `<button class="ntab" data-tab="${t.id}" onclick="goTab('${t.id}')">${t.label}</button>`).join('');
+    if(tabs.length>0) goTab(tabs[0].id);
+    return;
+  }
   // Dashboard always first for everyone
   tabs.push({id:'dash',label:'📊 Dashboard'});
   if(CU.can_add_cases||CU.role==='admin') tabs.push({id:'cases',label:'📋 Cases'});
@@ -1353,6 +1400,7 @@ function goTab(id){
   if(id==='admin') renderAdmin();
   if(id==='assign') renderAssign();
   if(id==='ext') renderExt();
+  if(id==='myfees') renderMyFees();
 }
 
 // ═══════════════════════════════════════════
@@ -1387,6 +1435,7 @@ function afterLoad(){
   if(document.getElementById('pg-dash').classList.contains('on')) renderDash();
   if(document.getElementById('pg-lr').classList.contains('on')) renderLR();
   if(document.getElementById('pg-ext').classList.contains('on')) renderExt();
+  if(document.getElementById('pg-myfees').classList.contains('on')) renderMyFees();
 }
 
 function trk(caseId){return TRACKING.find(t=>t.case_ref===caseId)||null;}
@@ -1533,7 +1582,14 @@ function populateAssignPicker(){
     ae.innerHTML=opts;
     ae.value=av;
   }
-  if(at) at.innerHTML='<option value="">Select…</option>'+typs.map(u=>`<option>${u.name}</option>`).join('');
+  if(at){
+    const tv=at.value;
+    let topts='<option value="">Select…</option>';
+    if(typs.length) topts+=`<optgroup label="Internal Typists">${typs.map(u=>`<option>${u.name}</option>`).join('')}</optgroup>`;
+    if(EXTV.length) topts+=`<optgroup label="External Valuers">${EXTV.map(x=>`<option value="[External] ${x.name}">${x.name} (External)</option>`).join('')}</optgroup>`;
+    at.innerHTML=topts;
+    at.value=tv;
+  }
 }
 
 function onAssignPick(){
@@ -1617,7 +1673,9 @@ function populateVisitPicker(){
   const el=document.getElementById('v_case');
   if(!el) return;
   let cases=CASES;
-  if(CU.role!=='admin'){
+  if(CU.isExternal){
+    cases=CASES.filter(c=>{const t=trk(c.case_id);return t&&t.engineer_name==='[External] '+CU.name;});
+  } else if(CU.role!=='admin'){
     cases=CASES.filter(c=>{const t=trk(c.case_id);return t&&t.engineer_name&&t.engineer_name.toLowerCase()===CU.name.toLowerCase();});
   }
   el.innerHTML='<option value="">Select case…</option>'+cases.map(c=>{
@@ -2108,7 +2166,9 @@ function populateReportPicker(){
   const el=document.getElementById('r_case');
   if(!el) return;
   let cases=CASES;
-  if(CU.role!=='admin'){
+  if(CU.isExternal){
+    cases=CASES.filter(c=>{const t=trk(c.case_id);return t&&t.typist_name==='[External] '+CU.name;});
+  } else if(CU.role!=='admin'){
     cases=CASES.filter(c=>{const t=trk(c.case_id);return t&&t.typist_name&&t.typist_name.toLowerCase()===CU.name.toLowerCase();});
   }
   el.innerHTML='<option value="">Select case…</option>'+cases.map(c=>{
@@ -3774,6 +3834,38 @@ function editExtAssignFromPayout(caseRef){
   onExtCasePick();
 }
 
+function renderMyFees(){
+  const el=document.getElementById('mf_list');
+  if(!el||!CU.isExternal) return;
+  const mine=EXTA.filter(a=>a.valuer_id===CU.id);
+  const pending=mine.filter(a=>a.status==='pending').reduce((s,a)=>s+Number(a.commission_amount),0);
+  const paid=mine.filter(a=>a.status==='paid').reduce((s,a)=>s+Number(a.commission_amount),0);
+  document.getElementById('mf_summary').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div style="background:var(--abg);border-radius:10px;padding:12px;">
+        <div style="font-size:11px;color:#92600A;font-weight:700;text-transform:uppercase;">Pending</div>
+        <div style="font-size:18px;font-weight:700;color:#92600A;">${fmtR(pending)}</div>
+      </div>
+      <div style="background:var(--gbg);border-radius:10px;padding:12px;">
+        <div style="font-size:11px;color:var(--green);font-weight:700;text-transform:uppercase;">Paid</div>
+        <div style="font-size:18px;font-weight:700;color:var(--green);">${fmtR(paid)}</div>
+      </div>
+    </div>`;
+  if(!mine.length){el.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">No cases assigned yet</td></tr>';return;}
+  const today=new Date().toISOString().slice(0,10);
+  el.innerHTML=mine.slice().sort((a,b)=>new Date(a.due_date)-new Date(b.due_date)).map(a=>{
+    const overdue=a.status==='pending'&&a.due_date<today;
+    return `<tr>
+      <td>${a.case_ref}</td>
+      <td>${a.bank_name||'—'}</td>
+      <td>${fmtR(a.case_fee)}</td>
+      <td style="font-weight:600;color:var(--p);">${fmtR(a.commission_amount)}</td>
+      <td>${a.due_date}</td>
+      <td><span class="badge" style="background:${a.status==='paid'?'var(--gbg)':overdue?'var(--rbg)':'var(--abg)'};color:${a.status==='paid'?'var(--green)':overdue?'var(--red)':'#92600A'};">${a.status==='paid'?'Paid':overdue?'Overdue':'Pending'}</span></td>
+    </tr>`;
+  }).join('');
+}
+
 async function markPaid(id){
   try{
     await dbUpdate('valuer_assignments',{id},{status:'paid',paid_date:new Date().toISOString().slice(0,10)});
@@ -3810,6 +3902,7 @@ function showAddValuer(){
   document.getElementById('nv_delbtn').style.display='none';
   document.getElementById('nv_name').value='';
   document.getElementById('nv_phone').value='';
+  document.getElementById('nv_pin').value='';
   document.getElementById('nv_notes').value='';
   document.getElementById('addValuerCard').style.display='block';
 }
@@ -3828,6 +3921,7 @@ function editValuer(id){
   document.getElementById('nv_delbtn').style.display='block';
   document.getElementById('nv_name').value=v.name;
   document.getElementById('nv_phone').value=v.phone||'';
+  document.getElementById('nv_pin').value=v.pin||'';
   document.getElementById('nv_notes').value=v.notes||'';
   document.getElementById('addValuerCard').style.display='block';
 }
@@ -3835,8 +3929,10 @@ function editValuer(id){
 async function saveValuer(){
   const name=g('nv_name').trim();
   if(!name){toast('Name required','err');return;}
+  const pin=g('nv_pin').trim();
+  if(pin.length<4){toast('PIN must be at least 4 digits','err');return;}
   try{
-    const data={name,phone:g('nv_phone')||null,notes:g('nv_notes')||null};
+    const data={name,phone:g('nv_phone')||null,pin,notes:g('nv_notes')||null};
     if(evEditingId) await dbUpdate('external_valuers',{id:evEditingId},data);
     else await dbInsert('external_valuers',{...data,active:true});
     toast(`${name} ${evEditingId?'updated':'added'} ✓`,'ok');
