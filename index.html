@@ -1204,6 +1204,61 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
     </div>
   </div>
 
+  <!-- TAB: Revenue (Admin) -->
+  <div class="page" id="pg-revenue">
+    <div class="dpill">Revenue & Profit</div>
+
+    <div class="card">
+      <label>Month</label>
+      <input type="month" id="rev_month" onchange="renderRevenue()">
+    </div>
+
+    <div class="card">
+      <div class="ctitle">💰 Estimated Revenue</div>
+      <div style="font-size:28px;font-weight:700;color:var(--p);" id="rev_total">₹ 0</div>
+      <p class="hint" id="rev_case_count"></p>
+      <div class="twrap" style="margin-top:10px;">
+        <table class="tbl">
+          <thead><tr><th>Bank</th><th>Cases</th><th>Rate Basis</th><th>Subtotal</th></tr></thead>
+          <tbody id="rev_bank_table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">📉 Outgoings</div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
+        <span>External Valuer Payouts</span><b id="rev_ext_payout">₹ 0</b>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
+        <span>Staff Salaries</span><b id="rev_salaries">₹ 0</b>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:14px;font-weight:700;">
+        <span>Total Outgoings</span><span id="rev_total_out">₹ 0</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">📊 Net Profit</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:28px;font-weight:700;" id="rev_profit">₹ 0</div>
+        <div style="font-size:22px;font-weight:700;" id="rev_margin">0%</div>
+      </div>
+      <p class="hint">Estimates based on average bank rates and any special fees detected in case notes — not exact accounting.</p>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">🏦 Bank Rate Card</div>
+      <p class="hint" style="margin-bottom:10px;">Average fee per case, used to estimate revenue. Override a single case by writing e.g. "special fee 8000" in its Notes.</p>
+      <div id="rev_bankrate_list"></div>
+      <div class="row2" style="margin-top:12px;">
+        <div><label>Bank</label><select id="nbr_bank"></select></div>
+        <div><label>Avg Fee (₹/case)</label><input type="number" id="nbr_fee" placeholder="e.g. 5000"></div>
+      </div>
+      <button class="btn bs" onclick="saveBankRate()" style="margin-top:8px;">Save Rate</button>
+    </div>
+  </div>
+
   <!-- TAB: Admin -->
   <div class="page" id="pg-admin">
     <div class="dpill">Admin Panel</div>
@@ -1346,6 +1401,7 @@ async function dbUpsert(table, data, onConflict) {
 let CU = null; // current user
 let CASES = [], TRACKING = [], USERS = [], BANKS = [], LRATES = [];
 let EXTV = [], CRATES = [], EXTA = [];
+let BANKRATES = [];
 let sitePhotos = [], visitDone = false, reportDone = false, ackDone = false;
 let curPeriod = 'month', periodFrom = null, periodTo = null;
 let tblSort = 'date', tblDir = 'desc';
@@ -1448,6 +1504,7 @@ function buildNav(){
   if(CU.role==='admin') tabs.push({id:'ext',label:'🤝 External'});
   if(CU.can_visit||CU.can_type||CU.role==='admin') tabs.push({id:'work',label:'🚗 My Work'});
   if(CU.role==='admin'){
+    tabs.push({id:'revenue',label:'💵 Revenue'});
     tabs.push({id:'lr',label:'🗺 Rates'});
     tabs.push({id:'admin',label:'⚙ Admin'});
   }
@@ -1467,6 +1524,7 @@ function goTab(id){
   if(id==='admin') renderAdmin();
   if(id==='assign') renderAssign();
   if(id==='ext') renderExt();
+  if(id==='revenue') renderRevenue();
   if(id==='myfees') renderMyFees();
 }
 
@@ -1475,14 +1533,16 @@ function goTab(id){
 // ═══════════════════════════════════════════
 async function loadData(){
   try{
-    [CASES,TRACKING,BANKS,LRATES,EXTV,CRATES,EXTA]=await Promise.all([
+    [CASES,TRACKING,BANKS,LRATES,EXTV,CRATES,EXTA,BANKRATES,USERS]=await Promise.all([
       dbGet('cases'),
       dbGet('tracking'),
       dbGet('banks',{active:'true'},'*'),
       dbGet('land_rates'),
       dbGet('external_valuers',{active:'true'},'*'),
       dbGet('commission_rates'),
-      dbGet('valuer_assignments')
+      dbGet('valuer_assignments'),
+      dbGet('bank_rates'),
+      dbGet('users',{active:'true'},'*')
     ]);
     // Remove old DOMContentLoaded listener conflict
 
@@ -1503,6 +1563,7 @@ function afterLoad(){
   if(document.getElementById('pg-mydash').classList.contains('on')) renderMyDash();
   if(document.getElementById('pg-lr').classList.contains('on')) renderLR();
   if(document.getElementById('pg-ext').classList.contains('on')) renderExt();
+  if(document.getElementById('pg-revenue')&&document.getElementById('pg-revenue').classList.contains('on')) renderRevenue();
   if(document.getElementById('pg-myfees').classList.contains('on')) renderMyFees();
 }
 
@@ -3595,9 +3656,16 @@ function renderLR(){
 // ═══════════════════════════════════════════
 function renderAdmin(){
   document.getElementById('admin_users').innerHTML=USERS.map(u=>`
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
-      <span><b>${u.name}</b> <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--ptint);color:var(--p);">${u.role}</span></span>
-      <span style="font-family:monospace;font-size:15px;color:var(--p);font-weight:700;">••••••</span>
+    <div style="padding:10px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span><b>${u.name}</b> <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--ptint);color:var(--p);">${u.role}</span></span>
+        <span style="font-family:monospace;font-size:15px;color:var(--p);font-weight:700;">••••••</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
+        <span style="font-size:11px;color:var(--muted);">Monthly salary ₹</span>
+        <input type="number" id="sal_${u.id}" value="${u.monthly_salary||''}" placeholder="e.g. 20000" style="flex:1;padding:6px 8px;font-size:12px;">
+        <button class="btn bs" style="padding:6px 10px;font-size:11px;" onclick="saveSalary('${u.id}')">Save</button>
+      </div>
     </div>`).join('');
   document.getElementById('admin_banks').innerHTML=BANKS.map(b=>`
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
@@ -3620,6 +3688,17 @@ async function addUser(){
     document.getElementById('addUserCard').style.display='none';
     USERS=await dbGet('users',{active:'true'},'*');
     renderAdmin();
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+async function saveSalary(userId){
+  const val=g('sal_'+userId);
+  const salary=val?parseFloat(val):null;
+  try{
+    await dbUpdate('users',{id:userId},{monthly_salary:salary});
+    const u=USERS.find(x=>x.id===userId);
+    if(u) u.monthly_salary=salary;
+    toast('Salary saved ✓','ok');
   }catch(e){toast('Error: '+e.message,'err');}
 }
 
@@ -4098,6 +4177,123 @@ function renderExtRestricted(){
       <div style="margin-top:4px;">${workStatus}</div>
     </div>`;
   }).join('');
+}
+
+// ═══════════════════════════════════════════
+// REVENUE & PROFIT
+// ═══════════════════════════════════════════
+function money(v){return '₹ '+Math.round(v||0).toLocaleString('en-IN');}
+
+function parseFeeFromNotes(notes){
+  if(!notes) return null;
+  const m=notes.match(/(?:special\s*)?(?:fee|charge)[^\d₹]{0,15}(?:₹|rs\.?|inr)?\s*([\d,]{3,7})/i);
+  if(!m) return null;
+  const val=parseFloat(m[1].replace(/,/g,''));
+  return isNaN(val)?null:val;
+}
+
+function renderRevenue(){
+  const monthInput=document.getElementById('rev_month');
+  if(!monthInput.value){
+    const now=new Date();
+    monthInput.value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  }
+  const monthKey=monthInput.value;
+  const monthCases=CASES.filter(c=>(c.received_date||'').slice(0,7)===monthKey);
+
+  const bankMap={};
+  let totalRevenue=0;
+  monthCases.forEach(c=>{
+    const override=parseFeeFromNotes(c.notes);
+    const rate=BANKRATES.find(r=>r.bank_name===c.bank_name);
+    const fee=override!==null?override:(rate?Number(rate.avg_fee):0);
+    totalRevenue+=fee;
+    if(!bankMap[c.bank_name]) bankMap[c.bank_name]={count:0,total:0,overrides:0,hasRate:!!rate};
+    bankMap[c.bank_name].count++;
+    bankMap[c.bank_name].total+=fee;
+    if(override!==null) bankMap[c.bank_name].overrides++;
+  });
+
+  document.getElementById('rev_total').textContent=money(totalRevenue);
+  document.getElementById('rev_case_count').textContent=`${monthCases.length} case${monthCases.length===1?'':'s'} received this month`;
+
+  const tbody=document.getElementById('rev_bank_table');
+  const bankEntries=Object.entries(bankMap);
+  tbody.innerHTML=bankEntries.length?bankEntries.map(([name,d])=>{
+    const basis=!d.hasRate?'<span style="color:var(--red);">no rate set</span>':
+      d.overrides>0?`avg + ${d.overrides} from notes`:'avg';
+    return `<tr><td>${name}</td><td>${d.count}</td><td style="font-size:11px;">${basis}</td><td>${money(d.total)}</td></tr>`;
+  }).join(''):'<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:16px;">No cases this month</td></tr>';
+
+  const monthCaseRefs=new Set(monthCases.map(c=>c.case_id));
+  const extPayout=EXTA.filter(a=>monthCaseRefs.has(a.case_ref)).reduce((s,a)=>s+Number(a.commission_amount||0),0);
+  document.getElementById('rev_ext_payout').textContent=money(extPayout);
+
+  const salaryTotal=USERS.filter(u=>u.active&&u.monthly_salary).reduce((s,u)=>s+Number(u.monthly_salary||0),0);
+  document.getElementById('rev_salaries').textContent=money(salaryTotal);
+
+  const totalOut=extPayout+salaryTotal;
+  document.getElementById('rev_total_out').textContent=money(totalOut);
+
+  const profit=totalRevenue-totalOut;
+  const margin=totalRevenue>0?(profit/totalRevenue*100):0;
+  const profitEl=document.getElementById('rev_profit');
+  const marginEl=document.getElementById('rev_margin');
+  profitEl.textContent=(profit<0?'-':'')+money(Math.abs(profit));
+  profitEl.style.color=profit>=0?'var(--green)':'var(--red)';
+  marginEl.textContent=margin.toFixed(1)+'%';
+  marginEl.style.color=profit>=0?'var(--green)':'var(--red)';
+
+  renderBankRateList();
+  populateBankRateDropdown();
+}
+
+function renderBankRateList(){
+  const el=document.getElementById('rev_bankrate_list');
+  if(!el) return;
+  if(!BANKRATES.length){el.innerHTML='<div class="empty">No bank rates set yet — add one below</div>';return;}
+  el.innerHTML=BANKRATES.map(r=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
+      <span><b>${r.bank_name}</b></span>
+      <span style="display:flex;align-items:center;gap:8px;">
+        <span style="color:var(--p);font-weight:700;">${money(r.avg_fee)}/case</span>
+        <button class="btn bs" style="padding:5px 10px;font-size:11px;" onclick="editBankRate('${r.id}')">Edit</button>
+      </span>
+    </div>`).join('');
+}
+
+function populateBankRateDropdown(){
+  const sel=document.getElementById('nbr_bank');
+  if(!sel) return;
+  const v=sel.value;
+  sel.innerHTML='<option value="">Select bank…</option>'+BANKS.map(b=>`<option value="${b.name}">${b.name}</option>`).join('');
+  sel.value=v;
+}
+
+let editingBankRateId=null;
+function editBankRate(id){
+  const r=BANKRATES.find(x=>x.id===id);
+  if(!r) return;
+  editingBankRateId=id;
+  document.getElementById('nbr_bank').value=r.bank_name;
+  document.getElementById('nbr_fee').value=r.avg_fee;
+}
+
+async function saveBankRate(){
+  const bankName=g('nbr_bank');
+  const fee=parseFloat(g('nbr_fee'));
+  if(!bankName){toast('Select a bank','err');return;}
+  if(!fee||fee<=0){toast('Enter a valid average fee','err');return;}
+  try{
+    const existing=editingBankRateId?BANKRATES.find(x=>x.id===editingBankRateId):BANKRATES.find(x=>x.bank_name===bankName);
+    if(existing) await dbUpdate('bank_rates',{id:existing.id},{bank_name:bankName,avg_fee:fee});
+    else await dbInsert('bank_rates',{bank_name:bankName,avg_fee:fee});
+    toast('Bank rate saved ✓','ok');
+    editingBankRateId=null;
+    document.getElementById('nbr_bank').value='';
+    document.getElementById('nbr_fee').value='';
+    loadData();
+  }catch(e){toast('Error: '+e.message,'err');}
 }
 
 function populateExtPickers(){
