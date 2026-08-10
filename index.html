@@ -843,6 +843,10 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
           <div style="font-size:11px;color:var(--muted);margin-top:4px;">avg TAT</div>
         </div>
       </div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--ptint);display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:12px;color:var(--muted);">🏢 Total cases at DC this month</span>
+        <span style="font-size:16px;font-weight:700;color:var(--p);" id="md_dc_month_count">0</span>
+      </div>
     </div>
 
     <div class="card" id="md_needs_schedule_card" style="display:none;border-left:4px solid var(--red);">
@@ -1424,7 +1428,7 @@ function buildNav(){
   else tabs.push({id:'mydash',label:'🏠 My Day'});
   if(CU.can_add_cases||CU.role==='admin') tabs.push({id:'cases',label:'📋 Cases'});
   if(CU.role==='admin'||CU.name==='Sreenath') tabs.push({id:'assign',label:'👥 Assign'});
-  if(CU.role==='admin'||['Sreenath','Grace'].includes(CU.name)) tabs.push({id:'ext',label:'🤝 External'});
+  if(CU.role==='admin') tabs.push({id:'ext',label:'🤝 External'});
   if(CU.can_visit||CU.can_type||CU.role==='admin') tabs.push({id:'work',label:'🚗 My Work'});
   if(CU.role==='admin'){
     tabs.push({id:'lr',label:'🗺 Rates'});
@@ -2797,6 +2801,9 @@ function renderMyDash(){
   const tatVals=completedRows.filter(r=>r.kind==='report').map(r=>calcTAT(r.c,r.t)).filter(v=>v!==null);
   const avgTAT=tatVals.length?tatVals.reduce((a,b)=>a+b,0)/tatVals.length:null;
   document.getElementById('md_tat').textContent=fmtTAT(avgTAT);
+
+  const dcMonthCount=CASES.filter(c=>isThisMonth(c.received_date)).length;
+  document.getElementById('md_dc_month_count').textContent=dcMonthCount;
 
   renderMDList('md_needs_schedule_card','md_needs_schedule_list',needsSchedule,c=>`
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--ptint);cursor:pointer;" onclick="goToMyCase('${c.case_id}')">
