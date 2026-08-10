@@ -374,6 +374,11 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
         <div id="v_summary" style="display:none;background:var(--ptint);border-radius:10px;padding:12px;margin-top:10px;font-size:13px;"></div>
       </div>
 
+      <div class="card" id="v_unscheduled_card" style="display:none;border-left:4px solid var(--red);">
+        <div class="ctitle" style="color:var(--red);">🔴 Not Yet Scheduled</div>
+        <div id="v_unscheduled_list"></div>
+      </div>
+
       <div id="v_progress" style="display:none;margin:0 14px 12px;background:var(--ptint);border-radius:10px;padding:10px 12px;font-size:12px;font-weight:700;color:var(--p);text-align:center;"></div>
 
       <div class="card" id="v_step1" style="display:none;">
@@ -606,6 +611,11 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
           <div><label>Longitude</label><input type="text" id="sn_lon" placeholder="Auto-filled"></div>
         </div>
 
+        <div class="snh">Nearby Amenities & Hazards <span style="font-weight:400;text-transform:none;color:var(--muted);">(auto-detected via OpenStreetMap)</span></div>
+        <p class="hint" id="sn_poi_status">Fetch GPS above to auto-check nearby amenities and hazards.</p>
+        <div id="sn_poi_amenities"></div>
+        <div id="sn_poi_hazards"></div>
+
         <div class="snh">7. General Remarks & Concerns</div>
         <textarea id="sn_remarks" placeholder="Any concerns, special features, encroachments, CRZ, flooding risk, demolition risk, conditions of approval…" style="min-height:90px;"></textarea>
 
@@ -617,9 +627,14 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
         <input type="file" id="photoInput" accept="image/*" multiple style="display:none" onchange="addPhotos(event)">
         <div class="pgrid" id="photoGrid"></div>
 
-        <button class="btn bp" onclick="saveSiteNotes()" style="margin-top:16px;">
+        <button class="btn bs" onclick="saveSiteNotesDraft()" style="margin-top:16px;">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v14z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          Save Site Notes
+          💾 Save Draft
+        </button>
+        <p class="hint" id="sn_draft_saved" style="color:var(--muted);margin-top:4px;display:none;"></p>
+        <button class="btn bp" onclick="saveSiteNotes()" style="margin-top:8px;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          ✅ Submit Site Note & Complete Visit
         </button>
         <button class="btn bs" onclick="downloadSiteNotesPDF()" style="margin-top:8px;">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -833,6 +848,10 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
       <div class="ctitle" id="d_overtitle">Overview — This Month</div>
       <div class="kgrid" id="d_kpi"><div class="lspin" style="grid-column:1/-1"><svg class="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="50 30"/></svg>Loading…</div></div>
     </div>
+    <div class="card" id="d_overallCard" style="display:none;">
+      <div class="ctitle">🏢 DC Overall (All Staff)</div>
+      <div class="kgrid" id="d_overall"></div>
+    </div>
     <div class="card" id="todayCard">
       <div class="ctitle">Today's Activity</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px;">
@@ -892,6 +911,7 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
             <th onclick="tsort('name')">Borrower <span id="ts_name"></span></th>
             <th>App ID</th>
             <th>Location</th>
+            <th>Scheduled</th>
             <th onclick="tsort('visit')">Visit <span id="ts_visit"></span></th>
             <th onclick="tsort('report')">Report Submitted <span id="ts_report"></span></th>
             <th onclick="tsort('tat')">TAT <span id="ts_tat"></span></th>
@@ -993,6 +1013,17 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
   <!-- TAB: External Valuers -->
   <div class="page" id="pg-ext">
     <div class="dpill">External Valuers & Commission</div>
+
+    <!-- Read-only view for staff granted case-visibility only (no fee/commission data) -->
+    <div id="ext_restricted_view" style="display:none;">
+      <div class="card">
+        <div class="ctitle">Cases Handled by External Valuers</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Case and status only — fee and commission details are admin-only.</p>
+        <div id="ext_restricted_list"></div>
+      </div>
+    </div>
+
+    <div id="ext_admin_view">
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin:12px 14px 0;">
       <button class="pbtn on" data-ext="payouts" onclick="switchExt('payouts')">💰 Payouts</button>
       <button class="pbtn" data-ext="assign" onclick="switchExt('assign')">➕ Assign</button>
@@ -1110,6 +1141,7 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
           <button class="btn bs" onclick="document.getElementById('addRateCard').style.display='none'" style="flex:1;">Cancel</button>
         </div>
       </div>
+    </div>
     </div>
   </div>
 
@@ -1351,7 +1383,7 @@ function buildNav(){
   tabs.push({id:'dash',label:'📊 Dashboard'});
   if(CU.can_add_cases||CU.role==='admin') tabs.push({id:'cases',label:'📋 Cases'});
   if(CU.role==='admin'||CU.name==='Sreenath') tabs.push({id:'assign',label:'👥 Assign'});
-  if(CU.role==='admin') tabs.push({id:'ext',label:'🤝 External'});
+  if(CU.role==='admin'||['Sreenath','Grace'].includes(CU.name)) tabs.push({id:'ext',label:'🤝 External'});
   if(CU.can_visit||CU.can_type||CU.role==='admin') tabs.push({id:'work',label:'🚗 My Work'});
   if(CU.role==='admin'){
     tabs.push({id:'lr',label:'🗺 Rates'});
@@ -1653,11 +1685,30 @@ function populateVisitPicker(){
   }
   el.innerHTML='<option value="">Select case…</option>'+cases.map(c=>{
     const t=trk(c.case_id);
-    return `<option value="${c.case_id}">${c.bank_name} – ${c.case_name||'Unnamed'} ${t?.visit_complete?'✅':'⏳'}</option>`;
+    const icon=t?.visit_complete?'✅':t?.scheduled_date?'🟡':'🔴';
+    return `<option value="${c.case_id}">${c.bank_name} – ${c.case_name||'Unnamed'} ${icon}</option>`;
   }).join('');
   if(v&&cases.some(c=>c.case_id===v)){
     el.value=v;
     refreshVisitSteps(v);
+  }
+  // Flag cases that still need a scheduled appointment
+  const unscheduled=cases.filter(c=>{
+    const t=trk(c.case_id);
+    return !t?.visit_complete && !t?.scheduled_date;
+  });
+  const uCard=document.getElementById('v_unscheduled_card');
+  if(uCard){
+    if(unscheduled.length){
+      uCard.style.display='block';
+      document.getElementById('v_unscheduled_list').innerHTML=unscheduled.map(c=>`
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
+          <span><b>${c.bank_name}</b> · ${c.case_name||'Unnamed'}</span>
+          <span style="color:var(--red);font-weight:700;font-size:11px;">SCHEDULE NOW</span>
+        </div>`).join('');
+    }else{
+      uCard.style.display='none';
+    }
   }
 }
 
@@ -1701,7 +1752,10 @@ async function onVisitPick(){
     sn=await dbGetOne('site_notes',{case_ref:id});
     if(sn) fillSN(sn);
   }catch(e){}
-  visitSNExists=!!sn;
+  // A row can exist as a draft (GPS only) - only treat it as "submitted"
+  // once it has everything saveSiteNotes() requires, since that's the
+  // signal that should unlock Step 3 / count as visit completion.
+  visitSNExists=!!(sn&&sn.land_rate&&sn.land_cents&&sn.area_site);
   sitePhotos=[];renderPhotos();
   refreshVisitSteps(id,t);
   // Auto-fetch GPS if not already filled
@@ -1917,6 +1971,25 @@ function fillSN(d){
   if(d.docs_available) setCheckedDocs(d.docs_available);
 }
 
+async function saveSiteNotesDraft(){
+  if(!snCaseId){toast('No case selected','err');return;}
+  const lat=g('sn_lat'),lon=g('sn_lon');
+  if(!lat||!lon){toast('Fetch GPS coordinates before saving a draft','err');return;}
+  const c=CASES.find(x=>x.case_id===snCaseId);
+  const sn=gSN();
+  const payload={...sn,case_ref:snCaseId,case_id:c.id,engineer_name:CU.name};
+  try{
+    const existing=await dbGetOne('site_notes',{case_ref:snCaseId});
+    if(existing) await dbUpdate('site_notes',{case_ref:snCaseId},sn);
+    else await dbInsert('site_notes',payload);
+    currentSN=sn;
+    const el=document.getElementById('sn_draft_saved');
+    el.style.display='block';
+    el.textContent='💾 Draft saved at '+new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+' — finish the rest and hit Submit when ready.';
+    toast('Draft saved ✓','ok');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
 async function saveSiteNotes(){
   if(!snCaseId){toast('No case selected','err');return;}
   const lat=g('sn_lat'),lon=g('sn_lon');
@@ -1978,8 +2051,28 @@ async function saveSiteNotes(){
       }catch(e){}
     }
     visitSNExists=true;
-    refreshVisitSteps(snCaseId);
-    toast('Site notes saved ✓ — Step 3 unlocked','ok');
+    // Submitting a complete site note automatically completes the visit.
+    let t=trk(snCaseId);
+    if(!t?.visit_complete){
+      const now=new Date();
+      const vPayload={
+        case_ref:snCaseId,case_id:c.id,
+        engineer_name:t?.engineer_name||CU.name,
+        typist_name:t?.typist_name||'',
+        visit_date:t?.visit_date||now.toISOString().slice(0,10),
+        visit_time:t?.visit_time||now.toTimeString().slice(0,5),
+        visit_complete:true,visit_completed_at:now.toISOString(),
+        submit_date:t?.submit_date||null,submit_time:t?.submit_time||null,
+        report_complete:t?.report_complete||false
+      };
+      if(t) await dbUpdate('tracking',{case_ref:snCaseId},vPayload);
+      else await dbInsert('tracking',vPayload);
+      if(c.status!=='report_done') await dbUpdate('cases',{case_id:snCaseId},{status:'visit_done'});
+      setVisit(true);
+      t=vPayload;
+    }
+    refreshVisitSteps(snCaseId,t);
+    toast('Site note submitted ✓ — visit marked complete','ok');
   }catch(e){toast('Error: '+e.message,'err');}
 }
 
@@ -1997,6 +2090,7 @@ function fetchGPS(){
       document.getElementById('sn_lat').value=pos.coords.latitude.toFixed(6);
       document.getElementById('sn_lon').value=pos.coords.longitude.toFixed(6);
       status.textContent=`✅ Location fetched (±${Math.round(pos.coords.accuracy)}m accuracy)`;
+      fetchNearbyPOI(pos.coords.latitude,pos.coords.longitude);
     },
     err=>{
       if(err.code===1) status.textContent='❌ Location permission denied — please allow in browser settings';
@@ -2016,12 +2110,74 @@ function autoFetchGPS(){
       document.getElementById('sn_lat').value=pos.coords.latitude.toFixed(6);
       document.getElementById('sn_lon').value=pos.coords.longitude.toFixed(6);
       status.textContent=`✅ Location auto-fetched (±${Math.round(pos.coords.accuracy)}m)`;
+      fetchNearbyPOI(pos.coords.latitude,pos.coords.longitude);
     },
     err=>{
       status.textContent='Tap the GPS button to fetch location';
     },
     {enableHighAccuracy:true, timeout:15000, maximumAge:0}
   );
+}
+
+function haversineMeters(lat1,lon1,lat2,lon2){
+  const R=6371000,toRad=d=>d*Math.PI/180;
+  const dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1);
+  const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function fmtDist(m){return m<1000?Math.round(m)+' m':(m/1000).toFixed(1)+' km';}
+
+async function fetchNearbyPOI(lat,lon){
+  const statusEl=document.getElementById('sn_poi_status');
+  const amenEl=document.getElementById('sn_poi_amenities');
+  const hazEl=document.getElementById('sn_poi_hazards');
+  if(!statusEl) return;
+  statusEl.textContent='🔎 Checking nearby amenities & hazards via OpenStreetMap…';
+  amenEl.innerHTML='';hazEl.innerHTML='';
+  const query=`[out:json][timeout:20];(
+    node["amenity"~"school|college|university|place_of_worship"](around:3000,${lat},${lon});
+    node["highway"~"motorway|trunk|primary"](around:1500,${lat},${lon});
+    way["highway"~"motorway|trunk|primary"](around:1500,${lat},${lon});
+    node["natural"="water"](around:1000,${lat},${lon});
+    way["natural"="water"](around:1000,${lat},${lon});
+    way["waterway"~"river|canal"](around:800,${lat},${lon});
+    node["landuse"="quarry"](around:2500,${lat},${lon});
+    way["landuse"="quarry"](around:2500,${lat},${lon});
+  );out center 25;`;
+  try{
+    const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(query)});
+    if(!r.ok) throw new Error('Overpass request failed');
+    const data=await r.json();
+    const items=(data.elements||[]).map(el=>{
+      const elat=el.lat??el.center?.lat, elon=el.lon??el.center?.lon;
+      if(elat==null||elon==null) return null;
+      const dist=haversineMeters(parseFloat(lat),parseFloat(lon),elat,elon);
+      const tags=el.tags||{};
+      const name=tags.name||tags['name:en']||'';
+      let category=null,isHazard=false;
+      if(tags.amenity==='school') category='🏫 School';
+      else if(tags.amenity==='college'||tags.amenity==='university') category='🎓 College/University';
+      else if(tags.amenity==='place_of_worship'){
+        category=tags.religion==='christian'?'⛪ Church':tags.religion==='hindu'?'🛕 Temple':'🙏 Place of Worship';
+      }
+      else if(tags.highway) category='🛣️ Highway/Major Road';
+      else if(tags.natural==='water'){category='💧 Waterbody';isHazard=true;}
+      else if(tags.waterway==='river'){category='💧 River';isHazard=true;}
+      else if(tags.waterway==='canal'){category='💧 Canal';isHazard=true;}
+      else if(tags.landuse==='quarry'){category='⛏️ Quarry';isHazard=true;}
+      if(!category) return null;
+      return {name,category,dist,isHazard};
+    }).filter(Boolean).sort((a,b)=>a.dist-b.dist);
+    const seen=new Set();
+    const deduped=items.filter(i=>{const k=i.category+i.name;if(seen.has(k))return false;seen.add(k);return true;});
+    const amenities=deduped.filter(i=>!i.isHazard).slice(0,8);
+    const hazards=deduped.filter(i=>i.isHazard).slice(0,8);
+    statusEl.textContent=(amenities.length||hazards.length)?'Found via OpenStreetMap (verify on site):':'No nearby amenities or hazards found in range — verify on site.';
+    amenEl.innerHTML=amenities.map(i=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--ptint);font-size:12.5px;"><span>${i.category}${i.name?' — '+i.name:''}</span><span style="color:var(--muted);">${fmtDist(i.dist)}</span></div>`).join('');
+    hazEl.innerHTML=hazards.length?('<p style="font-size:11px;font-weight:700;color:var(--red);margin:10px 0 4px;">⚠ NEGATIVE FACTORS</p>'+hazards.map(i=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--rbg);font-size:12.5px;color:var(--red);"><span>${i.category}${i.name?' — '+i.name:''}</span><span>${fmtDist(i.dist)}</span></div>`).join('')):'';
+  }catch(e){
+    statusEl.textContent='Could not fetch nearby amenities (offline or Overpass unavailable) — note these manually below.';
+  }
 }
 
 function addPhotos(e){
@@ -2554,16 +2710,22 @@ function fmtTAT(h){
 }
 
 function renderDash(){
-  // For non-admin, filter to their cases only
+  // Company-wide (unfiltered by staff member) set - used for the "DC Overall"
+  // stats and the staff leaderboard, so every role sees the same totals/rankings.
   const bankFilter=g('d_bank');
-  let cases=applyPeriod(CASES);
+  let allCases=applyPeriod(CASES);
+  if(bankFilter) allCases=allCases.filter(c=>c.bank_id===bankFilter);
+  const allKeys=new Set(allCases.map(c=>c.case_id));
+  const allTracking=TRACKING.filter(t=>allKeys.has(t.case_ref));
+
+  // For non-admin, personal set filtered to their own cases only
+  let cases=allCases;
   if(CU&&CU.role!=='admin'){
     cases=cases.filter(c=>{
       const t=trk(c.case_id);
       return t&&(t.engineer_name===CU.name||t.typist_name===CU.name);
     });
   }
-  if(bankFilter) cases=cases.filter(c=>c.bank_id===bankFilter);
   const keys=new Set(cases.map(c=>c.case_id));
   const tracking=TRACKING.filter(t=>keys.has(t.case_ref));
 
@@ -2583,6 +2745,24 @@ function renderDash(){
     <div class="kbox ka"><div class="kval">${total-reportsDone}</div><div class="klbl">Pending Reports</div></div>
     <div class="kbox kg"><div class="kval">${reportsDone}</div><div class="klbl">Completed</div></div>
     <div class="kbox${overdue.length>0?' kr':''}"><div class="kval">${fmtTAT(avgTAT)}</div><div class="klbl">Avg TAT</div></div>`;
+
+  // Company-wide totals - shown to non-admin alongside their personal
+  // numbers, so they can see how their own cases stack up against DC's total.
+  if(CU&&CU.role!=='admin'){
+    document.getElementById('d_overtitle').textContent='My Overview — '+({today:'Today',week:'This Week',month:'This Month',all:'All Time'}[curPeriod]||'This Month');
+    const allVisits=allTracking.filter(t=>t.visit_complete).length;
+    const allReports=allTracking.filter(t=>t.report_complete).length;
+    const allTatList=allCases.map(c=>({c,t:calcTAT(c,trk(c.case_id))})).filter(x=>x.t!==null);
+    const allAvgTAT=allTatList.length?allTatList.reduce((s,x)=>s+x.t,0)/allTatList.length:null;
+    document.getElementById('d_overallCard').style.display='block';
+    document.getElementById('d_overall').innerHTML=`
+      <div class="kbox"><div class="kval">${allCases.length}</div><div class="klbl">Total Cases</div></div>
+      <div class="kbox"><div class="kval">${allVisits}</div><div class="klbl">Visits Done</div></div>
+      <div class="kbox kg"><div class="kval">${allReports}</div><div class="klbl">Completed</div></div>
+      <div class="kbox"><div class="kval">${fmtTAT(allAvgTAT)}</div><div class="klbl">Avg TAT</div></div>`;
+  }else{
+    document.getElementById('d_overallCard').style.display='none';
+  }
 
   const oc=document.getElementById('d_overdue');
   if(overdue.length>0){
@@ -2610,15 +2790,16 @@ function renderDash(){
       <span style="color:var(--muted);font-size:12px;"><b style="color:var(--p)">${d.t}</b> cases · <b>${d.v}</b> visited · <b style="color:var(--green)">${d.d}</b> done</span>
     </div>`).join('');
 
-  // Staff performance
+  // Staff performance leaderboard - always company-wide (not personally
+  // filtered) so every role can see how they rank against everyone else.
   const engs={},typs={};
-  tracking.forEach(t=>{
+  allTracking.forEach(t=>{
     if(t.engineer_name&&!t.engineer_name.startsWith('[External] ')){if(!engs[t.engineer_name])engs[t.engineer_name]=0;if(t.visit_complete)engs[t.engineer_name]++;}
     if(t.typist_name){
       if(!typs[t.typist_name])typs[t.typist_name]={d:0,ts:0,tc:0};
       if(t.report_complete){
         typs[t.typist_name].d++;
-        const c=cases.find(x=>x.case_id===t.case_ref);
+        const c=allCases.find(x=>x.case_id===t.case_ref);
         if(c){const tat=calcTAT(c,t);if(tat!==null){typs[t.typist_name].ts+=tat;typs[t.typist_name].tc++;}}
       }
     }
@@ -2627,15 +2808,15 @@ function renderDash(){
   if(Object.keys(engs).length>0){
     spHTML+='<p style="font-size:11px;font-weight:700;color:var(--p);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">🚗 Engineers</p>';
     spHTML+=Object.entries(engs).sort((a,b)=>b[1]-a[1]).map(([n,c])=>`
-      <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
-        <span style="font-weight:600;">${n}</span><span style="color:var(--p);font-weight:600;">${c} visits</span></div>`).join('');
+      <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--ptint);font-size:13px;${n===CU.name?'background:var(--ptint);border-radius:8px;padding-left:8px;padding-right:8px;':''}">
+        <span style="font-weight:600;">${n}${n===CU.name?' (You)':''}</span><span style="color:var(--p);font-weight:600;">${c} visits</span></div>`).join('');
   }
   if(Object.keys(typs).length>0){
     spHTML+='<p style="font-size:11px;font-weight:700;color:var(--p);text-transform:uppercase;letter-spacing:0.5px;margin:14px 0 8px;">⌨️ Typists</p>';
     spHTML+=Object.entries(typs).sort((a,b)=>b[1].d-a[1].d).map(([n,d])=>{
       const avg=d.tc?d.ts/d.tc:null;
-      return`<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
-        <span style="font-weight:600;">${n}</span>
+      return`<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--ptint);font-size:13px;${n===CU.name?'background:var(--ptint);border-radius:8px;padding-left:8px;padding-right:8px;':''}">
+        <span style="font-weight:600;">${n}${n===CU.name?' (You)':''}</span>
         <span style="color:var(--muted);font-size:12px;"><b style="color:var(--p)">${d.d}</b> reports · avg <b style="color:var(--blue)">${fmtTAT(avg)}</b></span></div>`;}).join('');
   }
   document.getElementById('d_staff').innerHTML=spHTML||'<div class="empty">No staff data yet</div>';
@@ -2757,15 +2938,19 @@ function renderCasesTable(){
     ?`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--gbg);color:var(--green);">Done</span>`
     :`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--abg);color:#92600A;">Pending</span>`;
   document.getElementById('d_table').innerHTML=cases.length===0
-    ?'<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px;">No cases</td></tr>'
+    ?'<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px;">No cases</td></tr>'
     :cases.map(c=>{
       const t=trk(c.case_id);const tat=calcTAT(c,t);
+      const sched=t?.scheduled_date
+        ?`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--bbg);color:var(--blue);">${t.scheduled_date}${t.scheduled_time?' '+t.scheduled_time:''}</span>`
+        :`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--rbg);color:var(--red);">Not Scheduled</span>`;
       return`<tr>
         <td>${c.received_date}</td>
         <td style="color:var(--p);font-weight:600;">${c.bank_name}</td>
         <td style="font-weight:600;">${c.case_name||'Unnamed'}</td>
         <td>${c.application_id||'—'}</td>
         <td>${c.property_location||'—'}</td>
+        <td>${t?.visit_complete?bd(true):sched}</td>
         <td>${t?bd(t.visit_complete):bd(false)}</td>
         <td>${t?bd(t.report_complete):bd(false)}</td>
         <td style="font-weight:600;color:${tat>48?'var(--red)':'var(--blue)'}">${fmtTAT(tat)}</td>
@@ -3568,11 +3753,37 @@ function switchExt(tab){
 }
 
 function renderExt(){
+  if(CU.role!=='admin'){
+    document.getElementById('ext_admin_view').style.display='none';
+    document.getElementById('ext_restricted_view').style.display='block';
+    renderExtRestricted();
+    return;
+  }
+  document.getElementById('ext_admin_view').style.display='block';
+  document.getElementById('ext_restricted_view').style.display='none';
   const active=document.querySelector('[data-ext].on')?.dataset.ext||'payouts';
   if(active==='payouts') renderPayouts();
   if(active==='assign') renderExtRecent();
   if(active==='directory') renderValuerDirectory();
   if(active==='rates') renderRateCard();
+}
+
+function renderExtRestricted(){
+  const el=document.getElementById('ext_restricted_list');
+  if(!el) return;
+  if(!EXTA.length){el.innerHTML='<div class="empty">No cases handled by external valuers yet</div>';return;}
+  el.innerHTML=EXTA.slice().sort((a,b)=>new Date(b.assigned_date)-new Date(a.assigned_date)).map(a=>{
+    const t=trk(a.case_ref);
+    let workStatus;
+    if(t?.report_complete) workStatus='<span style="color:var(--green);font-weight:700;">✅ TAT closed</span>';
+    else if(t?.visit_complete) workStatus='<span style="color:var(--blue);font-weight:700;">🔄 Visit done, report pending</span>';
+    else workStatus='<span style="color:var(--amber);font-weight:700;">⏳ Visit pending</span>';
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
+      <div style="display:flex;justify-content:space-between;"><b>${a.case_ref}</b><span style="color:var(--p);font-weight:600;">${a.valuer_name}</span></div>
+      <div style="color:var(--muted);margin-top:2px;">${a.bank_name||'—'}${a.loan_product?' · '+a.loan_product:''}</div>
+      <div style="margin-top:4px;">${workStatus}</div>
+    </div>`;
+  }).join('');
 }
 
 function populateExtPickers(){
