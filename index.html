@@ -676,6 +676,22 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
         <div id="r_summary" style="display:none;background:var(--ptint);border-radius:10px;padding:12px;margin-top:10px;font-size:13px;"></div>
       </div>
 
+      <div class="card" id="rate_sn_card" style="display:none;">
+        <div class="ctitle">⭐ Rate Site Note Quality</div>
+        <p class="hint" id="rate_sn_hint"></p>
+        <div id="rate_sn_stars" style="display:flex;gap:6px;margin:8px 0;"></div>
+        <textarea id="rate_sn_comment" placeholder="Optional comment on the site note quality…" style="min-height:50px;"></textarea>
+        <button class="btn bs" onclick="saveSiteNoteRating()" style="margin-top:8px;">Save Rating</button>
+      </div>
+
+      <div class="card" id="rate_report_card" style="display:none;">
+        <div class="ctitle">⭐ Rate Report Quality</div>
+        <p class="hint" id="rate_report_hint"></p>
+        <div id="rate_report_stars" style="display:flex;gap:6px;margin:8px 0;"></div>
+        <textarea id="rate_report_comment" placeholder="Optional comment on the report quality…" style="min-height:50px;"></textarea>
+        <button class="btn bs" id="rate_report_savebtn" onclick="saveReportRating()" style="margin-top:8px;">Save Rating</button>
+      </div>
+
       <div id="r_form" style="display:none;">
         <div class="card">
           <div class="ctitle">Report Mode</div>
@@ -2391,7 +2407,12 @@ async function onReportPick(){
   const id=g('r_case');
   const sumEl=document.getElementById('r_summary');
   const formEl=document.getElementById('r_form');
-  if(!id){sumEl.style.display='none';formEl.style.display='none';rptCaseId=null;currentSN=null;return;}
+  if(!id){
+    sumEl.style.display='none';formEl.style.display='none';rptCaseId=null;currentSN=null;
+    document.getElementById('rate_sn_card').style.display='none';
+    document.getElementById('rate_report_card').style.display='none';
+    return;
+  }
   rptCaseId=id;
   clearReportForm();
   const c=CASES.find(x=>x.case_id===id);
@@ -2424,15 +2445,101 @@ async function onReportPick(){
       sumEl.innerHTML+='<div style="color:var(--red);font-size:12px;margin-top:6px;">⚠ No site notes found for this case. Ask engineer to complete site visit first.</div>';
     }
   }catch(e){console.error('Site notes load error:',e);}
+  renderSNRatingWidget(t);
   // Load existing draft
+  currentReportDraft=null;
   try{
     const draft=await dbGetOne('report_drafts',{case_ref:id});
-    if(draft) fillDraft(draft);
+    if(draft){fillDraft(draft);currentReportDraft=draft;}
   }catch(e){}
+  renderReportRatingWidget(t);
   setReport(!!t?.report_complete);
   calcRpt();
   formEl.style.display='block';
   runValidation();
+}
+
+let selSNRating=0, selReportRating=0, currentReportDraft=null;
+
+function renderStars(containerId,current,varName){
+  document.getElementById(containerId).innerHTML=Array.from({length:5},(_,i)=>{
+    const n=i+1;
+    return `<span onclick="setStar('${varName}','${containerId}',${n})" style="cursor:pointer;font-size:26px;color:${n<=current?'#F9A825':'#ddd'};">★</span>`;
+  }).join('');
+}
+
+function setStar(varName,containerId,n){
+  if(varName==='selSNRating') selSNRating=n; else selReportRating=n;
+  renderStars(containerId,n,varName);
+}
+
+function renderSNRatingWidget(t){
+  const card=document.getElementById('rate_sn_card');
+  const canRate=CU.role==='admin'||(t?.typist_name&&t.typist_name.toLowerCase()===CU.name.toLowerCase());
+  if(!currentSN||!canRate){card.style.display='none';return;}
+  card.style.display='block';
+  selSNRating=currentSN.quality_rating||0;
+  renderStars('rate_sn_stars',selSNRating,'selSNRating');
+  document.getElementById('rate_sn_comment').value=currentSN.quality_comment||'';
+  document.getElementById('rate_sn_hint').textContent=currentSN.quality_rated_by?
+    `Last rated by ${currentSN.quality_rated_by} on ${(currentSN.quality_rated_at||'').slice(0,10)}`:
+    "Rate the engineer's site inspection note for completeness and accuracy.";
+}
+
+async function saveSiteNoteRating(){
+  if(!rptCaseId){toast('No case selected','err');return;}
+  if(!selSNRating){toast('Pick a star rating first','err');return;}
+  try{
+    await dbUpdate('site_notes',{case_ref:rptCaseId},{
+      quality_rating:selSNRating,quality_comment:g('rate_sn_comment')||null,
+      quality_rated_by:CU.name,quality_rated_at:new Date().toISOString()
+    });
+    if(currentSN){
+      currentSN.quality_rating=selSNRating;
+      currentSN.quality_comment=g('rate_sn_comment');
+      currentSN.quality_rated_by=CU.name;
+      currentSN.quality_rated_at=new Date().toISOString();
+    }
+    document.getElementById('rate_sn_hint').textContent=`Last rated by ${CU.name} on ${new Date().toISOString().slice(0,10)}`;
+    toast('Site note rated ✓','ok');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+function renderReportRatingWidget(t){
+  const card=document.getElementById('rate_report_card');
+  if(!t?.report_complete){card.style.display='none';return;}
+  card.style.display='block';
+  const isAdmin=CU.role==='admin';
+  selReportRating=currentReportDraft?.quality_rating||0;
+  renderStars('rate_report_stars',selReportRating,'selReportRating');
+  document.getElementById('rate_report_comment').value=currentReportDraft?.quality_comment||'';
+  document.getElementById('rate_report_comment').disabled=!isAdmin;
+  document.getElementById('rate_report_savebtn').style.display=isAdmin?'block':'none';
+  document.getElementById('rate_report_hint').textContent=currentReportDraft?.quality_rated_by?
+    `Rated by ${currentReportDraft.quality_rated_by} on ${(currentReportDraft.quality_rated_at||'').slice(0,10)}`:
+    (isAdmin?"Rate this typist's report quality.":'Not yet rated by admin.');
+}
+
+async function saveReportRating(){
+  if(CU.role!=='admin'){toast('Only admin can rate report quality','err');return;}
+  if(!rptCaseId){toast('No case selected','err');return;}
+  if(!selReportRating){toast('Pick a star rating first','err');return;}
+  try{
+    const existing=await dbGetOne('report_drafts',{case_ref:rptCaseId});
+    if(!existing){toast('No report draft found for this case','err');return;}
+    await dbUpdate('report_drafts',{case_ref:rptCaseId},{
+      quality_rating:selReportRating,quality_comment:g('rate_report_comment')||null,
+      quality_rated_by:CU.name,quality_rated_at:new Date().toISOString()
+    });
+    if(currentReportDraft){
+      currentReportDraft.quality_rating=selReportRating;
+      currentReportDraft.quality_comment=g('rate_report_comment');
+      currentReportDraft.quality_rated_by=CU.name;
+      currentReportDraft.quality_rated_at=new Date().toISOString();
+    }
+    document.getElementById('rate_report_hint').textContent=`Rated by ${CU.name} on ${new Date().toISOString().slice(0,10)}`;
+    toast('Report rated ✓','ok');
+  }catch(e){toast('Error: '+e.message,'err');}
 }
 
 function fillDraft(d){
@@ -2560,6 +2667,13 @@ async function submitReport(){
       };
       if(t) await dbUpdate('tracking',{case_ref:rptCaseId},tPayload);
       await dbUpdate('cases',{case_id:rptCaseId},{status:'report_done'});
+      // Patch in-memory state immediately so the report rating card (and
+      // anything else reading trk()) doesn't stay stale until the next reload.
+      const tIdx=TRACKING.findIndex(x=>x.case_ref===rptCaseId);
+      const mergedT=tIdx>=0?{...TRACKING[tIdx],...tPayload}:{case_ref:rptCaseId,...tPayload};
+      if(tIdx>=0) TRACKING[tIdx]=mergedT; else TRACKING.push(mergedT);
+      currentReportDraft={...(currentReportDraft||{}),...draft};
+      renderReportRatingWidget(mergedT);
       // Write to land rate DB
       if(currentSN&&currentSN.land_rate&&currentSN.land_cents){
         await dbInsert('land_rates',{
