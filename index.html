@@ -321,6 +321,7 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
         Submit Case
       </button>
+      <button class="btn bs" id="cancelEditBtn" onclick="cancelEditCase()" style="margin-top:8px;display:none;">Cancel Edit</button>
     </div>
     <div class="card">
       <div class="ctitle">Recent Cases</div>
@@ -1534,6 +1535,8 @@ function genId(){
   return `DC-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${Math.random().toString(36).substring(2,6).toUpperCase()}`;
 }
 
+let editingCaseId=null;
+
 async function addCase(){
   const date=g('c_date'),time=g('c_time'),bankId=g('c_bank'),
     name=g('c_name').trim(),appid=g('c_appid').trim();
@@ -1545,23 +1548,65 @@ async function addCase(){
   if(!g('c_loc').trim()){toast('Property location required','err');return;}
   const bank=BANKS.find(b=>b.id===bankId);
   const btn=document.getElementById('addCaseBtn');
-  btn.disabled=true;btn.textContent='Saving…';
+  const isEdit=!!editingCaseId;
+  btn.disabled=true;btn.textContent=isEdit?'Updating…':'Saving…';
   try{
-    await dbInsert('cases',{
-      case_id:genId(),received_date:date,received_time:time,
-      staff_name:CU.name,bank_id:bankId,bank_name:bank?.name||'',
+    const payload={
+      received_date:date,received_time:time,
+      bank_id:bankId,bank_name:bank?.name||'',
       loan_product:g('c_product')==='-- Add New Product --'?g('newProductName'):g('c_product'),
       case_name:name,application_id:appid,
       property_location:g('c_loc').trim(),
       client_phone:g('c_phone').trim(),
       distance:parseFloat(g('c_dist'))||null,
-      notes:g('c_notes').trim(),status:'received'
-    });
-    toast('Case saved ✓','ok');
+      notes:g('c_notes').trim()
+    };
+    if(isEdit){
+      await dbUpdate('cases',{case_id:editingCaseId},payload);
+      toast('Case updated ✓','ok');
+      editingCaseId=null;
+      document.getElementById('cancelEditBtn').style.display='none';
+    }else{
+      await dbInsert('cases',{case_id:genId(),staff_name:CU.name,status:'received',...payload});
+      toast('Case saved ✓','ok');
+    }
     resetCaseForm();
     loadData();
   }catch(e){toast('Error: '+e.message,'err');}
-  btn.disabled=false;btn.textContent='Submit Case';
+  btn.disabled=false;btn.textContent=editingCaseId?'Update Case':'Submit Case';
+}
+
+function editCase(caseId){
+  const c=CASES.find(x=>x.case_id===caseId);
+  if(!c){toast('Case not found','err');return;}
+  editingCaseId=caseId;
+  goTab('cases');
+  document.getElementById('c_date').value=c.received_date||'';
+  document.getElementById('c_time').value=(c.received_time||'').slice(0,5);
+  document.getElementById('c_bank').value=c.bank_id||'';
+  const prodSel=document.getElementById('c_product');
+  if(c.loan_product&&![...prodSel.options].some(o=>o.value===c.loan_product)){
+    const opt=document.createElement('option');
+    opt.value=c.loan_product;opt.textContent=c.loan_product;
+    prodSel.insertBefore(opt,prodSel.lastElementChild);
+  }
+  prodSel.value=c.loan_product||'';
+  document.getElementById('c_name').value=c.case_name||'';
+  document.getElementById('c_appid').value=c.application_id||'';
+  document.getElementById('c_loc').value=c.property_location||'';
+  document.getElementById('c_phone').value=c.client_phone||'';
+  document.getElementById('c_dist').value=c.distance||'';
+  document.getElementById('c_notes').value=c.notes||'';
+  document.getElementById('addCaseBtn').textContent='Update Case';
+  document.getElementById('cancelEditBtn').style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function cancelEditCase(){
+  editingCaseId=null;
+  resetCaseForm();
+  document.getElementById('addCaseBtn').textContent='Submit Case';
+  document.getElementById('cancelEditBtn').style.display='none';
 }
 
 function resetCaseForm(){
@@ -1599,7 +1644,10 @@ function renderRecent(){
         ${t?.admin_note?`<br><span style="color:var(--p);font-style:italic;">📌 ${t.admin_note}</span>`:''}
       </div>
       ${c.priority&&c.priority!=='normal'?`<span class="badge" style="margin-top:6px;display:inline-block;background:${c.priority==='urgent'?'var(--rbg)':'var(--abg)'};color:${c.priority==='urgent'?'var(--red)':'#B8860B'};">${c.priority==='urgent'?'🔴 URGENT':'🟡 HIGH PRIORITY'}</span>`:''}
-      ${CU.role==='admin'?`<button class="btn bd" style="margin-top:8px;padding:9px;" onclick="askDelete('${c.case_id}','${(c.case_name||'').replace(/'/g,'')}')">Delete Case</button>`:''}
+      ${CU.role==='admin'?`<div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn bs" style="padding:9px;flex:1;" onclick="editCase('${c.case_id}')">Edit Case</button>
+        <button class="btn bd" style="padding:9px;flex:1;" onclick="askDelete('${c.case_id}','${(c.case_name||'').replace(/'/g,'')}')">Delete Case</button>
+      </div>`:''}
     </div>`;
   }).join('');
 }
@@ -1790,9 +1838,15 @@ async function onVisitPick(){
   clearSiteNotes();
   const c=CASES.find(x=>x.case_id===id);
   const t=trk(id);
+  let feeLine='';
+  if(CU.isExternal){
+    const a=EXTA.find(x=>x.case_ref===id);
+    feeLine=a?`<br>Your fee for this case: <b style="color:var(--p);">${fmtR(a.commission_amount)}</b> · Due ${a.due_date} · <span style="color:${a.status==='paid'?'var(--green)':'#92600A'};font-weight:700;">${a.status==='paid'?'Paid':'Pending'}</span>`
+      :'<br><span style="color:var(--muted);">Fee not logged yet — check with admin</span>';
+  }
   sumEl.innerHTML=`<b>${c.bank_name}</b> · ${c.case_name||'—'}<br>
     App ID: ${c.application_id||'—'} · Location: ${c.property_location||'—'}<br>
-    Received: <b>${c.received_date} ${c.received_time||''}</b>`;
+    Received: <b>${c.received_date} ${c.received_time||''}</b>${feeLine}`;
   sumEl.style.display='block';
   document.getElementById('v_date').value=t?.visit_date||'';
   document.getElementById('v_time').value=t?.visit_time||'';
