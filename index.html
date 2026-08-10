@@ -1311,6 +1311,14 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
       <label>Confirm New PIN</label><input type="text" id="cp_conf" maxlength="6">
       <button class="btn bp" onclick="changePin()" style="margin-top:12px;">Update PIN</button>
     </div>
+    <div class="card">
+      <div class="ctitle">🔒 Revenue & External PIN</div>
+      <p class="hint" style="margin-bottom:10px;">A separate PIN just for unlocking Revenue and External. Keep it different from your login PIN so others can use your login for everyday work without seeing financial data.</p>
+      <label>Current Revenue PIN (leave blank if none set yet)</label><input type="text" id="fp_cur" maxlength="6">
+      <label>New Revenue PIN</label><input type="text" id="fp_new" maxlength="6">
+      <label>Confirm New Revenue PIN</label><input type="text" id="fp_conf" maxlength="6">
+      <button class="btn bp" onclick="saveFinancePin()" style="margin-top:12px;">Update Revenue PIN</button>
+    </div>
   </div>
 </div>
 
@@ -1318,8 +1326,8 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
 <div id="pinGateOverlay" style="display:none;position:fixed;inset:0;background:rgba(30,10,46,0.7);z-index:210;align-items:center;justify-content:center;padding:30px;flex-direction:column;">
   <div style="background:#fff;border-radius:20px;padding:32px 24px;text-align:center;max-width:300px;width:100%;">
     <div style="font-size:44px;margin-bottom:12px;">🔒</div>
-    <h2 style="font-size:18px;font-weight:700;color:var(--p);margin-bottom:8px;">Re-enter your PIN</h2>
-    <p style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:16px;">This section is locked for privacy. Enter your PIN to continue.</p>
+    <h2 style="font-size:18px;font-weight:700;color:var(--p);margin-bottom:8px;">Locked</h2>
+    <p id="pg_hint" style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:16px;">This section is locked for privacy. Enter your PIN to continue.</p>
     <input type="password" inputmode="numeric" pattern="[0-9]*" id="pg_pin" maxlength="6" autocomplete="off" style="width:100%;padding:12px;text-align:center;font-size:18px;letter-spacing:4px;margin-bottom:8px;border-radius:12px;" placeholder="••••••" onkeydown="if(event.key==='Enter')submitPinGate()">
     <p id="pg_err" style="color:var(--red);font-size:12px;min-height:16px;margin-bottom:8px;"></p>
     <div style="display:flex;gap:8px;">
@@ -1543,6 +1551,9 @@ function goTab(id){
     pendingGateTab=id;
     document.getElementById('pg_pin').value='';
     document.getElementById('pg_err').textContent='';
+    document.getElementById('pg_hint').textContent=(CU&&CU.finance_pin)
+      ?'This section is locked for privacy. Enter your Revenue PIN to continue.'
+      :'This section is locked for privacy. Enter your login PIN to continue (set a separate Revenue PIN in Admin for extra security).';
     document.getElementById('pinGateOverlay').style.display='flex';
     setTimeout(()=>document.getElementById('pg_pin').focus(),100);
     return;
@@ -1567,7 +1578,8 @@ function _goTabReal(id){
 
 function submitPinGate(){
   const val=g('pg_pin');
-  if(CU&&val===CU.pin){
+  const required=CU&&CU.finance_pin?CU.finance_pin:(CU?CU.pin:null);
+  if(required&&val===required){
     document.getElementById('pinGateOverlay').style.display='none';
     const t=pendingGateTab;
     pendingGateTab=null;
@@ -3785,6 +3797,21 @@ async function changePin(){
     CU.pin=nw;
     toast('PIN updated ✓','ok');
     ['cp_cur','cp_new','cp_conf'].forEach(id=>document.getElementById(id).value='');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+async function saveFinancePin(){
+  const cur=g('fp_cur'),nw=g('fp_new'),cf=g('fp_conf');
+  const existing=CU.finance_pin||'';
+  if(existing&&cur!==existing){toast('Current Revenue PIN incorrect','err');return;}
+  if(nw.length<4){toast('New Revenue PIN must be 4+ digits','err');return;}
+  if(nw!==cf){toast('PINs do not match','err');return;}
+  if(nw===CU.pin){toast('Choose a PIN different from your login PIN','err');return;}
+  try{
+    await dbUpdate('users',{id:CU.id},{finance_pin:nw});
+    CU.finance_pin=nw;
+    toast('Revenue PIN updated ✓','ok');
+    ['fp_cur','fp_new','fp_conf'].forEach(id=>document.getElementById(id).value='');
   }catch(e){toast('Error: '+e.message,'err');}
 }
 
