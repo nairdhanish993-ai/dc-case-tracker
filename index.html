@@ -1248,6 +1248,12 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
     </div>
 
     <div class="card">
+      <div class="ctitle">💼 Monthly Salaries</div>
+      <p class="hint" style="margin-bottom:10px;">Set each staff member's salary for the selected month — useful since it can vary month to month. Leave blank to fall back to their default salary (set in Admin).</p>
+      <div id="rev_salary_list"></div>
+    </div>
+
+    <div class="card">
       <div class="ctitle">🏦 Bank Rate Card</div>
       <p class="hint" style="margin-bottom:10px;">Average fee per case, used to estimate revenue. Override a single case by writing e.g. "special fee 8000" in its Notes.</p>
       <div id="rev_bankrate_list"></div>
@@ -1304,6 +1310,21 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
       <label>New PIN</label><input type="text" id="cp_new" maxlength="6">
       <label>Confirm New PIN</label><input type="text" id="cp_conf" maxlength="6">
       <button class="btn bp" onclick="changePin()" style="margin-top:12px;">Update PIN</button>
+    </div>
+  </div>
+</div>
+
+<!-- PIN GATE OVERLAY -->
+<div id="pinGateOverlay" style="display:none;position:fixed;inset:0;background:rgba(30,10,46,0.7);z-index:210;align-items:center;justify-content:center;padding:30px;flex-direction:column;">
+  <div style="background:#fff;border-radius:20px;padding:32px 24px;text-align:center;max-width:300px;width:100%;">
+    <div style="font-size:44px;margin-bottom:12px;">🔒</div>
+    <h2 style="font-size:18px;font-weight:700;color:var(--p);margin-bottom:8px;">Re-enter your PIN</h2>
+    <p style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:16px;">This section is locked for privacy. Enter your PIN to continue.</p>
+    <input type="password" inputmode="numeric" pattern="[0-9]*" id="pg_pin" maxlength="6" autocomplete="off" style="width:100%;padding:12px;text-align:center;font-size:18px;letter-spacing:4px;margin-bottom:8px;border-radius:12px;" placeholder="••••••" onkeydown="if(event.key==='Enter')submitPinGate()">
+    <p id="pg_err" style="color:var(--red);font-size:12px;min-height:16px;margin-bottom:8px;"></p>
+    <div style="display:flex;gap:8px;">
+      <button style="flex:1;padding:12px;border:none;border-radius:12px;background:var(--ptint);color:var(--p);font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;" onclick="cancelPinGate()">Cancel</button>
+      <button style="flex:1;padding:12px;border:none;border-radius:12px;background:var(--p);color:#fff;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;" onclick="submitPinGate()">Unlock</button>
     </div>
   </div>
 </div>
@@ -1402,6 +1423,7 @@ let CU = null; // current user
 let CASES = [], TRACKING = [], USERS = [], BANKS = [], LRATES = [];
 let EXTV = [], CRATES = [], EXTA = [];
 let BANKRATES = [];
+let SALARIES = [];
 let sitePhotos = [], visitDone = false, reportDone = false, ackDone = false;
 let curPeriod = 'month', periodFrom = null, periodTo = null;
 let tblSort = 'date', tblDir = 'desc';
@@ -1513,7 +1535,22 @@ function buildNav(){
   if(tabs.length>0) goTab(tabs[0].id);
 }
 
+const PIN_LOCKED_TABS=['revenue','ext'];
+let pendingGateTab=null;
+
 function goTab(id){
+  if(PIN_LOCKED_TABS.includes(id)){
+    pendingGateTab=id;
+    document.getElementById('pg_pin').value='';
+    document.getElementById('pg_err').textContent='';
+    document.getElementById('pinGateOverlay').style.display='flex';
+    setTimeout(()=>document.getElementById('pg_pin').focus(),100);
+    return;
+  }
+  _goTabReal(id);
+}
+
+function _goTabReal(id){
   document.querySelectorAll('.ntab').forEach(b=>b.classList.toggle('on',b.dataset.tab===id));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   const pg=document.getElementById('pg-'+id);
@@ -1528,12 +1565,32 @@ function goTab(id){
   if(id==='myfees') renderMyFees();
 }
 
+function submitPinGate(){
+  const val=g('pg_pin');
+  if(CU&&val===CU.pin){
+    document.getElementById('pinGateOverlay').style.display='none';
+    const t=pendingGateTab;
+    pendingGateTab=null;
+    _goTabReal(t);
+  } else {
+    document.getElementById('pg_err').textContent='Incorrect PIN. Try again.';
+    document.getElementById('pg_pin').value='';
+    document.getElementById('pg_pin').focus();
+  }
+}
+
+function cancelPinGate(){
+  document.getElementById('pinGateOverlay').style.display='none';
+  pendingGateTab=null;
+  if(!document.querySelector('.ntab.on')) _goTabReal('dash');
+}
+
 // ═══════════════════════════════════════════
 // DATA
 // ═══════════════════════════════════════════
 async function loadData(){
   try{
-    [CASES,TRACKING,BANKS,LRATES,EXTV,CRATES,EXTA,BANKRATES,USERS]=await Promise.all([
+    [CASES,TRACKING,BANKS,LRATES,EXTV,CRATES,EXTA,BANKRATES,USERS,SALARIES]=await Promise.all([
       dbGet('cases'),
       dbGet('tracking'),
       dbGet('banks',{active:'true'},'*'),
@@ -1542,7 +1599,8 @@ async function loadData(){
       dbGet('commission_rates'),
       dbGet('valuer_assignments'),
       dbGet('bank_rates'),
-      dbGet('users',{active:'true'},'*')
+      dbGet('users',{active:'true'},'*'),
+      dbGet('staff_salaries')
     ]);
     // Remove old DOMContentLoaded listener conflict
 
@@ -3662,10 +3720,11 @@ function renderAdmin(){
         <span style="font-family:monospace;font-size:15px;color:var(--p);font-weight:700;">••••••</span>
       </div>
       <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
-        <span style="font-size:11px;color:var(--muted);">Monthly salary ₹</span>
+        <span style="font-size:11px;color:var(--muted);">Default monthly salary ₹</span>
         <input type="number" id="sal_${u.id}" value="${u.monthly_salary||''}" placeholder="e.g. 20000" style="flex:1;padding:6px 8px;font-size:12px;">
-        <button class="btn bs" style="padding:6px 10px;font-size:11px;" onclick="saveSalary('${u.id}')">Save</button>
+        <button class="btn bs" style="padding:6px 10px;font-size:11px;width:auto;margin-top:0;" onclick="saveSalary('${u.id}')">Save</button>
       </div>
+      <p class="hint" style="margin-top:2px;">Used when no month-specific amount is set in Revenue &gt; Monthly Salaries.</p>
     </div>`).join('');
   document.getElementById('admin_banks').innerHTML=BANKS.map(b=>`
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
@@ -4229,7 +4288,11 @@ function renderRevenue(){
   const extPayout=EXTA.filter(a=>monthCaseRefs.has(a.case_ref)).reduce((s,a)=>s+Number(a.commission_amount||0),0);
   document.getElementById('rev_ext_payout').textContent=money(extPayout);
 
-  const salaryTotal=USERS.filter(u=>u.active&&u.monthly_salary).reduce((s,u)=>s+Number(u.monthly_salary||0),0);
+  const salaryTotal=USERS.filter(u=>u.active).reduce((s,u)=>{
+    const entry=SALARIES.find(x=>x.user_id===u.id&&x.month===monthKey);
+    const amt=entry?Number(entry.amount):Number(u.monthly_salary||0);
+    return s+amt;
+  },0);
   document.getElementById('rev_salaries').textContent=money(salaryTotal);
 
   const totalOut=extPayout+salaryTotal;
@@ -4244,8 +4307,54 @@ function renderRevenue(){
   marginEl.textContent=margin.toFixed(1)+'%';
   marginEl.style.color=profit>=0?'var(--green)':'var(--red)';
 
+  renderSalaryList(monthKey);
   renderBankRateList();
   populateBankRateDropdown();
+}
+
+function renderSalaryList(monthKey){
+  const el=document.getElementById('rev_salary_list');
+  if(!el) return;
+  const staff=USERS.filter(u=>u.active);
+  if(!staff.length){el.innerHTML='<div class="empty">No staff found</div>';return;}
+  el.innerHTML=staff.map(u=>{
+    const entry=SALARIES.find(x=>x.user_id===u.id&&x.month===monthKey);
+    const val=entry?entry.amount:'';
+    const fallback=u.monthly_salary?`default ₹${Math.round(u.monthly_salary).toLocaleString('en-IN')}`:'no default set';
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
+      <div style="display:flex;justify-content:space-between;"><b>${u.name}</b><span style="font-size:10px;color:var(--muted);">${fallback}</span></div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+        <input type="number" id="rsal_${u.id}" value="${val}" placeholder="e.g. 20000" style="flex:1;padding:6px 8px;font-size:12px;">
+        <button class="btn bs" style="padding:6px 10px;font-size:11px;width:auto;margin-top:0;" onclick="saveMonthSalary('${u.id}','${monthKey}')">Save</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function saveMonthSalary(userId,monthKey){
+  const val=g('rsal_'+userId);
+  const u=USERS.find(x=>x.id===userId);
+  const existing=SALARIES.find(x=>x.user_id===userId&&x.month===monthKey);
+  try{
+    if(!val){
+      if(existing){
+        await dbDelete('staff_salaries',{id:existing.id});
+        SALARIES=SALARIES.filter(x=>x.id!==existing.id);
+        toast('Cleared — using default salary','ok');
+      }
+    } else {
+      const amount=parseFloat(val);
+      if(existing){
+        await dbUpdate('staff_salaries',{id:existing.id},{amount});
+        existing.amount=amount;
+      } else {
+        const [row]=await dbInsert('staff_salaries',{user_id:userId,user_name:u.name,month:monthKey,amount});
+        SALARIES.push(row);
+      }
+      toast('Salary saved for month ✓','ok');
+    }
+    renderRevenue();
+  }catch(e){toast('Error: '+e.message,'err');}
 }
 
 function renderBankRateList(){
