@@ -828,6 +828,44 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
     </div>
   </div>
 
+  <!-- TAB: My Day (non-admin) -->
+  <div class="page" id="pg-mydash">
+    <div class="dpill" id="md_greeting">My Day</div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:32px;font-weight:700;color:var(--p);line-height:1;" id="md_month_count">0</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;">completed this month</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:20px;font-weight:700;color:var(--blue);" id="md_tat">—</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">avg TAT</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="md_needs_schedule_card" style="display:none;border-left:4px solid var(--red);">
+      <div class="ctitle" style="color:var(--red);">🔴 Needs Scheduling</div>
+      <div id="md_needs_schedule_list"></div>
+    </div>
+
+    <div class="card" id="md_scheduled_card" style="display:none;">
+      <div class="ctitle">📅 Upcoming Visits</div>
+      <div id="md_scheduled_list"></div>
+    </div>
+
+    <div class="card" id="md_inprogress_card" style="display:none;">
+      <div class="ctitle">⌨️ Reports To Type</div>
+      <div id="md_inprogress_list"></div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">✅ Completed This Month</div>
+      <div id="md_completed_list"></div>
+    </div>
+  </div>
+
   <!-- TAB: Dashboard (Admin) -->
   <div class="page" id="pg-dash">
     <div class="dpill">Dashboard</div>
@@ -1372,6 +1410,7 @@ function initApp(){
 function buildNav(){
   const tabs=[];
   if(CU.isExternal){
+    tabs.push({id:'mydash',label:'🏠 My Day'});
     tabs.push({id:'work',label:'🚗 My Work'});
     tabs.push({id:'myfees',label:'💰 My Fees'});
     document.getElementById('navtabs').innerHTML=tabs.map(t=>
@@ -1379,8 +1418,10 @@ function buildNav(){
     if(tabs.length>0) goTab(tabs[0].id);
     return;
   }
-  // Dashboard always first for everyone
-  tabs.push({id:'dash',label:'📊 Dashboard'});
+  // Dashboard always first for everyone - admin gets the full reporting
+  // dashboard, everyone else gets a focused personal "My Day" view.
+  if(CU.role==='admin') tabs.push({id:'dash',label:'📊 Dashboard'});
+  else tabs.push({id:'mydash',label:'🏠 My Day'});
   if(CU.can_add_cases||CU.role==='admin') tabs.push({id:'cases',label:'📋 Cases'});
   if(CU.role==='admin'||CU.name==='Sreenath') tabs.push({id:'assign',label:'👥 Assign'});
   if(CU.role==='admin'||['Sreenath','Grace'].includes(CU.name)) tabs.push({id:'ext',label:'🤝 External'});
@@ -1400,6 +1441,7 @@ function goTab(id){
   const pg=document.getElementById('pg-'+id);
   if(pg) pg.classList.add('on');
   if(id==='dash') renderDash();
+  if(id==='mydash') renderMyDash();
   if(id==='lr') renderLR();
   if(id==='admin') renderAdmin();
   if(id==='assign') renderAssign();
@@ -1437,6 +1479,7 @@ function afterLoad(){
   renderAssign();
   populateExtPickers();
   if(document.getElementById('pg-dash').classList.contains('on')) renderDash();
+  if(document.getElementById('pg-mydash').classList.contains('on')) renderMyDash();
   if(document.getElementById('pg-lr').classList.contains('on')) renderLR();
   if(document.getElementById('pg-ext').classList.contains('on')) renderExt();
   if(document.getElementById('pg-myfees').classList.contains('on')) renderMyFees();
@@ -2070,9 +2113,15 @@ async function saveSiteNotes(){
       if(c.status!=='report_done') await dbUpdate('cases',{case_id:snCaseId},{status:'visit_done'});
       setVisit(true);
       t=vPayload;
+      // Patch the in-memory TRACKING array immediately so anything reading
+      // trk() right after (My Day, dashboards) isn't stale until the next reload.
+      const idx=TRACKING.findIndex(x=>x.case_ref===snCaseId);
+      if(idx>=0) TRACKING[idx]={...TRACKING[idx],...vPayload};
+      else TRACKING.push(vPayload);
     }
     refreshVisitSteps(snCaseId,t);
     toast('Site note submitted ✓ — visit marked complete','ok');
+    loadData();
   }catch(e){toast('Error: '+e.message,'err');}
 }
 
@@ -2707,6 +2756,96 @@ function fmtTAT(h){
   if(h===null||h===undefined) return '—';
   const d=Math.floor(h/24),r=Math.round(h%24);
   return d===0?`${r}h`:`${d}d ${r}h`;
+}
+
+function renderMyDash(){
+  if(!CU) return;
+  const hour=new Date().getHours();
+  const timeGreet=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
+  document.getElementById('md_greeting').textContent=`${timeGreet}, ${CU.name} 👋`;
+
+  const myCases=CASES.filter(c=>{
+    const t=trk(c.case_id);
+    if(!t) return false;
+    if(CU.isExternal) return t.engineer_name==='[External] '+CU.name;
+    return (t.engineer_name&&t.engineer_name.toLowerCase()===CU.name.toLowerCase())
+        || (t.typist_name&&t.typist_name.toLowerCase()===CU.name.toLowerCase());
+  });
+
+  const now=new Date();
+  const monthKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const isThisMonth=d=>d&&d.slice(0,7)===monthKey;
+
+  let completedCount=0;
+  const completedRows=[];
+  const needsSchedule=[],upcoming=[],pendingReports=[];
+  myCases.forEach(c=>{
+    const t=trk(c.case_id);
+    // myCases is already scoped to this user's own cases, so for an
+    // external valuer every case here is theirs as engineer by definition.
+    const iAmEngineer=CU.isExternal||(t.engineer_name&&t.engineer_name.toLowerCase()===CU.name.toLowerCase());
+    const iAmTypist=t.typist_name&&t.typist_name.toLowerCase()===CU.name.toLowerCase();
+    if(iAmEngineer&&t.visit_complete&&isThisMonth(t.visit_date)){completedCount++;completedRows.push({c,t,kind:'visit'});}
+    if(iAmTypist&&t.report_complete&&isThisMonth(t.submit_date)){completedCount++;completedRows.push({c,t,kind:'report'});}
+    if(iAmEngineer&&!t.visit_complete&&!t.scheduled_date) needsSchedule.push(c);
+    if(iAmEngineer&&!t.visit_complete&&t.scheduled_date) upcoming.push(c);
+    if(iAmTypist&&!t.report_complete&&t.visit_complete) pendingReports.push(c);
+  });
+  upcoming.sort((a,b)=>new Date(trk(a.case_id).scheduled_date)-new Date(trk(b.case_id).scheduled_date));
+
+  document.getElementById('md_month_count').textContent=completedCount;
+  const tatVals=completedRows.filter(r=>r.kind==='report').map(r=>calcTAT(r.c,r.t)).filter(v=>v!==null);
+  const avgTAT=tatVals.length?tatVals.reduce((a,b)=>a+b,0)/tatVals.length:null;
+  document.getElementById('md_tat').textContent=fmtTAT(avgTAT);
+
+  renderMDList('md_needs_schedule_card','md_needs_schedule_list',needsSchedule,c=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--ptint);cursor:pointer;" onclick="goToMyCase('${c.case_id}')">
+      <span><b>${c.bank_name}</b> · ${c.case_name||'Unnamed'}</span>
+      <span style="color:var(--red);font-weight:700;font-size:11px;">SCHEDULE →</span>
+    </div>`);
+
+  renderMDList('md_scheduled_card','md_scheduled_list',upcoming,c=>{
+    const t=trk(c.case_id);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--ptint);cursor:pointer;" onclick="goToMyCase('${c.case_id}')">
+      <span><b>${c.bank_name}</b> · ${c.case_name||'Unnamed'}</span>
+      <span style="color:var(--blue);font-weight:700;font-size:11px;">${t.scheduled_date}${t.scheduled_time?' '+t.scheduled_time:''}</span>
+    </div>`;
+  });
+
+  renderMDList('md_inprogress_card','md_inprogress_list',pendingReports,c=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--ptint);cursor:pointer;" onclick="goToMyCase('${c.case_id}','report')">
+      <span><b>${c.bank_name}</b> · ${c.case_name||'Unnamed'}</span>
+      <span style="color:#92600A;font-weight:700;font-size:11px;">TYPE REPORT →</span>
+    </div>`);
+
+  const compEl=document.getElementById('md_completed_list');
+  compEl.innerHTML=completedRows.length?completedRows.map(({c,kind})=>`
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
+      <span>${c.bank_name} · ${c.case_name||'Unnamed'}</span>
+      <span style="color:var(--green);font-weight:600;">✅ ${kind==='visit'?'Visited':'Reported'}</span>
+    </div>`).join(''):'<div class="empty">Nothing completed yet this month</div>';
+}
+
+function renderMDList(cardId,listId,items,rowFn){
+  const card=document.getElementById(cardId);
+  if(!items.length){card.style.display='none';return;}
+  card.style.display='block';
+  document.getElementById(listId).innerHTML=items.map(rowFn).join('');
+}
+
+function goToMyCase(caseId,mode){
+  goTab('work');
+  setTimeout(()=>{
+    if(mode==='report'){
+      switchWork('report');
+      document.getElementById('r_case').value=caseId;
+      onReportPick();
+    }else{
+      switchWork('visit');
+      document.getElementById('v_case').value=caseId;
+      onVisitPick();
+    }
+  },50);
 }
 
 function renderDash(){
