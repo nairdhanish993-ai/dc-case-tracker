@@ -617,6 +617,62 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
         <div id="sn_poi_amenities"></div>
         <div id="sn_poi_hazards"></div>
 
+        <div id="sn_aucb_section" style="display:none;">
+          <div class="snh">🏦 AUCB Bank-Specific Details</div>
+          <label>Property Address (with Pin Code)</label>
+          <textarea id="sn_property_addr" placeholder="Full property address including pin code" style="min-height:50px;"></textarea>
+          <label>Landmark</label><input type="text" id="sn_landmark" placeholder="Nearby landmark">
+          <label>Name of House / Door / Society Board</label><input type="text" id="sn_house_board" placeholder="As seen on the nameplate/board at site">
+          <div class="row2">
+            <div><label>Property Occupancy</label>
+              <select id="sn_occupancy"><option value="">Select…</option><option>Owner Occupied</option><option>Vacant</option><option>Rented</option></select>
+            </div>
+            <div><label>Actual Use of Property</label><input type="text" id="sn_actual_usage" placeholder="e.g. Residential"></div>
+          </div>
+          <label>Name of Person Occupying the Property</label><input type="text" id="sn_occupant_name" placeholder="—">
+          <label>If Rented — Tenant Name & Rent</label><input type="text" id="sn_tenant_details" placeholder="e.g. Ramesh — Rs. 8,000/month">
+          <label>Name & Contact of Person Met at Site</label><input type="text" id="sn_contact_person" placeholder="Name, phone number">
+          <div class="row2">
+            <div><label>Type of Structure</label><input type="text" id="sn_structure_type" placeholder="e.g. Load bearing"></div>
+            <div><label>Foundation Type</label><input type="text" id="sn_foundation_type" placeholder="e.g. RR"></div>
+          </div>
+          <div class="row2">
+            <div><label>Type of Roofing & Terracing</label><input type="text" id="sn_roof" placeholder="—"></div>
+            <div><label>Type of Masonry</label><input type="text" id="sn_walls" placeholder="e.g. Cement brick"></div>
+          </div>
+          <label>Structure Type with Flooring</label><input type="text" id="sn_flooring" placeholder="e.g. Vitrified tiles">
+          <div class="row2">
+            <div><label>Is Setback Provision Done?</label>
+              <select id="sn_setback"><option value="">Select…</option><option>Yes</option><option>No</option><option>Partial</option></select>
+            </div>
+            <div><label>Stage of Construction (%)</label><input type="number" id="sn_stage_pct" placeholder="100" min="0" max="100"></div>
+          </div>
+          <div class="row2">
+            <div><label>Quality of Construction</label>
+              <select id="sn_overall_cond"><option value="">Select…</option><option>Excellent</option><option>Good</option><option>Normal</option><option>Poor</option></select>
+            </div>
+            <div><label>Appearance & Maintenance</label>
+              <select id="sn_exterior_cond"><option value="">Select…</option><option>Excellent</option><option>Good</option><option>Normal</option><option>Poor</option></select>
+            </div>
+          </div>
+          <label>Demolition Risk (if any, with reasons)</label><input type="text" id="sn_demolition_risk" placeholder="e.g. Nil">
+          <label>In-house Amenities (if any)</label><input type="text" id="sn_amenities" placeholder="e.g. Nil / Lift, modular kitchen…">
+          <div class="row2">
+            <div><label>Area as per K-Smart (sqft)</label><input type="number" id="sn_area_ksmart" placeholder="—"></div>
+            <div><label>Sensitive / Concentrated Area?</label>
+              <select id="sn_sensitive_area"><option>NA</option><option>Yes</option><option>No</option></select>
+            </div>
+          </div>
+          <div class="row2">
+            <div><label>Proper Fencing Done?</label>
+              <select id="sn_fencing"><option value="">Select…</option><option>Yes</option><option>No</option></select>
+            </div>
+            <div><label>Locality & Marketability</label><input type="text" id="sn_marketability" placeholder="—"></div>
+          </div>
+          <label>Proximity to Civic Amenities <span style="font-weight:400;color:var(--muted);">(auto-filled from nearby search above — edit as needed)</span></label>
+          <textarea id="sn_surround_dev" placeholder="e.g. School — 1.1 km, Temple — 693 m…" style="min-height:50px;"></textarea>
+        </div>
+
         <div class="snh">7. General Remarks & Concerns</div>
         <textarea id="sn_remarks" placeholder="Any concerns, special features, encroachments, CRZ, flooding risk, demolition risk, conditions of approval…" style="min-height:90px;"></textarea>
 
@@ -758,6 +814,29 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
           <label>SRO</label><input type="text" id="r_sro" placeholder="Sub Registrar Office">
           <label>Description as per Deed</label><textarea id="r_deeddesc" style="min-height:60px;"></textarea>
         </div>
+        <div class="card" id="r_aucb_card" style="display:none;">
+          <div class="ctitle">🏦 AUCB Bank-Specific Details</div>
+          <label>Branch Name</label><input type="text" id="r_branch" placeholder="e.g. Alappuzha">
+          <label>Legal Address (as per Deed)</label><textarea id="r_legaladdr" style="min-height:50px;"></textarea>
+          <label>Approved Usage of Property</label><input type="text" id="r_approved_usage" placeholder="e.g. Residential">
+          <div class="snh" style="margin-top:14px;">Documents Provided (No. & Date)</div>
+          <div class="row2"><div><label>Title Deed No.</label><input type="text" id="r_td_no"></div><div><label>Title Deed Date</label><input type="date" id="r_td_date"></div></div>
+          <div class="row2"><div><label>Land Tax Receipt No.</label><input type="text" id="r_lt_no"></div><div><label>Land Tax Receipt Date</label><input type="date" id="r_lt_date"></div></div>
+          <div class="row2"><div><label>Possession Certificate No.</label><input type="text" id="r_pc_no"></div><div><label>Possession Certificate Date</label><input type="date" id="r_pc_date"></div></div>
+          <div class="row2"><div><label>Building Tax Receipt No.</label><input type="text" id="r_bt_no"></div><div><label>Building Tax Receipt Date</label><input type="date" id="r_bt_date"></div></div>
+          <div class="row2"><div><label>Location Sketch No.</label><input type="text" id="r_ls_no"></div><div><label>Location Sketch Date</label><input type="date" id="r_ls_date"></div></div>
+          <div class="snh" style="margin-top:14px;">Approval Details</div>
+          <div class="row2">
+            <div><label>Approved Plan Provided?</label><select id="r_planprovided"><option value="">Select…</option><option>Yes</option><option>No</option></select></div>
+            <div><label>Occupancy Certificate Available?</label><select id="r_occavailable"><option value="">Select…</option><option>Yes</option><option>No</option></select></div>
+          </div>
+          <label>Approved Plan Number & Date</label><input type="text" id="r_plannodate" placeholder="—">
+          <label>Occupancy Certificate Number & Date</label><input type="text" id="r_occnodate" placeholder="—">
+          <label>Approving Authority Name</label><input type="text" id="r_approvauth" placeholder="e.g. Alappuzha Municipality">
+          <label>Whether Layout Plan Approved</label><select id="r_layoutapproved"><option value="">Select…</option><option>Yes</option><option>No</option><option>NA</option></select>
+          <label>Land Classification</label><input type="text" id="r_landclass" placeholder="e.g. Dryland">
+        </div>
+
         <div class="card">
           <div class="ctitle">Valuation — Land <span class="req">*</span></div>
           <div class="row2">
@@ -766,6 +845,11 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
           </div>
           <label>Guideline Rate</label><input type="text" id="r_guideline" placeholder="e.g. Rs. 242880/are">
           <label>Market Rate Range</label><input type="text" id="r_mktrange" placeholder="e.g. Rs. 3-4 lakhs/cent">
+          <div id="r_aucb_landrate_wrap" style="display:none;">
+            <label>Land Rate — Prevailing Market (Rs./cent)</label>
+            <input type="number" id="r_landratemkt" placeholder="e.g. 350000">
+            <p class="hint">Shown separately from Adopted Rate above — this bank's format lists both the prevailing market rate and the rate considered for valuation.</p>
+          </div>
         </div>
         <div class="card" id="r_bldg_card">
           <div class="ctitle">Valuation — Building</div>
@@ -788,6 +872,11 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
           <div class="vrow"><span class="vlbl" id="r_fsvlbl">Forced Sale Value (75%)</span><span class="vval" id="r_fsv">—</span></div>
           <label style="margin-top:12px;">FSV %</label>
           <input type="number" id="r_fsvpct" value="75" min="1" max="100" oninput="calcRpt()">
+          <div id="r_aucb_realizable_wrap" style="display:none;margin-top:8px;">
+            <div class="vrow"><span class="vlbl">Realizable Value</span><span class="vval" id="r_realizableval">—</span></div>
+            <label style="margin-top:8px;">Realizable Value %</label>
+            <input type="number" id="r_realizablepct" value="85" min="1" max="100" oninput="calcRpt()">
+          </div>
         </div>
         <div class="card">
           <div class="ctitle">Remarks & Conditions</div>
@@ -796,6 +885,11 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
           <textarea id="r_conditions" placeholder="e.g. Subject to submission of approved plan…" style="min-height:50px;"></textarea>
           <label style="margin-top:12px;">Report Status</label>
           <select id="r_status"><option>Positive</option><option>Negative</option><option>Conditional Positive</option></select>
+          <div id="r_aucb_remarks_wrap" style="display:none;margin-top:12px;">
+            <label>AUCB Format — Property Description Paragraph</label>
+            <textarea id="r_aucbremarks" placeholder="Auto-generate below, then edit as needed…" style="min-height:100px;"></textarea>
+            <button class="btn bs" type="button" onclick="autoGenAUCBRemarks()" style="margin-top:8px;">✨ Auto-generate from Site Notes</button>
+          </div>
         </div>
         <div class="card">
           <div class="ctitle">Validation Check</div>
@@ -1639,6 +1733,11 @@ function afterLoad(){
 
 function trk(caseId){return TRACKING.find(t=>t.case_ref===caseId)||null;}
 
+function bankTemplateFor(bankName){
+  const b=BANKS.find(x=>x.name===bankName);
+  return b?b.template:'generic';
+}
+
 function populateBankDropdowns(){
   ['c_bank','d_bank'].forEach(id=>{
     const el=document.getElementById(id);
@@ -1994,6 +2093,7 @@ async function onVisitPick(){
   }
   setVisit(!!t?.visit_complete);
   snCaseId=id;
+  document.getElementById('sn_aucb_section').style.display=bankTemplateFor(c.bank_name)==='aucb'?'block':'none';
   // Load existing site notes
   let sn=null;
   try{
@@ -2108,23 +2208,28 @@ function clearReportForm(){
   const fields=['r_applicant','r_coapplicant','r_loanno','r_presentliab','r_prevliab',
     'r_inspdate','r_owner','r_owneraddr','r_ownerphone','r_deedno',
     'r_deeddate','r_sro','r_deeddesc','r_cents','r_landrate','r_guideline',
-    'r_mktrange','r_bua','r_constrate','r_dep','r_residual','r_remarks','r_conditions'];
+    'r_mktrange','r_bua','r_constrate','r_dep','r_residual','r_remarks','r_conditions',
+    'r_branch','r_legaladdr','r_approved_usage','r_td_no','r_td_date','r_lt_no','r_lt_date',
+    'r_pc_no','r_pc_date','r_bt_no','r_bt_date','r_ls_no','r_ls_date','r_plannodate',
+    'r_occnodate','r_approvauth','r_landclass','r_landratemkt','r_aucbremarks'];
   fields.forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.value='';
   });
   // Reset selects to first option
-  ['r_ownership','r_status'].forEach(id=>{
+  ['r_ownership','r_status','r_planprovided','r_occavailable','r_layoutapproved'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.selectedIndex=0;
   });
+  const realizPctEl=document.getElementById('r_realizablepct');
+  if(realizPctEl) realizPctEl.value='85';
   // Reset FSV
   const fsvEl=document.getElementById('r_fsvpct');
   if(fsvEl) fsvEl.value='75';
   // Reset report date
   document.getElementById('r_reportdate').value=new Date().toISOString().split('T')[0];
   // Reset valuation display
-  ['r_landval','r_bldggross','r_depamt','r_bldgnet','r_fmv','r_fsv'].forEach(id=>{
+  ['r_landval','r_bldggross','r_depamt','r_bldgnet','r_fmv','r_fsv','r_realizableval'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.textContent='—';
   });
@@ -2175,7 +2280,31 @@ function gSN(){
     res_rent:pf('sn_res_rent'),
     bedrooms:pf('sn_bedrooms'),
     comm_rent_sqft:pf('sn_comm_rent_sqft'),
-    comm_area:pf('sn_comm_area')
+    comm_area:pf('sn_comm_area'),
+    property_address:g('sn_property_addr'),
+    landmark:g('sn_landmark'),
+    house_board_name:g('sn_house_board'),
+    occupancy:g('sn_occupancy'),
+    actual_usage:g('sn_actual_usage'),
+    occupant_name:g('sn_occupant_name'),
+    tenant_details:g('sn_tenant_details'),
+    contact_person_site:g('sn_contact_person'),
+    structure_type:g('sn_structure_type'),
+    foundation_type:g('sn_foundation_type'),
+    roof:g('sn_roof'),
+    walls:g('sn_walls'),
+    flooring:g('sn_flooring'),
+    sb_front:g('sn_setback'),
+    construction_stage_pct:pf('sn_stage_pct'),
+    overall_cond:g('sn_overall_cond'),
+    exterior_cond:g('sn_exterior_cond'),
+    demolition_risk:g('sn_demolition_risk'),
+    amenities:g('sn_amenities'),
+    area_ksmart:pf('sn_area_ksmart'),
+    sensitive_area:g('sn_sensitive_area'),
+    fencing_done:g('sn_fencing'),
+    marketability:g('sn_marketability'),
+    surround_dev:g('sn_surround_dev')
   };
 }
 
@@ -2207,7 +2336,19 @@ function fillSN(d){
     sn_broker_name:'broker_name',sn_broker_phone:'broker_phone',
     sn_res_type:'res_type',sn_res_rent:'res_rent',
     sn_bedrooms:'bedrooms',
-    sn_comm_rent_sqft:'comm_rent_sqft',sn_comm_area:'comm_area'
+    sn_comm_rent_sqft:'comm_rent_sqft',sn_comm_area:'comm_area',
+    sn_property_addr:'property_address',sn_landmark:'landmark',
+    sn_house_board:'house_board_name',sn_occupancy:'occupancy',
+    sn_actual_usage:'actual_usage',sn_occupant_name:'occupant_name',
+    sn_tenant_details:'tenant_details',sn_contact_person:'contact_person_site',
+    sn_structure_type:'structure_type',sn_foundation_type:'foundation_type',
+    sn_roof:'roof',sn_walls:'walls',sn_flooring:'flooring',
+    sn_setback:'sb_front',sn_stage_pct:'construction_stage_pct',
+    sn_overall_cond:'overall_cond',sn_exterior_cond:'exterior_cond',
+    sn_demolition_risk:'demolition_risk',sn_amenities:'amenities',
+    sn_area_ksmart:'area_ksmart',sn_sensitive_area:'sensitive_area',
+    sn_fencing:'fencing_done',sn_marketability:'marketability',
+    sn_surround_dev:'surround_dev'
   };
   Object.entries(map).forEach(([elId,field])=>{
     const el=document.getElementById(elId);
@@ -2429,6 +2570,10 @@ async function fetchNearbyPOI(lat,lon){
     statusEl.textContent=(amenities.length||hazards.length)?'Found via OpenStreetMap (verify on site):':'No nearby amenities or hazards found in range — verify on site.';
     amenEl.innerHTML=amenities.map(i=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--ptint);font-size:12.5px;"><span>${i.category}${i.name?' — '+i.name:''}</span><span style="color:var(--muted);">${fmtDist(i.dist)}</span></div>`).join('');
     hazEl.innerHTML=hazards.length?('<p style="font-size:11px;font-weight:700;color:var(--red);margin:10px 0 4px;">⚠ NEGATIVE FACTORS</p>'+hazards.map(i=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--rbg);font-size:12.5px;color:var(--red);"><span>${i.category}${i.name?' — '+i.name:''}</span><span>${fmtDist(i.dist)}</span></div>`).join('')):'';
+    const surroundEl=document.getElementById('sn_surround_dev');
+    if(surroundEl&&!surroundEl.value&&amenities.length){
+      surroundEl.value=amenities.map(i=>`${i.category.replace(/^\S+\s/,'')}${i.name?' — '+i.name:''} (${fmtDist(i.dist)})`).join('; ');
+    }
   }catch(e){
     statusEl.textContent='Could not fetch nearby amenities (offline or Overpass unavailable) — note these manually below.';
   }
@@ -2605,6 +2750,12 @@ async function onReportPick(){
   sumEl.innerHTML=`<b>${c.bank_name}</b> · ${c.case_name||'—'}<br>
     ${t?.visit_complete?'<span style="color:var(--green)">✅ Visit complete</span>':'<span style="color:var(--amber)">⚠ Visit not yet marked complete</span>'}`;
   sumEl.style.display='block';
+  const isAUCB=bankTemplateFor(c.bank_name)==='aucb';
+  ['r_aucb_card','r_aucb_landrate_wrap','r_aucb_realizable_wrap','r_aucb_remarks_wrap'].forEach(cid=>{
+    const el=document.getElementById(cid);
+    if(el) el.style.display=isAUCB?'block':'none';
+  });
+  if(isAUCB&&!g('r_landclass')) document.getElementById('r_landclass').value='Dryland';
   // Pre-fill
   document.getElementById('r_loanno').value=c.application_id||'';
   document.getElementById('r_reportdate').value=new Date().toISOString().split('T')[0];
@@ -2736,7 +2887,18 @@ function fillDraft(d){
     r_cents:'land_cents',r_landrate:'land_rate',r_guideline:'guideline_rate',
     r_mktrange:'mkt_range',r_bua:'bua',r_constrate:'const_rate',
     r_dep:'dep_pct',r_fsvpct:'fsv_pct',r_residual:'residual_age',
-    r_remarks:'remarks',r_conditions:'report_conditions',r_status:'report_status'};
+    r_remarks:'remarks',r_conditions:'report_conditions',r_status:'report_status',
+    r_branch:'branch',r_legaladdr:'legal_address',r_approved_usage:'approved_usage',
+    r_td_no:'title_deed_no',r_td_date:'title_deed_date',
+    r_lt_no:'land_tax_no',r_lt_date:'land_tax_date',
+    r_pc_no:'possession_cert_no',r_pc_date:'possession_cert_date',
+    r_bt_no:'building_tax_no',r_bt_date:'building_tax_date',
+    r_ls_no:'location_sketch_no',r_ls_date:'location_sketch_date',
+    r_planprovided:'approved_plan_provided',r_plannodate:'approved_plan_no_date',
+    r_occavailable:'occupancy_cert_available',r_occnodate:'occupancy_cert_no_date',
+    r_approvauth:'approving_authority',r_layoutapproved:'layout_plan_approved',
+    r_landclass:'land_classification',r_landratemkt:'land_rate_market',
+    r_realizablepct:'realizable_pct',r_aucbremarks:'aucb_remarks'};
   Object.entries(map).forEach(([elId,field])=>{
     const el=document.getElementById(elId);
     if(el&&d[field]!=null) el.value=d[field];
@@ -2763,6 +2925,9 @@ function calcRpt(){
   document.getElementById('r_fmv').textContent=f(fmv);
   document.getElementById('r_fsv').textContent=f(fsv);
   document.getElementById('r_fsvlbl').textContent=`Forced Sale Value (${fsvP}%)`;
+  const realizP=pf('r_realizablepct')||85;
+  const realizEl=document.getElementById('r_realizableval');
+  if(realizEl) realizEl.textContent=f(fmv*(realizP/100));
   runValidation();
 }
 
@@ -2835,7 +3000,19 @@ async function submitReport(){
     bua:pf('r_bua'),const_rate:pf('r_constrate'),dep_pct:pf('r_dep'),
     fsv_pct:pf('r_fsvpct'),residual_age:pf('r_residual'),
     remarks:g('r_remarks'),report_conditions:g('r_conditions'),
-    report_status:g('r_status'),warnings_acknowledged:ackDone
+    report_status:g('r_status'),warnings_acknowledged:ackDone,
+    template:bankTemplateFor(c.bank_name),
+    branch:g('r_branch'),legal_address:g('r_legaladdr'),approved_usage:g('r_approved_usage'),
+    title_deed_no:g('r_td_no'),title_deed_date:g('r_td_date')||null,
+    land_tax_no:g('r_lt_no'),land_tax_date:g('r_lt_date')||null,
+    possession_cert_no:g('r_pc_no'),possession_cert_date:g('r_pc_date')||null,
+    building_tax_no:g('r_bt_no'),building_tax_date:g('r_bt_date')||null,
+    location_sketch_no:g('r_ls_no'),location_sketch_date:g('r_ls_date')||null,
+    approved_plan_provided:g('r_planprovided'),approved_plan_no_date:g('r_plannodate'),
+    occupancy_cert_available:g('r_occavailable'),occupancy_cert_no_date:g('r_occnodate'),
+    approving_authority:g('r_approvauth'),layout_plan_approved:g('r_layoutapproved'),
+    land_classification:g('r_landclass'),land_rate_market:pf('r_landratemkt'),
+    realizable_pct:pf('r_realizablepct'),aucb_remarks:g('r_aucbremarks')
   };
   try{
     const existing=await dbGetOne('report_drafts',{case_ref:rptCaseId});
@@ -2880,6 +3057,23 @@ async function submitReport(){
   }catch(e){toast('Error: '+e.message,'err');}
 }
 
+function autoGenAUCBRemarks(){
+  const sn=currentSN||{};
+  const bua=g('r_bua')||sn.bua_site||'—';
+  const cents=g('r_cents')||sn.land_cents||'';
+  const ares=cents?(parseFloat(cents)*0.4047).toFixed(3):'—';
+  const village=sn.id_village_site||'—';
+  const demarcation=sn.demarcation||'not clearly';
+  const roadWidth=sn.road_width||'—';
+  const shape=sn.shape||'regular';
+  const landClass=g('r_landclass')||sn.land_classification||'—';
+  const ksmart=sn.area_ksmart||bua;
+  const propType=(sn.prop_type||'residential').toLowerCase();
+  const text=`The Subject property consist of a ${propType} building of BUA ${bua} sqft (as per site measurement) in a land extend of ${ares} ares (${cents||'—'} cents) located at ${village} village, Alappuzha. Subject property was identified with client assistance and confirmed using boundary details which matches onsite. The subject property is demarcated ${demarcation}. The property can be accessed through ${roadWidth} wide road. The plot is having a ${shape} shape geometry. The level of property is normal. Land classification as per documents is "${landClass}". As per Government official website K-Smart the BUA is mentioned as ${ksmart} sqft which is inline with onsite measurement. Hence the same is considered for valuation.`;
+  document.getElementById('r_aucbremarks').value=text;
+  toast('Remarks generated — review and edit as needed','ok');
+}
+
 function genReport(fmt){
   if(curWarnings.length>0&&!ackDone){toast('Acknowledge warnings first','err');return;}
   if(!rptCaseId){toast('No case selected','err');return;}
@@ -2888,20 +3082,48 @@ function genReport(fmt){
   const bua=pf('r_bua')||0,cr=pf('r_constrate')||0;
   const dep=pf('r_dep')||0,fsvP=pf('r_fsvpct')||75;
   const lv=lc*lr,bg=bua*cr,da=bg*(dep/100),bn=bg-da,fmv=lv+bn,fsv=fmv*(fsvP/100);
+  const isAUCB=bankTemplateFor(c.bank_name)==='aucb';
+  const realizP=pf('r_realizablepct')||85;
   const d={
-    bank:c.bank_name,caseName:c.case_name,appId:c.application_id,
+    bank:c.bank_name,caseName:c.case_name,appId:c.application_id,customerPhone:c.client_phone,
     applicant:g('r_applicant'),coapplicant:g('r_coapplicant')||'NA',loanNo:g('r_loanno'),
     presentLiab:pf('r_presentliab'),prevLiab:pf('r_prevliab'),
     inspDate:g('r_inspdate'),reportDate:g('r_reportdate'),
     owner:g('r_owner'),ownerAddr:g('r_owneraddr'),ownerPhone:g('r_ownerphone'),
     ownership:g('r_ownership'),deedNo:g('r_deedno'),deedDate:g('r_deeddate'),
     sro:g('r_sro'),deedDesc:g('r_deeddesc'),
-    landCents:lc,landRate:lr,landVal:lv,
+    landCents:lc,landRate:lr,landVal:lv,landRateMarket:pf('r_landratemkt'),
     bua,constRate:cr,bldgGross:bg,dep,depAmt:da,bldgNet:bn,fmv,fsv,fsvP,
+    realizP,realizVal:fmv*(realizP/100),
     guideline:g('r_guideline'),mktRange:g('r_mktrange'),
     remarks:g('r_remarks'),conditions:g('r_conditions'),status:g('r_status'),
+    branch:g('r_branch'),legalAddr:g('r_legaladdr'),approvedUsage:g('r_approved_usage'),
+    tdNo:g('r_td_no'),tdDate:g('r_td_date'),ltNo:g('r_lt_no'),ltDate:g('r_lt_date'),
+    pcNo:g('r_pc_no'),pcDate:g('r_pc_date'),btNo:g('r_bt_no'),btDate:g('r_bt_date'),
+    lsNo:g('r_ls_no'),lsDate:g('r_ls_date'),
+    planProvided:g('r_planprovided'),planNoDate:g('r_plannodate'),
+    occAvailable:g('r_occavailable'),occNoDate:g('r_occnodate'),
+    approvAuth:g('r_approvauth'),layoutApproved:g('r_layoutapproved'),
+    landClass:g('r_landclass'),aucbRemarks:g('r_aucbremarks'),
+    residualAge:pf('r_residual'),
+    visitDate:trk(rptCaseId)?.visit_date||'',
     sn:currentSN||{}
   };
+  if(isAUCB){
+    if(fmt==='pdf'){
+      const fw=window.open('','_blank');
+      fw.document.write(buildAUCBHTML(d));
+      fw.document.close();
+    }else{
+      const blob=new Blob([buildAUCBWord(d)],{type:'application/msword'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;a.download=`AUCB_ValuationReport_${(d.applicant||'draft').replace(/\s+/g,'_')}_${d.reportDate||'draft'}.doc`;
+      a.click();URL.revokeObjectURL(url);
+      toast('Word document downloaded ✓','ok');
+    }
+    return;
+  }
   if(fmt==='pdf'){
     const fw=window.open('','_blank');
     fw.document.write(buildRptHTML(d));
@@ -3017,6 +3239,197 @@ function buildRptWord(d){
   <br><br><table style="border:none;"><tr style="border:none;">
   <td style="border:none;">Place: Alappuzha<br>Date: ${d.reportDate||'—'}</td>
   <td style="border:none;text-align:right;"><br><br>________________________<br>DC Valuation & Advisory<br>Dhanish Nair | IBBI/RV/04/2022/14602</td>
+  </tr></table></body></html>`;
+}
+
+function ynOrDash(v){return v||'—';}
+
+function aucbCivilAmenities(sn){
+  return sn.surround_dev||'Not recorded — verify on site.';
+}
+
+function buildAUCBHTML(d){
+  const sn=d.sn;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Valuation Report - AUCB</title>${rptStyles()}</head><body>
+  <div class="hdr" style="text-align:left;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;">
+    <div style="font-size:9.5pt;line-height:1.5;">Dhanish Nair<br>IBBI registered valuer<br>Chartered Engineer<br>Empaneled valuer for Alleppey Urban Co-operative Bank</div>
+    <div style="text-align:center;"><h2>Valuation Report</h2></div>
+    <div style="font-weight:bold;text-align:right;">${d.bank}</div>
+  </div>
+  <h3>1. Customer Details</h3>
+  <table>
+  <tr><td>Branch Name</td><td colspan="3">${ynOrDash(d.branch)}</td></tr>
+  <tr><td>Application Number</td><td>${ynOrDash(d.appId)}</td><td>Purpose of Valuation</td><td>To assess the present market value of the property.</td></tr>
+  <tr><td>Date of Site Visit</td><td>${ynOrDash(d.visitDate)}</td><td>Date of Report</td><td>${ynOrDash(d.reportDate)}</td></tr>
+  <tr><td>Name of Customer</td><td>${ynOrDash(d.applicant)}</td><td>Contact Number</td><td>${ynOrDash(d.customerPhone)}</td></tr>
+  </table>
+  <h3>2. Property Details</h3>
+  <table>
+  <tr><td>Property Address (with Pin Code)</td><td colspan="3">${ynOrDash(sn.property_address)}</td></tr>
+  <tr><td>Legal Address</td><td colspan="3">${ynOrDash(d.legalAddr)}</td></tr>
+  <tr><td>Landmark</td><td>${ynOrDash(sn.landmark)}</td><td>Owner Name</td><td>${ynOrDash(d.owner)}</td></tr>
+  <tr><td>Type of Property</td><td>${ynOrDash(sn.prop_type)}</td><td>Approved Usage</td><td>${ynOrDash(d.approvedUsage)}</td></tr>
+  <tr><td>Actual Use of Property</td><td>${ynOrDash(sn.actual_usage)}</td><td>Property Occupancy</td><td>${ynOrDash(sn.occupancy)}</td></tr>
+  <tr><td>Name of Person Occupying</td><td>${ynOrDash(sn.occupant_name)}</td><td>If Rented — Tenant & Rent</td><td>${ynOrDash(sn.tenant_details)}</td></tr>
+  <tr><td>Person Met at Site</td><td>${ynOrDash(sn.contact_person_site)}</td><td>House/Door/Society Board</td><td>${ynOrDash(sn.house_board_name)}</td></tr>
+  <tr><td>Proximity to Civic Amenities</td><td colspan="3">${aucbCivilAmenities(sn)}</td></tr>
+  </table>
+  <h3>3. Documents Provided for Valuation</h3>
+  <table><tr><th>Document</th><th>Doc No.</th><th>Dated on</th></tr>
+  <tr><td>Title Deed</td><td>${ynOrDash(d.tdNo)}</td><td>${ynOrDash(d.tdDate)}</td></tr>
+  <tr><td>Land Tax Receipt</td><td>${ynOrDash(d.ltNo)}</td><td>${ynOrDash(d.ltDate)}</td></tr>
+  <tr><td>Possession Certificate</td><td>${ynOrDash(d.pcNo)}</td><td>${ynOrDash(d.pcDate)}</td></tr>
+  <tr><td>Building Tax Receipt</td><td>${ynOrDash(d.btNo)}</td><td>${ynOrDash(d.btDate)}</td></tr>
+  <tr><td>Location Sketch</td><td>${ynOrDash(d.lsNo)}</td><td>${ynOrDash(d.lsDate)}</td></tr>
+  </table>
+  <h3>4. Land and Building Approval Details</h3>
+  <table>
+  <tr><td>Approved Plan Provided (Y/N)</td><td>${ynOrDash(d.planProvided)}</td><td>Approved Plan Number & Date</td><td>${ynOrDash(d.planNoDate)}</td></tr>
+  <tr><td>Occupancy Certificate Available (Y/N)</td><td>${ynOrDash(d.occAvailable)}</td><td>Occupancy Certificate Number & Date</td><td>${ynOrDash(d.occNoDate)}</td></tr>
+  <tr><td>Approving Authority Name</td><td>${ynOrDash(d.approvAuth)}</td><td>Layout Plan Approved</td><td>${ynOrDash(d.layoutApproved)}</td></tr>
+  <tr><td>Land Classification</td><td colspan="3">${ynOrDash(d.landClass)}</td></tr>
+  </table>
+  <h3>5. Boundaries</h3>
+  <table><tr><th>Source</th><th>North</th><th>South</th><th>East</th><th>West</th></tr>
+  <tr><td>As per Title Deed</td><td>${ynOrDash(sn.bnd_n_deed)}</td><td>${ynOrDash(sn.bnd_s_deed)}</td><td>${ynOrDash(sn.bnd_e_deed)}</td><td>${ynOrDash(sn.bnd_w_deed)}</td></tr>
+  <tr><td>As per Location Sketch</td><td>${ynOrDash(sn.bnd_n_sketch)}</td><td>${ynOrDash(sn.bnd_s_sketch)}</td><td>${ynOrDash(sn.bnd_e_sketch)}</td><td>${ynOrDash(sn.bnd_w_sketch)}</td></tr>
+  <tr><td>As per Site</td><td>${ynOrDash(sn.bnd_n_site)}</td><td>${ynOrDash(sn.bnd_s_site)}</td><td>${ynOrDash(sn.bnd_e_site)}</td><td>${ynOrDash(sn.bnd_w_site)}</td></tr>
+  </table>
+  <h3>6. Structural Details</h3>
+  <table>
+  <tr><td>Type of Structure</td><td>${ynOrDash(sn.structure_type)}</td><td>Foundation Type</td><td>${ynOrDash(sn.foundation_type)}</td></tr>
+  <tr><td>Type of Roofing & Terracing</td><td>${ynOrDash(sn.roof)}</td><td>Type of Masonry</td><td>${ynOrDash(sn.walls)}</td></tr>
+  <tr><td>Structure Type with Flooring</td><td>${ynOrDash(sn.flooring)}</td><td>No. of Floors</td><td>${ynOrDash(sn.floors)}</td></tr>
+  <tr><td>Is Setback Provision Done</td><td>${ynOrDash(sn.sb_front)}</td><td>Stage of Construction (%)</td><td>${ynOrDash(sn.construction_stage_pct)}</td></tr>
+  <tr><td>Age of Property (yrs)</td><td>${ynOrDash(sn.age)}</td><td>Estimated Future/Residual Life (yrs)</td><td>${ynOrDash(d.residualAge)}</td></tr>
+  <tr><td>Quality of Construction</td><td>${ynOrDash(sn.overall_cond)}</td><td>Appearance & Maintenance</td><td>${ynOrDash(sn.exterior_cond)}</td></tr>
+  <tr><td>Demolition Risk (if any)</td><td colspan="3">${ynOrDash(sn.demolition_risk)}</td></tr>
+  <tr><td>Amenities (if any)</td><td colspan="3">${ynOrDash(sn.amenities)}</td></tr>
+  </table>
+  <h3>7. Valuation Method</h3>
+  <table>
+  <tr><td>Valuation Method</td><td colspan="3">Land (Market approach)</td></tr>
+  <tr><td>Land Area (cents)</td><td>${d.landCents||'—'}</td><td>Land Rate — Prevailing Market</td><td>${d.landRateMarket?fmtR(d.landRateMarket)+'/cent':'—'}</td></tr>
+  <tr><td>Land Value Considered</td><td>${d.landRate?fmtR(d.landRate)+'/cent':'—'}</td><td>Total Land Value</td><td><b>${fmtR(d.landVal)}</b></td></tr>
+  <tr><td>Approved Built Up Area & Usage</td><td colspan="3">${sn.bua_doc?sn.bua_doc+' sqft — '+ynOrDash(d.approvedUsage):'—'}</td></tr>
+  <tr><td>Area as per Plan (sqft)</td><td>${ynOrDash(sn.bua_doc)}</td><td>Area as per Site Measurement (sqft)</td><td>${ynOrDash(sn.bua_site)}</td></tr>
+  <tr><td>Area as per K-Smart (sqft)</td><td>${ynOrDash(sn.area_ksmart)}</td><td>Area Considered for Valuation (sqft)</td><td>${d.bua||'—'}</td></tr>
+  <tr><td>Total Construction Cost</td><td colspan="3"><b>${fmtR(d.bldgGross)}</b> (${d.bua||0} sqft × Rs.${(d.constRate||0).toLocaleString('en-IN')}/sqft)</td></tr>
+  <tr><td>Building Value at Current Stage</td><td colspan="3"><b>${fmtR(d.bldgNet)}</b></td></tr>
+  <tr class="tot"><td>Market Value of Property</td><td colspan="3"><b>${fmtR(d.fmv)}</b> (Land ${fmtR(d.landVal)} + Building ${fmtR(d.bldgNet)})</td></tr>
+  <tr><td>Govt. Guideline Value</td><td colspan="3">${ynOrDash(d.guideline)}</td></tr>
+  <tr><td>Realizable Value (${d.realizP}%)</td><td>${fmtR(d.realizVal)}</td><td>Distress Value (${d.fsvP}%)</td><td>${fmtR(d.fsv)}</td></tr>
+  <tr><td>Sensitive / Concentrated Area</td><td>${ynOrDash(sn.sensitive_area)}</td><td>Longitude & Latitude</td><td>${sn.lat||'—'}, ${sn.lon||'—'}</td></tr>
+  <tr><td>Proper Fencing Done</td><td>${ynOrDash(sn.fencing_done)}</td><td>Width of Road</td><td>${ynOrDash(sn.road_width)}</td></tr>
+  </table>
+  <p><b>FMV in Words:</b> ${n2w(Math.round(d.fmv))} Rupees Only</p>
+  <h3>Remarks</h3>
+  <p style="line-height:1.6;">${d.aucbRemarks||d.remarks||'—'}</p>
+  ${d.conditions?`<p style="margin-top:6px;"><b>Conditions:</b> ${d.conditions}</p>`:''}
+  <h3>Market Analysis</h3>
+  <p>Locality & Marketability of the Property: ${ynOrDash(sn.marketability)}</p>
+  <h3>Declaration</h3>
+  <p style="font-size:9.5pt;line-height:1.5;">I hereby declare that:<br>
+  a) Mr. Dhanish Nair has personally inspected the property on ${ynOrDash(d.inspDate)}.<br>
+  b) The information furnished in my valuation report dated ${ynOrDash(d.reportDate)} is true and correct to the best of my knowledge and belief and I have made an impartial and true valuation of the property.<br>
+  c) I have no direct or indirect interest in the property valued.<br>
+  d) Legal documents/aspects fall beyond the scope of valuation.</p>
+  <div class="footer">
+    <div>Place: Alappuzha<br>Date: ${d.reportDate||'—'}</div>
+    <div style="text-align:right;"><br>________________________<br>Signature<br>DC Valuation & Advisory<br>Dhanish Nair | IBBI/RV/04/2022/14602</div>
+  </div>
+  <scr`+'ipt>window.onload=function(){window.print()}</scr'+'ipt></body></html>';
+}
+
+function buildAUCBWord(d){
+  const sn=d.sn;
+  return `<html><head><meta charset="utf-8"><style>body{font-family:Arial;font-size:11pt;}h1,h2{text-align:center;}h3{background:#DCDCDC;padding:4px 6px;}table{width:100%;border-collapse:collapse;margin:6pt 0;}th,td{border:1px solid #999;padding:4px 6px;font-size:10pt;}th{background:#DCDCDC;font-weight:bold;}.tot{background:#f0f0f0;font-weight:bold;}</style></head><body>
+  <table style="border:none;"><tr style="border:none;">
+  <td style="border:none;font-size:9pt;">Dhanish Nair<br>IBBI registered valuer<br>Chartered Engineer<br>Empaneled valuer for Alleppey Urban Co-operative Bank</td>
+  <td style="border:none;text-align:center;"><h2>Valuation Report</h2></td>
+  <td style="border:none;text-align:right;font-weight:bold;">${d.bank}</td>
+  </tr></table>
+  <h3>1. Customer Details</h3>
+  <table>
+  <tr><td>Branch Name</td><td colspan="3">${ynOrDash(d.branch)}</td></tr>
+  <tr><td>Application Number</td><td>${ynOrDash(d.appId)}</td><td>Purpose of Valuation</td><td>To assess the present market value of the property.</td></tr>
+  <tr><td>Date of Site Visit</td><td>${ynOrDash(d.visitDate)}</td><td>Date of Report</td><td>${ynOrDash(d.reportDate)}</td></tr>
+  <tr><td>Name of Customer</td><td>${ynOrDash(d.applicant)}</td><td>Contact Number</td><td>${ynOrDash(d.customerPhone)}</td></tr>
+  </table>
+  <h3>2. Property Details</h3>
+  <table>
+  <tr><td>Property Address (with Pin Code)</td><td colspan="3">${ynOrDash(sn.property_address)}</td></tr>
+  <tr><td>Legal Address</td><td colspan="3">${ynOrDash(d.legalAddr)}</td></tr>
+  <tr><td>Landmark</td><td>${ynOrDash(sn.landmark)}</td><td>Owner Name</td><td>${ynOrDash(d.owner)}</td></tr>
+  <tr><td>Type of Property</td><td>${ynOrDash(sn.prop_type)}</td><td>Approved Usage</td><td>${ynOrDash(d.approvedUsage)}</td></tr>
+  <tr><td>Actual Use of Property</td><td>${ynOrDash(sn.actual_usage)}</td><td>Property Occupancy</td><td>${ynOrDash(sn.occupancy)}</td></tr>
+  <tr><td>Name of Person Occupying</td><td>${ynOrDash(sn.occupant_name)}</td><td>If Rented — Tenant & Rent</td><td>${ynOrDash(sn.tenant_details)}</td></tr>
+  <tr><td>Person Met at Site</td><td>${ynOrDash(sn.contact_person_site)}</td><td>House/Door/Society Board</td><td>${ynOrDash(sn.house_board_name)}</td></tr>
+  <tr><td>Proximity to Civic Amenities</td><td colspan="3">${aucbCivilAmenities(sn)}</td></tr>
+  </table>
+  <h3>3. Documents Provided for Valuation</h3>
+  <table><tr><th>Document</th><th>Doc No.</th><th>Dated on</th></tr>
+  <tr><td>Title Deed</td><td>${ynOrDash(d.tdNo)}</td><td>${ynOrDash(d.tdDate)}</td></tr>
+  <tr><td>Land Tax Receipt</td><td>${ynOrDash(d.ltNo)}</td><td>${ynOrDash(d.ltDate)}</td></tr>
+  <tr><td>Possession Certificate</td><td>${ynOrDash(d.pcNo)}</td><td>${ynOrDash(d.pcDate)}</td></tr>
+  <tr><td>Building Tax Receipt</td><td>${ynOrDash(d.btNo)}</td><td>${ynOrDash(d.btDate)}</td></tr>
+  <tr><td>Location Sketch</td><td>${ynOrDash(d.lsNo)}</td><td>${ynOrDash(d.lsDate)}</td></tr>
+  </table>
+  <h3>4. Land and Building Approval Details</h3>
+  <table>
+  <tr><td>Approved Plan Provided (Y/N)</td><td>${ynOrDash(d.planProvided)}</td><td>Approved Plan Number & Date</td><td>${ynOrDash(d.planNoDate)}</td></tr>
+  <tr><td>Occupancy Certificate Available (Y/N)</td><td>${ynOrDash(d.occAvailable)}</td><td>Occupancy Certificate Number & Date</td><td>${ynOrDash(d.occNoDate)}</td></tr>
+  <tr><td>Approving Authority Name</td><td>${ynOrDash(d.approvAuth)}</td><td>Layout Plan Approved</td><td>${ynOrDash(d.layoutApproved)}</td></tr>
+  <tr><td>Land Classification</td><td colspan="3">${ynOrDash(d.landClass)}</td></tr>
+  </table>
+  <h3>5. Boundaries</h3>
+  <table><tr><th>Source</th><th>North</th><th>South</th><th>East</th><th>West</th></tr>
+  <tr><td>As per Title Deed</td><td>${ynOrDash(sn.bnd_n_deed)}</td><td>${ynOrDash(sn.bnd_s_deed)}</td><td>${ynOrDash(sn.bnd_e_deed)}</td><td>${ynOrDash(sn.bnd_w_deed)}</td></tr>
+  <tr><td>As per Location Sketch</td><td>${ynOrDash(sn.bnd_n_sketch)}</td><td>${ynOrDash(sn.bnd_s_sketch)}</td><td>${ynOrDash(sn.bnd_e_sketch)}</td><td>${ynOrDash(sn.bnd_w_sketch)}</td></tr>
+  <tr><td>As per Site</td><td>${ynOrDash(sn.bnd_n_site)}</td><td>${ynOrDash(sn.bnd_s_site)}</td><td>${ynOrDash(sn.bnd_e_site)}</td><td>${ynOrDash(sn.bnd_w_site)}</td></tr>
+  </table>
+  <h3>6. Structural Details</h3>
+  <table>
+  <tr><td>Type of Structure</td><td>${ynOrDash(sn.structure_type)}</td><td>Foundation Type</td><td>${ynOrDash(sn.foundation_type)}</td></tr>
+  <tr><td>Type of Roofing & Terracing</td><td>${ynOrDash(sn.roof)}</td><td>Type of Masonry</td><td>${ynOrDash(sn.walls)}</td></tr>
+  <tr><td>Structure Type with Flooring</td><td>${ynOrDash(sn.flooring)}</td><td>No. of Floors</td><td>${ynOrDash(sn.floors)}</td></tr>
+  <tr><td>Is Setback Provision Done</td><td>${ynOrDash(sn.sb_front)}</td><td>Stage of Construction (%)</td><td>${ynOrDash(sn.construction_stage_pct)}</td></tr>
+  <tr><td>Age of Property (yrs)</td><td>${ynOrDash(sn.age)}</td><td>Estimated Future/Residual Life (yrs)</td><td>${ynOrDash(d.residualAge)}</td></tr>
+  <tr><td>Quality of Construction</td><td>${ynOrDash(sn.overall_cond)}</td><td>Appearance & Maintenance</td><td>${ynOrDash(sn.exterior_cond)}</td></tr>
+  <tr><td>Demolition Risk (if any)</td><td colspan="3">${ynOrDash(sn.demolition_risk)}</td></tr>
+  <tr><td>Amenities (if any)</td><td colspan="3">${ynOrDash(sn.amenities)}</td></tr>
+  </table>
+  <h3>7. Valuation Method</h3>
+  <table>
+  <tr><td>Valuation Method</td><td colspan="3">Land (Market approach)</td></tr>
+  <tr><td>Land Area (cents)</td><td>${d.landCents||'—'}</td><td>Land Rate — Prevailing Market</td><td>${d.landRateMarket?fmtR(d.landRateMarket)+'/cent':'—'}</td></tr>
+  <tr><td>Land Value Considered</td><td>${d.landRate?fmtR(d.landRate)+'/cent':'—'}</td><td>Total Land Value</td><td><b>${fmtR(d.landVal)}</b></td></tr>
+  <tr><td>Approved Built Up Area & Usage</td><td colspan="3">${sn.bua_doc?sn.bua_doc+' sqft — '+ynOrDash(d.approvedUsage):'—'}</td></tr>
+  <tr><td>Area as per Plan (sqft)</td><td>${ynOrDash(sn.bua_doc)}</td><td>Area as per Site Measurement (sqft)</td><td>${ynOrDash(sn.bua_site)}</td></tr>
+  <tr><td>Area as per K-Smart (sqft)</td><td>${ynOrDash(sn.area_ksmart)}</td><td>Area Considered for Valuation (sqft)</td><td>${d.bua||'—'}</td></tr>
+  <tr><td>Total Construction Cost</td><td colspan="3"><b>${fmtR(d.bldgGross)}</b> (${d.bua||0} sqft × Rs.${(d.constRate||0).toLocaleString('en-IN')}/sqft)</td></tr>
+  <tr><td>Building Value at Current Stage</td><td colspan="3"><b>${fmtR(d.bldgNet)}</b></td></tr>
+  <tr class="tot"><td>Market Value of Property</td><td colspan="3"><b>${fmtR(d.fmv)}</b> (Land ${fmtR(d.landVal)} + Building ${fmtR(d.bldgNet)})</td></tr>
+  <tr><td>Govt. Guideline Value</td><td colspan="3">${ynOrDash(d.guideline)}</td></tr>
+  <tr><td>Realizable Value (${d.realizP}%)</td><td>${fmtR(d.realizVal)}</td><td>Distress Value (${d.fsvP}%)</td><td>${fmtR(d.fsv)}</td></tr>
+  <tr><td>Sensitive / Concentrated Area</td><td>${ynOrDash(sn.sensitive_area)}</td><td>Longitude & Latitude</td><td>${sn.lat||'—'}, ${sn.lon||'—'}</td></tr>
+  <tr><td>Proper Fencing Done</td><td>${ynOrDash(sn.fencing_done)}</td><td>Width of Road</td><td>${ynOrDash(sn.road_width)}</td></tr>
+  </table>
+  <p><b>FMV in Words:</b> ${n2w(Math.round(d.fmv))} Rupees Only</p>
+  <h3>Remarks</h3>
+  <p>${d.aucbRemarks||d.remarks||'—'}</p>
+  ${d.conditions?`<p><b>Conditions:</b> ${d.conditions}</p>`:''}
+  <h3>Market Analysis</h3>
+  <p>Locality & Marketability of the Property: ${ynOrDash(sn.marketability)}</p>
+  <h3>Declaration</h3>
+  <p style="font-size:9.5pt;">I hereby declare that:<br>
+  a) Mr. Dhanish Nair has personally inspected the property on ${ynOrDash(d.inspDate)}.<br>
+  b) The information furnished in my valuation report dated ${ynOrDash(d.reportDate)} is true and correct to the best of my knowledge and belief and I have made an impartial and true valuation of the property.<br>
+  c) I have no direct or indirect interest in the property valued.<br>
+  d) Legal documents/aspects fall beyond the scope of valuation.</p>
+  <br><br><table style="border:none;"><tr style="border:none;">
+  <td style="border:none;">Place: Alappuzha<br>Date: ${d.reportDate||'—'}</td>
+  <td style="border:none;text-align:right;"><br><br>________________________<br>Signature<br>DC Valuation & Advisory<br>Dhanish Nair | IBBI/RV/04/2022/14602</td>
   </tr></table></body></html>`;
 }
 
