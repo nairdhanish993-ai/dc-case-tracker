@@ -1490,6 +1490,15 @@ async function dbInsert(table, data) {
   return t ? JSON.parse(t) : null;
 }
 
+async function dbUpsert(table, data, conflictCol) {
+  const url = `${SB_URL}/rest/v1/${table}?on_conflict=${conflictCol}`;
+  const headers = {...HDR, 'Prefer':'resolution=merge-duplicates,return=representation'};
+  const r = await fetch(url, {method:'POST',headers,body:JSON.stringify(data)});
+  const t = await r.text();
+  if(!r.ok) throw new Error(t);
+  return t ? JSON.parse(t) : null;
+}
+
 async function dbUpdate(table, filters, data) {
   let url = `${SB_URL}/rest/v1/${table}?`;
   Object.entries(filters).forEach(([k,v],i) => url += (i?'&':'')+`${k}=eq.${encodeURIComponent(v)}`);
@@ -1964,13 +1973,14 @@ async function saveAssign(){
   const t=trk(id);
   try{
     const tData={
+      case_ref:id,case_id:c.id,
       engineer_name:eng||(t?.engineer_name||''),
       typist_name:typ||(t?.typist_name||''),
-      admin_note:g('asgn_note')||null
+      admin_note:g('asgn_note')||null,
+      visit_complete:t?.visit_complete||false,
+      report_complete:t?.report_complete||false
     };
-    if(t) await dbUpdate('tracking',{case_ref:id},tData);
-    else await dbInsert('tracking',{case_ref:id,case_id:c.id,...tData,
-      visit_complete:false,report_complete:false});
+    await dbUpsert('tracking',tData,'case_ref');
     await dbUpdate('cases',{case_id:id},{status:'assigned',priority:currentPriority});
     toast('Assignment saved ✓','ok');
     setPriority('normal');
@@ -2161,8 +2171,7 @@ async function saveVisit(){
       report_complete:t?.report_complete||false,
       delay_reason:g('v_delay_reason')||null
     };
-    if(t) await dbUpdate('tracking',{case_ref:id},payload);
-    else await dbInsert('tracking',payload);
+    await dbUpsert('tracking',payload,'case_ref');
     if(visitDone) await dbUpdate('cases',{case_id:id},{status:'visit_done'});
     if(visitDone){
       showSuccess('👍','Site Visit Complete!','Visit and site notes saved successfully. Great work, '+CU.name+'!');
@@ -2454,8 +2463,7 @@ async function saveSiteNotes(){
         submit_date:t?.submit_date||null,submit_time:t?.submit_time||null,
         report_complete:t?.report_complete||false
       };
-      if(t) await dbUpdate('tracking',{case_ref:snCaseId},vPayload);
-      else await dbInsert('tracking',vPayload);
+      await dbUpsert('tracking',vPayload,'case_ref');
       if(c.status!=='report_done') await dbUpdate('cases',{case_id:snCaseId},{status:'visit_done'});
       setVisit(true);
       t=vPayload;
@@ -3021,13 +3029,17 @@ async function submitReport(){
     if(reportDone){
       const t=trk(rptCaseId);
       const tPayload={
+        case_ref:rptCaseId,case_id:c.id,
+        engineer_name:t?.engineer_name||'',
+        typist_name:t?.typist_name||CU.name,
+        visit_complete:t?.visit_complete||false,
         submit_date:now.toISOString().split('T')[0],
         submit_time:now.toTimeString().slice(0,5),
         report_complete:true,
         report_completed_at:now.toISOString(),
         report_conditions:g('r_conditions')
       };
-      if(t) await dbUpdate('tracking',{case_ref:rptCaseId},tPayload);
+      await dbUpsert('tracking',tPayload,'case_ref');
       await dbUpdate('cases',{case_id:rptCaseId},{status:'report_done'});
       // Patch in-memory state immediately so the report rating card (and
       // anything else reading trk()) doesn't stay stale until the next reload.
@@ -4268,8 +4280,7 @@ async function saveSchedule(){
       submit_date: t?.submit_date||null,
       submit_time: t?.submit_time||null,
     };
-    if(t) await dbUpdate('tracking',{case_ref:id},payload);
-    else await dbInsert('tracking',payload);
+    await dbUpsert('tracking',payload,'case_ref');
     const statusEl = document.getElementById('v_sched_saved');
     statusEl.style.display='block';
     statusEl.textContent = '✅ Schedule saved — '+sd+' at '+st;
@@ -4583,24 +4594,17 @@ async function submitOfflineReport(){
     // Update tracking
     const t=trk(rptCaseId);
     const tPayload={
+      case_ref:rptCaseId,case_id:c.id,
+      typist_name:t?.typist_name||CU.name,
+      engineer_name:t?.engineer_name||'',
+      visit_complete:t?.visit_complete||false,
       submit_date:now.toISOString().split('T')[0],
       submit_time:now.toTimeString().slice(0,5),
       report_complete:true,
       report_completed_at:now.toISOString(),
       delay_reason:g('r_offline_delay')||null
     };
-    if(t){
-      await dbUpdate('tracking',{case_ref:rptCaseId},tPayload);
-    } else {
-      // Create tracking record if doesn't exist
-      await dbInsert('tracking',{
-        case_ref:rptCaseId,
-        case_id:c.id,
-        typist_name:CU.name,
-        engineer_name:'',
-        ...tPayload
-      });
-    }
+    await dbUpsert('tracking',tPayload,'case_ref');
     await dbUpdate('cases',{case_id:rptCaseId},{status:'report_done'});
     showSuccess('👍','Report Complete!','Offline report marked complete. Great work, '+CU.name+'!');
     loadData();
@@ -4963,10 +4967,11 @@ async function saveExtAssign(){
     const trackPayload={
       case_ref:caseRef,case_id:c.id,
       engineer_name:'[External] '+valuer.name,
-      typist_name:t?.typist_name||''
+      typist_name:t?.typist_name||'',
+      visit_complete:t?.visit_complete||false,
+      report_complete:t?.report_complete||false
     };
-    if(t) await dbUpdate('tracking',{case_ref:caseRef},trackPayload);
-    else await dbInsert('tracking',{...trackPayload,visit_complete:false,report_complete:false});
+    await dbUpsert('tracking',trackPayload,'case_ref');
     if(c.status==='received') await dbUpdate('cases',{case_id:caseRef},{status:'assigned'});
     toast('External assignment saved ✓','ok');
     document.getElementById('ea_case').value='';
@@ -5026,8 +5031,7 @@ async function markExtVisitComplete(){
       submit_date:t?.submit_date||null,submit_time:t?.submit_time||null,
       report_complete:t?.report_complete||false
     };
-    if(t) await dbUpdate('tracking',{case_ref:id},payload);
-    else await dbInsert('tracking',payload);
+    await dbUpsert('tracking',payload,'case_ref');
     if(c.status!=='report_done') await dbUpdate('cases',{case_id:id},{status:'visit_done'});
     showSuccess('✅','Visit Marked Complete!',existing.valuer_name+'\'s site visit is logged. Assign an internal typist next — the report they submit is what closes TAT.');
     loadData();
