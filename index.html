@@ -257,6 +257,7 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
 <div id="app">
   <div class="hdr">
     <div class="hdr-top">
+      <button id="backBtn" onclick="goBack()" style="display:none;width:34px;height:34px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.5);background:rgba(255,255,255,0.1);color:white;font-size:18px;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-right:4px;">←</button>
       <svg width="40" height="40" viewBox="0 0 100 100" fill="none">
         <path d="M 75.1 28.2 A 38 38 0 1 0 75.1 71.8" stroke="white" stroke-width="5" stroke-linecap="round" fill="none"/>
         <circle cx="81.3" cy="42.75" r="4.5" fill="white"/>
@@ -334,6 +335,10 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
     <div class="dpill">Assign Cases</div>
     <div class="card">
       <div class="ctitle">Select Case to Assign / Reassign</div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:500;color:var(--muted);cursor:pointer;margin-bottom:8px;">
+        <input type="checkbox" id="asgn_showall" onchange="populateAssignPicker()" style="width:auto;margin:0;">
+        Show all cases (including already assigned)
+      </label>
       <select id="asgn_case" onchange="onAssignPick()"><option value="">Select case…</option></select>
       <div id="asgn_summary" style="display:none;background:var(--ptint);border-radius:10px;padding:12px;margin-top:10px;font-size:13px;"></div>
     </div>
@@ -1187,6 +1192,11 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
     <!-- PAYOUTS -->
     <div id="ext-payouts">
       <div class="card">
+        <div class="ctitle">📅 Month-on-Month Payments</div>
+        <p class="hint" style="margin-bottom:10px;">Paid amounts grouped by the month they were paid; pending amounts grouped by the month they're due. Use the Valuer filter below to see one valuer's history.</p>
+        <div id="po_monthly"></div>
+      </div>
+      <div class="card">
         <div class="ctitle">Commission Payable</div>
         <div class="row2">
           <div><label>Valuer</label><select id="po_valuer" onchange="renderPayouts()"><option value="">All Valuers</option></select></div>
@@ -1591,6 +1601,8 @@ async function plogin() {
 
 function logout(){
   CU=null;
+  navStack=[];
+  currentTabId=null;
   document.getElementById('li_username').value='';
   document.getElementById('li_pin').value='';
   document.getElementById('loginScreen').style.display='flex';
@@ -1649,9 +1661,30 @@ function buildNav(){
 const PIN_LOCKED_TABS=['revenue','ext'];
 let pendingGateTab=null;
 
+let navStack=[];
+let currentTabId=null;
+let pendingGateIsBack=false;
+
 function goTab(id){
+  _requestTab(id,false);
+}
+
+function goBack(){
+  if(!navStack.length) return;
+  const prev=navStack.pop();
+  updateBackBtn();
+  _requestTab(prev,true);
+}
+
+function updateBackBtn(){
+  const b=document.getElementById('backBtn');
+  if(b) b.style.display=navStack.length?'flex':'none';
+}
+
+function _requestTab(id,isBack){
   if(PIN_LOCKED_TABS.includes(id)){
     pendingGateTab=id;
+    pendingGateIsBack=isBack;
     document.getElementById('pg_pin').value='';
     document.getElementById('pg_err').textContent='';
     document.getElementById('pg_hint').textContent=(CU&&CU.finance_pin)
@@ -1661,10 +1694,15 @@ function goTab(id){
     setTimeout(()=>document.getElementById('pg_pin').focus(),100);
     return;
   }
-  _goTabReal(id);
+  _goTabReal(id,isBack);
 }
 
-function _goTabReal(id){
+function _goTabReal(id,isBack){
+  if(!isBack&&currentTabId&&currentTabId!==id){
+    navStack.push(currentTabId);
+  }
+  currentTabId=id;
+  updateBackBtn();
   document.querySelectorAll('.ntab').forEach(b=>b.classList.toggle('on',b.dataset.tab===id));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   const pg=document.getElementById('pg-'+id);
@@ -1685,8 +1723,10 @@ function submitPinGate(){
   if(required&&val===required){
     document.getElementById('pinGateOverlay').style.display='none';
     const t=pendingGateTab;
+    const wasBack=pendingGateIsBack;
     pendingGateTab=null;
-    _goTabReal(t);
+    pendingGateIsBack=false;
+    _goTabReal(t,wasBack);
   } else {
     document.getElementById('pg_err').textContent='Incorrect PIN. Try again.';
     document.getElementById('pg_pin').value='';
@@ -1697,7 +1737,8 @@ function submitPinGate(){
 function cancelPinGate(){
   document.getElementById('pinGateOverlay').style.display='none';
   pendingGateTab=null;
-  if(!document.querySelector('.ntab.on')) _goTabReal('dash');
+  pendingGateIsBack=false;
+  if(!document.querySelector('.ntab.on')) _goTabReal('dash',false);
 }
 
 // ═══════════════════════════════════════════
@@ -1916,8 +1957,14 @@ function populateAssignPicker(){
   const el=document.getElementById('asgn_case');
   if(!el) return;
   const v=el.value;
+  const showAll=document.getElementById('asgn_showall')?.checked;
+  const list=showAll?CASES:CASES.filter(c=>{
+    const t=trk(c.case_id);
+    const extAssigned=EXTA.some(a=>a.case_ref===c.case_id);
+    return (!t||(!t.engineer_name&&!t.typist_name))&&!extAssigned;
+  });
   el.innerHTML='<option value="">Select case…</option>'+
-    CASES.map(c=>{
+    list.map(c=>{
       const s=caseStatus(c);
       const ic=s==='report_done'?'✅':s==='visit_done'?'🔄':s==='assigned'?'🚗':'⏳';
       return `<option value="${c.case_id}">${c.bank_name} – ${c.case_name||'Unnamed'} (${c.received_date}) ${ic}</option>`;
@@ -5058,6 +5105,7 @@ function renderExtRecent(){
 }
 
 function renderPayouts(){
+  renderMonthlySummary();
   const valuerFilter=g('po_valuer');
   const statusFilter=g('po_status');
   const monthFilter=g('po_month');
@@ -5087,9 +5135,10 @@ function renderPayouts(){
   const today=new Date().toISOString().slice(0,10);
   el.innerHTML=list.map(a=>{
     const overdue=a.status==='pending'&&a.due_date<today;
+    const cs=CASES.find(x=>x.case_id===a.case_ref);
     return `<tr>
       <td style="font-weight:600;">${a.valuer_name}</td>
-      <td>${a.case_ref}</td>
+      <td>${cs?.case_name||'Unnamed'}<br><span style="color:var(--muted);font-size:10px;">${a.case_ref}</span></td>
       <td>${a.bank_name||'—'}</td>
       <td>${fmtR(a.case_fee)}</td>
       <td style="font-weight:600;color:var(--p);">${fmtR(a.commission_amount)}</td>
@@ -5101,6 +5150,38 @@ function renderPayouts(){
         <button class="btn bd" style="padding:6px 8px;font-size:11px;" onclick="askDeleteExtAssign('${a.id}','${a.case_ref}','${a.valuer_name.replace(/'/g,'')}')">Delete</button>
       </td>
     </tr>`;
+  }).join('');
+}
+
+function renderMonthlySummary(){
+  const el=document.getElementById('po_monthly');
+  if(!el) return;
+  const valuerFilter=g('po_valuer');
+  const rows=EXTA.filter(a=>!valuerFilter||a.valuer_id===valuerFilter);
+  const byMonth={};
+  rows.forEach(a=>{
+    if(a.status==='paid'&&a.paid_date){
+      const m=a.paid_date.slice(0,7);
+      byMonth[m]=byMonth[m]||{paid:0,pending:0};
+      byMonth[m].paid+=Number(a.commission_amount||0);
+    } else if(a.due_date){
+      const m=a.due_date.slice(0,7);
+      byMonth[m]=byMonth[m]||{paid:0,pending:0};
+      if(a.status==='pending') byMonth[m].pending+=Number(a.commission_amount||0);
+    }
+  });
+  const months=Object.keys(byMonth).sort().reverse();
+  if(!months.length){el.innerHTML='<div class="empty">No commission data yet</div>';return;}
+  el.innerHTML=months.map(m=>{
+    const d=byMonth[m];
+    const label=new Date(m+'-01').toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--ptint);font-size:13px;">
+      <b>${label}</b>
+      <span style="display:flex;gap:14px;">
+        ${d.paid?`<span style="color:var(--green);font-weight:600;">Paid ${fmtR(d.paid)}</span>`:''}
+        ${d.pending?`<span style="color:#92600A;font-weight:600;">Pending ${fmtR(d.pending)}</span>`:''}
+      </span>
+    </div>`;
   }).join('');
 }
 
