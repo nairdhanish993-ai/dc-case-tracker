@@ -330,6 +330,17 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
     </div>
   </div>
 
+  <!-- TAB: Incoming (Admin) - cases parsed from initiation emails, waiting for approval -->
+  <div class="page" id="pg-inbox">
+    <div class="dpill">Incoming from Email</div>
+    <div class="card">
+      <div class="ctitle">Waiting for approval</div>
+      <div id="inboxSummary" style="font-size:12.5px;color:var(--muted);margin-bottom:10px;"></div>
+      <button class="btn bg" id="inboxApproveAllBtn" onclick="askApproveAllClean()" style="display:none;margin-bottom:12px;">✓ Approve all clean cases</button>
+      <div id="inboxList"><div class="lspin">Loading…</div></div>
+    </div>
+  </div>
+
   <!-- TAB: Assign (Admin) -->
   <div class="page" id="pg-assign">
     <div class="dpill">Assign Cases</div>
@@ -1620,6 +1631,10 @@ function initApp(){
   loadData();
   initCaseForm();
   initWorkTab();
+  if(CU.role==='admin'){
+    loadInbox();
+    if(!window._inboxTimer) window._inboxTimer=setInterval(()=>{ if(CU&&CU.role==='admin') loadInbox(true); },60000);
+  }
   // Hide admin-only dashboard elements for non-admin
   if(CU.role!=='admin'){
     const af=document.getElementById('adminDashFilters');
@@ -1644,6 +1659,7 @@ function buildNav(){
   // dashboard, everyone else gets a focused personal "My Day" view.
   if(CU.role==='admin') tabs.push({id:'dash',label:'📊 Dashboard'});
   else tabs.push({id:'mydash',label:'🏠 My Day'});
+  if(CU.role==='admin') tabs.push({id:'inbox',label:'📥 Incoming<span id="inboxBadge"></span>'});
   if(CU.can_add_cases||CU.role==='admin') tabs.push({id:'cases',label:'📋 Cases'});
   if(CU.role==='admin'||CU.name==='Sreenath') tabs.push({id:'assign',label:'👥 Assign'});
   if(CU.role==='admin') tabs.push({id:'ext',label:'🤝 External'});
@@ -1712,6 +1728,7 @@ function _goTabReal(id,isBack){
   if(id==='lr') renderLR();
   if(id==='admin') renderAdmin();
   if(id==='assign') renderAssign();
+  if(id==='inbox') loadInbox();
   if(id==='ext') renderExt();
   if(id==='revenue') renderRevenue();
   if(id==='myfees') renderMyFees();
@@ -1773,6 +1790,7 @@ function afterLoad(){
   populateAssignPicker();
   renderAssign();
   populateExtPickers();
+  if(document.getElementById('pg-inbox').classList.contains('on')&&!inboxWorking.size&&!inboxEditing()) renderInbox();
   if(document.getElementById('pg-dash').classList.contains('on')) renderDash();
   if(document.getElementById('pg-mydash').classList.contains('on')) renderMyDash();
   if(document.getElementById('pg-lr').classList.contains('on')) renderLR();
@@ -2050,6 +2068,229 @@ function renderAssign(){
     <span class="badge b-received">Unassigned</span></div>
     <div class="cc-meta">${c.received_date} · ${c.application_id||'—'}</div>
   </div>`).join('');
+}
+
+// ═══════════════════════════════════════════
+// INCOMING — cases parsed from initiation emails, waiting for admin approval
+// ═══════════════════════════════════════════
+let INBOX=[];
+const inboxWorking=new Set();
+
+// Text in these rows comes from outside emails, so it is always escaped before it goes into HTML.
+function ix(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function inboxEditing(){
+  const a=document.activeElement;
+  return !!(a&&a.closest&&a.closest('#inboxList'));
+}
+
+async function loadInbox(quiet){
+  try{
+    const rows=await dbGet('case_inbox',{status:'pending'});
+    rows.sort((a,b)=>new Date(a.received_at)-new Date(b.received_at));
+    INBOX=rows;
+    updateInboxBadge();
+    const pg=document.getElementById('pg-inbox');
+    if(pg&&pg.classList.contains('on')&&!inboxWorking.size&&!inboxEditing()) renderInbox();
+  }catch(e){
+    if(!quiet) toast('Could not load incoming cases: '+e.message,'err');
+  }
+}
+
+function updateInboxBadge(){
+  const b=document.getElementById('inboxBadge');
+  if(!b) return;
+  b.innerHTML=INBOX.length?` <span style="background:var(--red);color:#fff;border-radius:99px;padding:1px 7px;font-size:10px;margin-left:3px;">${INBOX.length}</span>`:'';
+}
+
+function inboxDateParts(iso){
+  const d=new Date(iso);
+  return {
+    date:d.toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'}),
+    time:d.toLocaleTimeString('en-GB',{timeZone:'Asia/Kolkata',hourCycle:'h23'}).slice(0,8)
+  };
+}
+
+function inboxResolveAssignee(it){
+  if(!it.suggested_assignee||!it.suggested_type) return null;
+  if(it.suggested_type==='internal'){
+    const u=USERS.find(x=>x.name===it.suggested_assignee&&x.can_visit);
+    return u?{type:'internal',name:u.name}:null;
+  }
+  const v=EXTV.find(x=>x.name===it.suggested_assignee);
+  return v?{type:'external',name:v.name}:null;
+}
+
+function inboxIsClean(it){
+  return it.kind==='new'&&!it.needs_review&&!!it.property_location&&!!it.application_id&&!!inboxResolveAssignee(it);
+}
+
+function inboxAssigneeOptions(sel){
+  const engs=USERS.filter(u=>u.can_visit&&u.active);
+  let o='<option value="">— Not assigned yet —</option>';
+  if(engs.length) o+='<optgroup label="Internal">'+engs.map(u=>`<option value="internal|${ix(u.name)}"${sel&&sel.type==='internal'&&sel.name===u.name?' selected':''}>${ix(u.name)}</option>`).join('')+'</optgroup>';
+  if(EXTV.length) o+='<optgroup label="External">'+EXTV.map(x=>`<option value="external|${ix(x.name)}"${sel&&sel.type==='external'&&sel.name===x.name?' selected':''}>${ix(x.name)} (External)</option>`).join('')+'</optgroup>';
+  return o;
+}
+
+function inboxCard(it){
+  const when=new Date(it.received_at).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  const sel=inboxResolveAssignee(it);
+  const flag=it.needs_review?`<div style="background:var(--abg);border-radius:8px;padding:8px 10px;font-size:12px;margin:8px 0;">⚠ ${ix(it.review_reason||'Please check this case')}</div>`:'';
+  const notes=it.notes?`<div class="cc-meta" style="margin-top:4px;">${ix(it.notes)}</div>`:'';
+  const files=(it.attachment_names&&it.attachment_names.length)?`<div class="cc-meta" style="margin-top:4px;">📎 ${it.attachment_names.map(ix).join(' · ')}</div>`:'';
+  const sug=it.suggested_assignee?`<div class="cc-meta" style="margin-top:4px;">Suggested: <b>${ix(it.suggested_assignee)}</b>${it.suggested_reason?' — '+ix(it.suggested_reason):''}</div>`:'';
+  const fld=(k,label,val)=>`<label style="margin-top:8px;">${label}</label><input type="text" id="ib_${k}_${it.id}" value="${ix(val)}">`;
+  return `<div class="cc s-received" id="ibc_${it.id}">
+    <div class="cc-top"><div><div class="cc-bank">${ix(it.bank_name||'—')}${it.branch?' · '+ix(it.branch):''}</div><div class="cc-name">${ix(it.case_name||'Unnamed')}</div></div>
+    <span class="badge b-received">${ix(it.application_id||'no id')}</span></div>
+    <div class="cc-meta">Received ${ix(when)} · ${ix(it.sender||'')}</div>
+    ${flag}${notes}${files}
+    ${fld('loc','Property location',it.property_location)}
+    ${fld('phone','Client phone',it.client_phone)}
+    ${fld('prod','Loan product',it.loan_product)}
+    <label style="margin-top:8px;">Assign to</label>
+    <select id="ib_asg_${it.id}">${inboxAssigneeOptions(sel)}</select>
+    ${sug}
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-top:12px;">
+      <button class="btn bp" style="margin-top:0;padding:12px;" onclick="approveInbox('${it.id}')">Approve &amp; create</button>
+      <button class="btn bs" style="margin-top:0;padding:12px;" onclick="askRejectInbox('${it.id}')">Reject</button>
+    </div>
+  </div>`;
+}
+
+function renderInbox(){
+  const el=document.getElementById('inboxList');
+  if(!el) return;
+  const sum=document.getElementById('inboxSummary');
+  const btn=document.getElementById('inboxApproveAllBtn');
+  if(!INBOX.length){
+    el.innerHTML='<div class="empty">No new cases waiting ✓</div>';
+    sum.textContent='';
+    btn.style.display='none';
+    return;
+  }
+  const clean=INBOX.filter(inboxIsClean).length;
+  sum.textContent=`${INBOX.length} waiting · ${clean} ready to approve · ${INBOX.length-clean} need a look`;
+  btn.style.display=clean?'flex':'none';
+  btn.textContent=`✓ Approve ${clean} clean case${clean===1?'':'s'}`;
+  el.innerHTML=INBOX.map(inboxCard).join('');
+}
+
+// Creates the real case (and assignment) from one staged row. Returns {ok, msg}.
+async function approveInbox(id,batch){
+  const it=INBOX.find(x=>x.id===id);
+  if(!it) return {ok:false,msg:'Case not found'};
+  if(inboxWorking.has(id)) return {ok:false,msg:'Already working on this case'};
+  const val=k=>{const e=document.getElementById(`ib_${k}_${id}`);return e?e.value.trim():'';};
+  const loc=val('loc'),phone=val('phone'),prod=val('prod');
+  const asg=(document.getElementById('ib_asg_'+id)||{}).value||'';
+  const fail=msg=>{ if(!batch) toast(msg,'err'); return {ok:false,msg}; };
+  if(!loc) return fail('Add the property location first');
+  if(!it.application_id) return fail('This mail has no application ID — add it in the Cases tab instead');
+  const bank=BANKS.find(b=>b.name.trim().toLowerCase()===(it.bank_name||'').trim().toLowerCase());
+  if(!bank) return fail(`Bank "${it.bank_name}" is not in your bank list`);
+  inboxWorking.add(id);
+  try{
+    const dup=CASES.find(c=>c.application_id===it.application_id&&c.bank_name===bank.name);
+    if(dup){
+      await dbUpdate('case_inbox',{id},{status:'duplicate',linked_case_ref:dup.case_id,decided_by:CU.name,decided_at:new Date().toISOString()});
+      INBOX=INBOX.filter(x=>x.id!==id);
+      updateInboxBadge();
+      if(!batch){renderInbox();toast(`Already in tracker as ${dup.case_id} — removed from Incoming`,'ok');}
+      return {ok:false,msg:'duplicate',dup:true};
+    }
+    const [asgType,asgName]=asg?asg.split('|'):['',''];
+    const dp=inboxDateParts(it.received_at);
+    const caseRef=genId();
+    const note=[it.notes,'Source: email from '+(it.sender||'unknown')].filter(Boolean).join(' | ');
+    const rows=await dbInsert('cases',{
+      case_id:caseRef,staff_name:CU.name,status:asg?'assigned':'received',
+      received_date:dp.date,received_time:dp.time,
+      bank_id:bank.id,bank_name:bank.name,loan_product:prod||null,
+      case_name:it.case_name,application_id:it.application_id,
+      property_location:loc,client_phone:phone||null,notes:note
+    });
+    const row=rows&&rows[0];
+    let assignFailed=false;
+    if(asg&&row){
+      try{
+        await dbUpsert('tracking',{
+          case_ref:caseRef,case_id:row.id,
+          engineer_name:asgType==='external'?'[External] '+asgName:asgName,
+          typist_name:'',visit_complete:false,report_complete:false
+        },'case_ref');
+      }catch(e){assignFailed=true;}
+    }
+    await dbUpdate('case_inbox',{id},{
+      status:'approved',linked_case_ref:caseRef,decided_by:CU.name,decided_at:new Date().toISOString(),
+      property_location:loc,client_phone:phone||null,loan_product:prod||null
+    });
+    INBOX=INBOX.filter(x=>x.id!==id);
+    updateInboxBadge();
+    if(!batch){
+      await loadData();
+      renderInbox();
+      if(assignFailed) toast('Case created, but the assignment failed — assign it in the Assign tab','err');
+      else if(asgType==='external') toast(`Case created and given to ${asgName} — add the fee in the External tab`,'ok');
+      else toast(asg?`Case created and assigned to ${asgName} ✓`:'Case created ✓ (not assigned yet)','ok');
+    }
+    return {ok:true,external:asgType==='external',assignFailed};
+  }catch(e){
+    return fail('Error: '+e.message);
+  }finally{
+    inboxWorking.delete(id);
+  }
+}
+
+function askRejectInbox(id){
+  const it=INBOX.find(x=>x.id===id);
+  if(!it) return;
+  document.getElementById('modal_title').textContent='Reject this mail?';
+  document.getElementById('modal_msg').textContent=`${it.case_name||'This case'} (${it.application_id||'no id'}) will be removed from Incoming. No case is created.`;
+  document.getElementById('modal_ok').onclick=()=>doRejectInbox(id);
+  document.getElementById('modal').classList.add('open');
+}
+
+async function doRejectInbox(id){
+  closeModal();
+  try{
+    await dbUpdate('case_inbox',{id},{status:'rejected',decided_by:CU.name,decided_at:new Date().toISOString()});
+    INBOX=INBOX.filter(x=>x.id!==id);
+    updateInboxBadge();
+    renderInbox();
+    toast('Removed from Incoming','ok');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+function askApproveAllClean(){
+  const n=INBOX.filter(inboxIsClean).length;
+  if(!n) return;
+  document.getElementById('modal_title').textContent=`Approve ${n} case${n===1?'':'s'}?`;
+  document.getElementById('modal_msg').textContent='Each one is created and assigned exactly as shown on its card. Cases marked ⚠ are left for you to check.';
+  document.getElementById('modal_ok').onclick=doApproveAllClean;
+  document.getElementById('modal').classList.add('open');
+}
+
+async function doApproveAllClean(){
+  closeModal();
+  const ids=INBOX.filter(inboxIsClean).map(x=>x.id);
+  let done=0,dups=0,failed=0,ext=0;
+  for(const id of ids){
+    const r=await approveInbox(id,true);
+    if(r.ok){done++;if(r.external)ext++;}
+    else if(r.dup)dups++;
+    else failed++;
+  }
+  await loadData();
+  renderInbox();
+  let msg=`${done} case${done===1?'':'s'} created`;
+  if(ext) msg+=` (${ext} external — add fees in External tab)`;
+  if(dups) msg+=` · ${dups} already in tracker`;
+  if(failed) msg+=` · ${failed} could not be created`;
+  toast(msg,failed?'err':'ok');
 }
 
 // ═══════════════════════════════════════════
