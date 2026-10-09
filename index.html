@@ -2209,6 +2209,7 @@ async function approveInbox(id,batch){
     const rows=await dbInsert('cases',{
       case_id:caseRef,staff_name:CU.name,status:asg?'assigned':'received',
       received_date:dp.date,received_time:dp.time,
+      initiated_at:it.received_at||null,gmail_thread_id:it.gmail_thread_id||null,
       bank_id:bank.id,bank_name:bank.name,loan_product:prod||null,
       case_name:it.case_name,application_id:it.application_id,
       property_location:loc,client_phone:phone||null,notes:note
@@ -3762,7 +3763,8 @@ function applyPeriod(cases){
 
 function calcTAT(c,t){
   if(!t?.report_complete||!t?.submit_date||!t?.submit_time) return null;
-  const recv=new Date(c.received_date+'T'+(c.received_time||'09:00'));
+  // Initiation time from the mail when known; otherwise the time the case was keyed in.
+  const recv=c.initiated_at?new Date(c.initiated_at):new Date(c.received_date+'T'+(c.received_time||'09:00'));
   const sub=new Date(t.submit_date+'T'+t.submit_time);
   const h=(sub-recv)/3600000;
   return isNaN(h)||h<0?null:h;
@@ -4156,7 +4158,7 @@ function downloadCaseList(){
       <td>${t?.engineer_name||'—'}</td>
       <td>${t?.typist_name||'—'}</td>
       <td>${t?.visit_complete?'✅ Done<br><span style="font-size:9pt;color:#666;">'+(t.visit_date||'')+'</span>':'⏳ Pending'}</td>
-      <td>${t?.report_complete?'✅ Done<br><span style="font-size:9pt;color:#666;">'+(t.submit_date||'')+' '+(t.submit_time||'')+'</span>':'⏳ Pending'}</td>
+      <td>${t?.report_complete?'✅ Done<br><span style="font-size:9pt;color:#666;">'+(t.submit_date||'')+' '+(t.submit_time||'')+(t.report_source==='mail'?' 📧':'')+'</span>':'⏳ Pending'}</td>
       <td style="font-weight:700;color:${tatOver?'#C62828':'#1565C0'}">${tatStr}</td>
       <td>${c.client_phone||'—'}</td>
     </tr>`;
