@@ -447,6 +447,12 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
         <p class="hint" id="v_sched_saved" style="color:var(--green);margin-top:6px;display:none;">✅ Schedule saved</p>
       </div>
 
+      <div class="card" id="v_sched_summary" style="display:none;">
+        <div class="ctitle">✅ Visit Scheduled</div>
+        <div id="v_sched_summary_text" style="font-size:14px;"></div>
+        <button class="btn bs" onclick="toggleEditSchedule()" style="margin-top:10px;">✏️ Edit Schedule</button>
+      </div>
+
       <div class="card" id="v_locked_notes" style="display:none;">
         <div class="ctitle">Step 2 — Site Inspection Notes</div>
         <p class="hint">🔒 Save the schedule above first to unlock this.</p>
@@ -1835,6 +1841,19 @@ async function enablePushNotifications(){
   }catch(e){toast('Could not enable notifications: '+e.message,'err');}
 }
 
+function adminNames(){
+  return USERS.filter(u=>u.role==='admin').map(u=>u.name);
+}
+
+function notifyVisitComplete(c,t){
+  const names=[...new Set([...adminNames(),t?.typist_name].filter(Boolean))].filter(n=>!n.startsWith('[External]'));
+  sendAssignPush(names,'Site visit completed',`${c.case_name||c.bank_name} — visited by ${CU.name}`);
+}
+
+function notifyReportComplete(c){
+  sendAssignPush(adminNames(),'Report completed',`${c.case_name||c.bank_name} — report submitted by ${CU.name}`);
+}
+
 async function sendAssignPush(userNames,title,body){
   if(!userNames||!userNames.length) return;
   try{
@@ -2561,16 +2580,18 @@ function populateVisitPicker(){
 }
 
 let visitSNExists=false;
+let schedEditing=false;
 
 async function onVisitPick(){
   const id=g('v_case');
   const sumEl=document.getElementById('v_summary');
   if(!id){
     sumEl.style.display='none';
-    ['v_step1','v_locked_notes','sn_card','v_locked_complete','v_step3','v_progress'].forEach(x=>document.getElementById(x).style.display='none');
+    ['v_step1','v_sched_summary','v_locked_notes','sn_card','v_locked_complete','v_step3','v_progress'].forEach(x=>document.getElementById(x).style.display='none');
     snCaseId=null;visitSNExists=false;
     return;
   }
+  schedEditing=false;
   // Clear all site notes fields before loading new case
   clearSiteNotes();
   const c=CASES.find(x=>x.case_id===id);
@@ -2622,7 +2643,17 @@ async function onVisitPick(){
 function refreshVisitSteps(id,t){
   t=t||trk(id);
   const scheduled=!!t?.scheduled_date;
-  document.getElementById('v_step1').style.display='block';
+  const showForm=!scheduled||schedEditing;
+  document.getElementById('v_step1').style.display=showForm?'block':'none';
+  const summary=document.getElementById('v_sched_summary');
+  const showSummary=scheduled&&!schedEditing;
+  summary.style.display=showSummary?'block':'none';
+  if(showSummary){
+    const statusLabel=t.schedule_status&&t.schedule_status!=='scheduled'?' · '+t.schedule_status.replace(/_/g,' '):'';
+    document.getElementById('v_sched_summary_text').innerHTML=
+      `<b>${t.scheduled_date}</b> at <b>${t.scheduled_time||'—'}</b>${statusLabel}`+
+      (t.schedule_note?`<br><span style="color:var(--muted);">${t.schedule_note}</span>`:'');
+  }
   document.getElementById('v_locked_notes').style.display=scheduled?'none':'block';
   document.getElementById('sn_card').style.display=scheduled?'block':'none';
   document.getElementById('v_locked_complete').style.display=(scheduled&&!visitSNExists)?'block':'none';
@@ -2633,6 +2664,11 @@ function refreshVisitSteps(id,t){
   else if(visitSNExists) prog.textContent='Step 3 of 3 — Mark visit complete';
   else if(scheduled) prog.textContent='Step 2 of 3 — Fill in site inspection notes';
   else prog.textContent='Step 1 of 3 — Schedule the visit';
+}
+
+function toggleEditSchedule(){
+  schedEditing=true;
+  refreshVisitSteps(g('v_case'));
 }
 
 function setVisit(v){
@@ -2672,6 +2708,7 @@ async function saveVisit(){
     if(visitDone) await dbUpdate('cases',{case_id:id},{status:'visit_done'});
     if(visitDone){
       showSuccess('👍','Site Visit Complete!','Visit and site notes saved successfully. Great work, '+CU.name+'!');
+      if(!t?.visit_complete) notifyVisitComplete(c,payload);
     } else {
       toast('Visit update saved ✓','ok');
     }
@@ -2993,6 +3030,7 @@ async function saveSiteNotes(){
       await dbUpsert('tracking',vPayload,'case_ref');
       if(c.status!=='report_done') await dbUpdate('cases',{case_id:snCaseId},{status:'visit_done'});
       setVisit(true);
+      notifyVisitComplete(c,vPayload);
       t=vPayload;
       // Patch the in-memory TRACKING array immediately so anything reading
       // trk() right after (My Day, dashboards) isn't stale until the next reload.
@@ -3152,7 +3190,7 @@ function downloadSiteNotesWord(){
 }
 
 function buildSNWord(c,sn){
-  const photoHTML=sitePhotos.length>0?`<h3>Photos</h3><p>(${sitePhotos.length} photo(s) taken on site)</p>`:'';
+  const photoHTML=sitePhotos.length>0?`<h3>Photos</h3><table><tr>${sitePhotos.map((p,i)=>`<td style="border:none;padding:4px;"><img src="${p.data}" style="width:260px;max-width:100%;"></td>`+((i%2===1)?'</tr><tr>':'')).join('')}</tr></table>`:'';
   return `<html><head><meta charset="utf-8">
   <style>body{font-family:Arial;font-size:11pt;}h1,h2{text-align:center;}h3{font-size:11pt;background:#DCDCDC;padding:4px 8px;margin:12px 0 6px;}table{width:100%;border-collapse:collapse;margin:6pt 0;}th,td{border:1px solid #999;padding:5px 7px;font-size:10pt;}th{background:#DCDCDC;font-weight:bold;text-align:left;}td:first-child{font-weight:bold;width:25%;}.footer{margin-top:30px;display:flex;justify-content:space-between;font-size:9.5pt;}</style>
   </head><body>
@@ -3555,6 +3593,7 @@ async function submitReport(){
     else await dbInsert('report_drafts',draft);
     if(reportDone){
       const t=trk(rptCaseId);
+      const wasComplete=!!t?.report_complete;
       const tPayload={
         case_ref:rptCaseId,case_id:c.id,
         engineer_name:t?.engineer_name||'',
@@ -3568,6 +3607,7 @@ async function submitReport(){
       };
       await dbUpsert('tracking',tPayload,'case_ref');
       await dbUpdate('cases',{case_id:rptCaseId},{status:'report_done'});
+      if(!wasComplete) notifyReportComplete(c);
       // Patch in-memory state immediately so the report rating card (and
       // anything else reading trk()) doesn't stay stale until the next reload.
       const tIdx=TRACKING.findIndex(x=>x.case_ref===rptCaseId);
@@ -4817,7 +4857,9 @@ async function saveSchedule(){
     statusEl.style.display='block';
     statusEl.textContent = '✅ Schedule saved — '+sd+' at '+st;
     toast('Schedule saved ✓','ok');
+    schedEditing=false;
     refreshVisitSteps(id,payload);
+    sendAssignPush(adminNames(),'Visit scheduled',`${c.case_name||c.bank_name} — ${sd} at ${st} by ${CU.name}`);
     loadData();
   }catch(e){toast('Error: '+e.message,'err');}
 }
@@ -5218,6 +5260,7 @@ async function submitOfflineReport(){
 
     // Update tracking
     const t=trk(rptCaseId);
+    const wasComplete=!!t?.report_complete;
     const tPayload={
       case_ref:rptCaseId,case_id:c.id,
       typist_name:t?.typist_name||CU.name,
@@ -5231,6 +5274,7 @@ async function submitOfflineReport(){
     };
     await dbUpsert('tracking',tPayload,'case_ref');
     await dbUpdate('cases',{case_id:rptCaseId},{status:'report_done'});
+    if(!wasComplete) notifyReportComplete(c);
     showSuccess('👍','Report Complete!','Offline report marked complete. Great work, '+CU.name+'!');
     loadData();
   }catch(e){toast('Error: '+e.message,'err');}
