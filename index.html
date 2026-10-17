@@ -1332,6 +1332,10 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
       <div class="ctitle">💰 Estimated Revenue</div>
       <div style="font-size:28px;font-weight:700;color:var(--p);" id="rev_total">₹ 0</div>
       <p class="hint" id="rev_case_count"></p>
+      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--ptint);border-radius:10px;padding:10px 14px;margin-top:10px;">
+        <span style="font-size:12.5px;color:var(--muted);">Average revenue / day</span>
+        <b id="rev_avg_day" style="color:var(--p);font-size:15px;">₹ 0</b>
+      </div>
       <div class="twrap" style="margin-top:10px;">
         <table class="tbl">
           <thead><tr><th>Bank</th><th>Cases</th><th>Rate Basis</th><th>Subtotal</th></tr></thead>
@@ -3891,6 +3895,7 @@ function renderDash(){
 
   const total=cases.length;
   const assigned=tracking.filter(t=>t.engineer_name||t.typist_name).length;
+  const scheduled=tracking.filter(t=>t.scheduled_date).length;
   const visitsDone=tracking.filter(t=>t.visit_complete).length;
   const reportsDone=tracking.filter(t=>t.report_complete).length;
   const tatList=cases.map(c=>({c,t:calcTAT(c,trk(c.case_id))})).filter(x=>x.t!==null);
@@ -3901,6 +3906,8 @@ function renderDash(){
   kpi.innerHTML=`
     <div class="kbox"><div class="kval">${total}</div><div class="klbl">Total Cases</div></div>
     <div class="kbox"><div class="kval">${assigned}</div><div class="klbl">Assigned</div></div>
+    <div class="kbox"><div class="kval">${scheduled}</div><div class="klbl">Site Visits Scheduled</div></div>
+    <div class="kbox kg"><div class="kval">${visitsDone}</div><div class="klbl">Site Visits Completed</div></div>
     <div class="kbox kr"><div class="kval">${total-visitsDone}</div><div class="klbl">Pending Visits</div></div>
     <div class="kbox ka"><div class="kval">${total-reportsDone}</div><div class="klbl">Pending Reports</div></div>
     <div class="kbox kg"><div class="kval">${reportsDone}</div><div class="klbl">Completed</div></div>
@@ -5009,6 +5016,13 @@ function renderRevenue(){
 
   document.getElementById('rev_total').textContent=money(totalRevenue);
   document.getElementById('rev_case_count').textContent=`${monthCases.length} case${monthCases.length===1?'':'s'} received this month`;
+
+  const [yr,mo]=monthKey.split('-').map(Number);
+  const daysInMonth=new Date(yr,mo,0).getDate();
+  const now=new Date();
+  const isCurrentMonth=now.getFullYear()===yr&&(now.getMonth()+1)===mo;
+  const daysElapsed=isCurrentMonth?now.getDate():daysInMonth;
+  document.getElementById('rev_avg_day').textContent=money(totalRevenue/daysElapsed);
 
   const tbody=document.getElementById('rev_bank_table');
   const bankEntries=Object.entries(bankMap);
