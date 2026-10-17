@@ -230,6 +230,24 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
 .spin{animation:spin 0.8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .lspin{display:flex;align-items:center;justify-content:center;gap:8px;padding:28px;color:var(--muted);font-size:13px;}
+
+/* ── SITE NOTE WIZARD ── */
+.wiz-hdr{display:flex;align-items:center;gap:14px;padding:4px 0 16px;}
+.wiz-ring-wrap{position:relative;width:58px;height:58px;flex-shrink:0;}
+.wiz-ring-wrap svg{width:58px;height:58px;}
+.wiz-ring-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:var(--p);}
+.wiz-title{font-size:16px;font-weight:700;color:var(--text);}
+.wiz-next-hint{font-size:11.5px;color:var(--muted);margin-top:2px;}
+.wiz-step{display:none;}
+.wiz-step.active{display:block;}
+.wiz-chip-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+.wiz-chip{padding:8px 14px;border-radius:20px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;white-space:nowrap;font-family:'DM Sans',sans-serif;}
+.wiz-chip.sel{background:var(--p);border-color:var(--p);color:#fff;}
+.wiz-nav{display:flex;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--ptint);}
+.wiz-btn-prev{padding:13px 18px;border:2px solid var(--p);border-radius:12px;background:transparent;color:var(--p);font-size:14px;font-weight:600;cursor:pointer;flex-shrink:0;font-family:'DM Sans',sans-serif;}
+.wiz-btn-next{flex:1;padding:13px;border:none;border-radius:12px;background:var(--p);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.wiz-progress{height:3px;background:var(--ptint);border-radius:2px;margin-bottom:16px;overflow:hidden;}
+.wiz-progress-fill{height:100%;background:var(--p);transition:width 0.3s;}
 </style>
 </head>
 <body>
@@ -438,154 +456,242 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
       <div class="card" id="sn_card" style="display:none;">
         <div class="ctitle">Step 2 — Site Technical Notes</div>
 
-        <div class="snh">1. Property Identification</div>
-        <label>Property Type <span class="req">*</span></label>
-        <div style="display:flex;gap:8px;">
-          <select id="sn_type" style="flex:1;" onchange="onPropTypeChange()">
+        <div class="wiz-hdr">
+          <div class="wiz-ring-wrap">
+            <svg viewBox="0 0 58 58">
+              <circle cx="29" cy="29" r="25" fill="none" stroke="var(--ptint)" stroke-width="5"/>
+              <circle id="wizRingFill" cx="29" cy="29" r="25" fill="none" stroke="var(--p)" stroke-width="5" stroke-linecap="round" stroke-dasharray="157" stroke-dashoffset="125.6" transform="rotate(-90 29 29)"/>
+            </svg>
+            <div class="wiz-ring-label" id="wizRingLabel">1/5</div>
+          </div>
+          <div>
+            <div class="wiz-title" id="wizStepTitle">Case & Visit Details</div>
+            <div class="wiz-next-hint" id="wizStepHint">Quick details before you start the inspection</div>
+          </div>
+        </div>
+        <div class="wiz-progress"><div class="wiz-progress-fill" id="wizProgFill" style="width:20%;"></div></div>
+
+        <!-- STEP 1 — Case & Visit Details -->
+        <div class="wiz-step active" data-step="1">
+          <label>Owner Present at Site?</label>
+          <input type="hidden" id="sn_owner_present" value="">
+          <div class="wiz-chip-row" id="sn_owner_chips">
+            <button type="button" class="wiz-chip" data-val="yes" onclick="wizChipClick('sn_owner_chips','sn_owner_present','yes',onOwnerPresentChange)">Yes</button>
+            <button type="button" class="wiz-chip" data-val="no" onclick="wizChipClick('sn_owner_chips','sn_owner_present','no',onOwnerPresentChange)">No</button>
+          </div>
+          <div id="sn_visit_contact_row" style="display:none;margin-top:12px;">
+            <label>Contact Number of Person Met at Site</label>
+            <input type="tel" id="sn_visit_contact" placeholder="Phone number">
+          </div>
+          <label style="margin-top:12px;">Weather at Time of Visit</label>
+          <select id="sn_weather">
             <option value="">Select…</option>
-            <option>Land and Residential Building</option>
-            <option>Residential Building Only</option>
-            <option>Vacant Plot / Land</option>
-            <option>Apartment</option>
-            <option>Shop / Commercial Space</option>
-            <option>Commercial Land and Building</option>
-            <option>Commercial Building Only</option>
-            <option>Industrial Property</option>
-            <option>Agricultural Land</option>
-            <option>Other</option>
+            <option>Clear / Sunny</option><option>Cloudy</option><option>Light Rain</option><option>Heavy Rain</option><option>Humid</option>
           </select>
-          <button onclick="showCustomPropType()" style="width:44px;height:44px;border-radius:10px;border:1.5px solid var(--p);background:var(--ptint);color:var(--p);font-size:20px;cursor:pointer;flex-shrink:0;">+</button>
-        </div>
-        <div id="customPropTypeRow" style="display:none;margin-top:6px;">
-          <input type="text" id="customPropType" placeholder="Custom property type…">
-          <button class="btn bp" onclick="applyCustomPropType()" style="margin-top:6px;padding:10px;">Apply</button>
-        </div>
-        <p style="font-size:11.5px;font-weight:600;color:var(--p);margin:12px 0 6px;">As per Site / Title Deed / Location Sketch</p>
-        <table class="bndtbl">
-          <thead><tr><th>Particulars</th><th>As per Site</th><th>Title Deed</th><th>Location Sketch</th></tr></thead>
-          <tbody>
-            <tr><td style="font-weight:600;font-size:12px;">Owner Name</td><td><input id="sn_own_site" placeholder="—"></td><td><input id="sn_own_deed" placeholder="—"></td><td><input id="sn_own_sketch" placeholder="—"></td></tr>
-            <tr><td style="font-weight:600;font-size:12px;">Survey No.</td><td><input id="sn_sy_site" placeholder="—"></td><td><input id="sn_sy_deed" placeholder="—"></td><td><input id="sn_sy_sketch" placeholder="—"></td></tr>
-            <tr><td style="font-weight:600;font-size:12px;">Door No.</td><td><input id="sn_door" placeholder="—"></td><td><input id="sn_door_deed" placeholder="—"></td><td><input id="sn_door_sk" placeholder="—"></td></tr>
-            <tr><td style="font-weight:600;font-size:12px;">Village</td><td><input id="sn_village" placeholder="—"></td><td><input id="sn_vil_deed" placeholder="—"></td><td><input id="sn_vil_sk" placeholder="—"></td></tr>
-          </tbody>
-        </table>
-        <div class="row2" style="margin-top:8px;">
-          <div><label>Taluk</label><input type="text" id="sn_taluk"></div>
-          <div><label>District</label><input type="text" id="sn_district"></div>
-        </div>
-        <label>Local Body (Panchayat/Municipality/Corporation)</label>
-        <input type="text" id="sn_localbody">
-        <div class="row2" style="margin-top:8px;">
-          <div><label>Broker / Agent Name</label><input type="text" id="sn_broker_name" placeholder="Name or NA"></div>
-          <div><label>Broker Phone</label><input type="tel" id="sn_broker_phone" placeholder="Phone or NA"></div>
         </div>
 
-        <div class="snh" style="margin-top:16px;">Documents for Verification</div>
-        <p style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">Tick documents available on site</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;" id="docsAvailGrid">
-          <div class="doc-check" data-doc="Title Deed" onclick="togDoc(this)" style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;background:#fff;transition:all 0.15s;">
-            <div style="width:18px;height:18px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;" class="dchk-box"></div>Title Deed</div>
-          <div class="doc-check" data-doc="Land Tax / Possession" onclick="togDoc(this)" style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;background:#fff;transition:all 0.15s;">
-            <div style="width:18px;height:18px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;" class="dchk-box"></div>Land Tax / Possession</div>
-          <div class="doc-check" data-doc="Location Sketch" onclick="togDoc(this)" style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;background:#fff;transition:all 0.15s;">
-            <div style="width:18px;height:18px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;" class="dchk-box"></div>Location Sketch</div>
-          <div class="doc-check" data-doc="Approved / Working Plan" onclick="togDoc(this)" style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;background:#fff;transition:all 0.15s;">
-            <div style="width:18px;height:18px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;" class="dchk-box"></div>Approved / Working Plan</div>
-          <div class="doc-check" data-doc="Building Tax" onclick="togDoc(this)" style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;background:#fff;transition:all 0.15s;">
-            <div style="width:18px;height:18px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;" class="dchk-box"></div>Building Tax</div>
-          <div class="doc-check" data-doc="Prior Deed" onclick="togDoc(this)" style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;background:#fff;transition:all 0.15s;">
-            <div style="width:18px;height:18px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;" class="dchk-box"></div>Prior Deed</div>
-        </div>
-        <label style="margin-top:10px;">Pending Documents Required from Client</label>
-        <textarea id="sn_pending_docs" placeholder="e.g. Building Tax receipt pending, Approved plan to be submitted…" style="min-height:50px;"></textarea>
-
-        <div class="snh">2. Boundary Demarcation</div>
-        <table class="bndtbl">
-          <thead><tr><th>Dir</th><th>As per Title Deed</th><th>Location Sketch</th><th>Physical Visit</th></tr></thead>
-          <tbody>
-            <tr><td style="font-weight:600;">N</td><td><input id="bn_deed" placeholder="—"></td><td><input id="bn_sk" placeholder="—"></td><td><input id="bn_site" placeholder="—"></td></tr>
-            <tr><td style="font-weight:600;">S</td><td><input id="bs_deed" placeholder="—"></td><td><input id="bs_sk" placeholder="—"></td><td><input id="bs_site" placeholder="—"></td></tr>
-            <tr><td style="font-weight:600;">E</td><td><input id="be_deed" placeholder="—"></td><td><input id="be_sk" placeholder="—"></td><td><input id="be_site" placeholder="—"></td></tr>
-            <tr><td style="font-weight:600;">W</td><td><input id="bw_deed" placeholder="—"></td><td><input id="bw_sk" placeholder="—"></td><td><input id="bw_site" placeholder="—"></td></tr>
-          </tbody>
-        </table>
-        <div class="row2" style="margin-top:8px;">
-          <div><label>Demarcation Type</label>
-            <select id="sn_demarcation">
+        <!-- STEP 2 — Property Type & Identification -->
+        <div class="wiz-step" data-step="2">
+          <label>Property Category</label>
+          <select id="sn_prop_category" onchange="onPropTypeChange()">
+            <option value="">Select…</option>
+            <option>Residential</option><option>Commercial</option><option>Industrial</option>
+            <option>Agricultural / Vacant Land</option><option>Mixed Use</option>
+          </select>
+          <label style="margin-top:10px;">Property Type <span class="req">*</span></label>
+          <div style="display:flex;gap:8px;">
+            <select id="sn_type" style="flex:1;" onchange="onPropTypeChange()">
               <option value="">Select…</option>
-              <option>Compound wall all sides</option><option>Compound wall some sides</option>
-              <option>Fencing</option><option>No demarcation</option>
+              <option>Land and Residential Building</option>
+              <option>Residential Building Only</option>
+              <option>Vacant Plot / Land</option>
+              <option>Apartment</option>
+              <option>Shop / Commercial Space</option>
+              <option>Commercial Land and Building</option>
+              <option>Commercial Building Only</option>
+              <option>Industrial Property</option>
+              <option>Agricultural Land</option>
+              <option>Other</option>
             </select>
+            <button onclick="showCustomPropType()" style="width:44px;height:44px;border-radius:10px;border:1.5px solid var(--p);background:var(--ptint);color:var(--p);font-size:20px;cursor:pointer;flex-shrink:0;">+</button>
           </div>
-          <div><label>Shape of Land</label>
-            <select id="sn_shape">
-              <option value="">Select…</option>
-              <option>Rectangular</option><option>Square</option>
-              <option>Irregular</option><option>Corner plot</option>
-            </select>
+          <div id="customPropTypeRow" style="display:none;margin-top:6px;">
+            <input type="text" id="customPropType" placeholder="Custom property type…">
+            <button class="btn bp" onclick="applyCustomPropType()" style="margin-top:6px;padding:10px;">Apply</button>
+          </div>
+          <div id="sn_apt_fields" style="display:none;margin-top:10px;">
+            <label>Apartment / Project Name</label><input type="text" id="sn_apt_project" placeholder="e.g. Green Meadows">
+            <label style="margin-top:8px;">Developer / Builder Name</label><input type="text" id="sn_apt_developer" placeholder="e.g. ABC Builders">
+            <label style="margin-top:8px;">UDS Consideration Value (Rs.)</label><input type="number" id="sn_uds_consideration" placeholder="As per sale deed">
+          </div>
+          <p style="font-size:11.5px;font-weight:600;color:var(--p);margin:12px 0 6px;">As per Site / Title Deed / Location Sketch</p>
+          <table class="bndtbl">
+            <thead><tr><th>Particulars</th><th>As per Site</th><th>Title Deed</th><th>Location Sketch</th></tr></thead>
+            <tbody>
+              <tr><td style="font-weight:600;font-size:12px;">Owner Name</td><td><input id="sn_own_site" placeholder="—"></td><td><input id="sn_own_deed" placeholder="—"></td><td><input id="sn_own_sketch" placeholder="—"></td></tr>
+              <tr><td style="font-weight:600;font-size:12px;">Survey No.</td><td><input id="sn_sy_site" placeholder="—"></td><td><input id="sn_sy_deed" placeholder="—"></td><td><input id="sn_sy_sketch" placeholder="—"></td></tr>
+              <tr><td style="font-weight:600;font-size:12px;">Door No.</td><td><input id="sn_door" placeholder="—"></td><td><input id="sn_door_deed" placeholder="—"></td><td><input id="sn_door_sk" placeholder="—"></td></tr>
+              <tr><td style="font-weight:600;font-size:12px;">Village</td><td><input id="sn_village" placeholder="—"></td><td><input id="sn_vil_deed" placeholder="—"></td><td><input id="sn_vil_sk" placeholder="—"></td></tr>
+            </tbody>
+          </table>
+          <div class="row2" style="margin-top:8px;">
+            <div><label>Taluk</label><input type="text" id="sn_taluk"></div>
+            <div><label>District</label><input type="text" id="sn_district"></div>
+          </div>
+          <label>Local Body (Panchayat/Municipality/Corporation)</label>
+          <input type="text" id="sn_localbody">
+          <div class="row2" style="margin-top:8px;">
+            <div><label>Broker / Agent Name</label><input type="text" id="sn_broker_name" placeholder="Name or NA"></div>
+            <div><label>Broker Phone</label><input type="tel" id="sn_broker_phone" placeholder="Phone or NA"></div>
+          </div>
+
+          <div class="snh" style="margin-top:16px;">Documents for Verification</div>
+          <p style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">Tick documents available on site</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;" id="docsAvailGrid">
+            <div class="doc-check" data-doc="Title Deed" onclick="togDoc(this)" style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;background:#fff;transition:all 0.15s;">
+              <div style="width:18px;height:18px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;" class="dchk-box"></div>Title Deed</div>
+            <div class="doc-check" data-doc="Land Tax / Possession" onclick="togDoc(this)" style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;background:#fff;transition:all 0.15s;">
+              <div style="width:18px;height:18px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;" class="dchk-box"></div>Land Tax / Possession</div>
+            <div class="doc-check" data-doc="Location Sketch" onclick="togDoc(this)" style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;background:#fff;transition:all 0.15s;">
+              <div style="width:18px;height:18px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;" class="dchk-box"></div>Location Sketch</div>
+            <div class="doc-check" data-doc="Approved / Working Plan" onclick="togDoc(this)" style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;background:#fff;transition:all 0.15s;">
+              <div style="width:18px;height:18px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;" class="dchk-box"></div>Approved / Working Plan</div>
+            <div class="doc-check" data-doc="Building Tax" onclick="togDoc(this)" style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;background:#fff;transition:all 0.15s;">
+              <div style="width:18px;height:18px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;" class="dchk-box"></div>Building Tax</div>
+            <div class="doc-check" data-doc="Prior Deed" onclick="togDoc(this)" style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;background:#fff;transition:all 0.15s;">
+              <div style="width:18px;height:18px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;" class="dchk-box"></div>Prior Deed</div>
+          </div>
+          <label style="margin-top:10px;">Pending Documents Required from Client</label>
+          <textarea id="sn_pending_docs" placeholder="e.g. Building Tax receipt pending, Approved plan to be submitted…" style="min-height:50px;"></textarea>
+        </div>
+
+        <!-- STEP 3 — Boundary Demarcation -->
+        <div class="wiz-step" data-step="3">
+          <table class="bndtbl">
+            <thead><tr><th>Dir</th><th>As per Title Deed</th><th>Location Sketch</th><th>Physical Visit</th></tr></thead>
+            <tbody>
+              <tr><td style="font-weight:600;">N</td><td><input id="bn_deed" placeholder="—"></td><td><input id="bn_sk" placeholder="—"></td><td><input id="bn_site" placeholder="—"></td></tr>
+              <tr><td style="font-weight:600;">S</td><td><input id="bs_deed" placeholder="—"></td><td><input id="bs_sk" placeholder="—"></td><td><input id="bs_site" placeholder="—"></td></tr>
+              <tr><td style="font-weight:600;">E</td><td><input id="be_deed" placeholder="—"></td><td><input id="be_sk" placeholder="—"></td><td><input id="be_site" placeholder="—"></td></tr>
+              <tr><td style="font-weight:600;">W</td><td><input id="bw_deed" placeholder="—"></td><td><input id="bw_sk" placeholder="—"></td><td><input id="bw_site" placeholder="—"></td></tr>
+            </tbody>
+          </table>
+          <div class="row2" style="margin-top:8px;">
+            <div><label>Demarcation Type</label>
+              <select id="sn_demarcation">
+                <option value="">Select…</option>
+                <option>Compound wall all sides</option><option>Compound wall some sides</option>
+                <option>Fencing</option><option>No demarcation</option>
+              </select>
+            </div>
+            <div><label>Shape of Land</label>
+              <select id="sn_shape">
+                <option value="">Select…</option>
+                <option>Rectangular</option><option>Square</option>
+                <option>Irregular</option><option>Corner plot</option>
+              </select>
+            </div>
+          </div>
+          <label style="margin-top:14px;">Any Boundary Discrepancy Noted?</label>
+          <input type="hidden" id="sn_bnd_disc_flag" value="">
+          <div class="wiz-chip-row" id="sn_bnd_disc_chips">
+            <button type="button" class="wiz-chip" data-val="no" onclick="wizChipClick('sn_bnd_disc_chips','sn_bnd_disc_flag','no',onBndDiscChange)">No discrepancy</button>
+            <button type="button" class="wiz-chip" data-val="yes" onclick="wizChipClick('sn_bnd_disc_chips','sn_bnd_disc_flag','yes',onBndDiscChange)">Yes — describe</button>
+          </div>
+          <div id="sn_bnd_disc_row" style="display:none;margin-top:10px;">
+            <textarea id="sn_bnd_disc_text" placeholder="Describe the discrepancy…" style="min-height:60px;"></textarea>
           </div>
         </div>
 
-        <div class="snh">3. Land & Building Measurements</div>
-        <div class="row2">
-          <div><label>Land Area (Document)</label><input type="text" id="sn_area_doc" placeholder="e.g. 9.59 cents"></div>
-          <div><label>Land Area (Site) <span class="req">*</span></label><input type="text" id="sn_area_site" placeholder="e.g. 9.59 cents"></div>
-        </div>
-        <label>Road Type & Width</label>
-        <div class="row2">
-          <select id="sn_road"><option value="">Select…</option><option>Tar road</option><option>Concrete road</option><option>Mud road</option><option>Interlocked</option></select>
-          <input type="text" id="sn_road_width" placeholder="Width e.g. 9.8 ft">
-        </div>
-        <div id="sn_bldg_section">
-          <!-- UDS Toggle for Apartments/Shops -->
-          <div id="sn_uds_toggle_row" style="display:none;margin-top:10px;">
-            <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;background:#fff;" onclick="toggleUDS()" id="uds_tog_row">
-              <div style="width:20px;height:20px;border-radius:5px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;" id="uds_box"></div>
-              <div>
-                <p style="font-size:14px;font-weight:500;">This property has UDS (Undivided Share)</p>
-                <p style="font-size:11px;color:var(--muted);">Tick for apartments, flats, shops with UDS area</p>
-              </div>
-            </div>
+        <!-- STEP 4 — Land & Building Measurements (Extent & Road) -->
+        <div class="wiz-step" data-step="4">
+          <label>Extent Unit</label>
+          <select id="sn_extent_unit">
+            <option value="">Select…</option>
+            <option>Cents</option><option>Acres</option><option>Sqft</option><option>Ares</option><option>Hectares</option>
+          </select>
+          <div class="row2" style="margin-top:8px;">
+            <div><label>Land Area (Document)</label><input type="text" id="sn_area_doc" placeholder="e.g. 9.59 cents"></div>
+            <div><label>Land Area (Site) <span class="req">*</span></label><input type="text" id="sn_area_site" placeholder="e.g. 9.59 cents"></div>
           </div>
-
-          <!-- Normal BUA fields -->
-          <div id="sn_normal_area" style="margin-top:8px;">
-            <div class="row2">
-              <div><label>BUA (Document)</label><input type="number" id="sn_bua_doc" placeholder="sqft"></div>
-              <div><label>BUA (Site) <span class="req">*</span></label><input type="number" id="sn_bua_site" placeholder="sqft"></div>
-            </div>
-          </div>
-
-          <!-- UDS fields — shown only when UDS ticked -->
-          <div id="sn_uds_fields" style="display:none;margin-top:8px;">
-            <div style="background:var(--bbg);border-radius:10px;padding:12px;margin-bottom:8px;">
-              <p style="font-size:12px;font-weight:600;color:var(--blue);margin-bottom:8px;">UDS Property Measurements</p>
-              <div class="row2">
-                <div><label>UDS Area (cents)</label><input type="number" id="sn_uds_area" placeholder="e.g. 1.25 cents" step="0.01" oninput="calcSiteEst()"></div>
-                <div><label>Total Land Area (cents)</label><input type="number" id="sn_total_land" placeholder="Total project land"></div>
-              </div>
-              <div class="row2" style="margin-top:8px;">
-                <div><label>Super Built-up Area (sqft)</label><input type="number" id="sn_sba" placeholder="sqft" oninput="calcSiteEst()"></div>
-                <div><label>Carpet Area (sqft)</label><input type="number" id="sn_carpet" placeholder="sqft"></div>
-              </div>
-              <label style="margin-top:8px;">Floor / Unit No.</label>
-              <input type="text" id="sn_unit_no" placeholder="e.g. Flat 3B, 3rd Floor">
-              <label style="margin-top:8px;">Composite Rate (Rs./sqft)</label>
-              <input type="number" id="sn_composite_rate" placeholder="e.g. 4500" oninput="calcSiteEst()">
-              <p style="font-size:11px;color:var(--muted);margin-top:4px;">Composite rate = land + construction combined rate per sqft of SBA</p>
-            </div>
-          </div>
-
-          <label>Construction Type</label>
-          <select id="sn_const"><option value="">Select…</option><option>RCC</option><option>Load bearing</option><option>Composite</option><option>Steel framed</option></select>
+          <label>Road Type & Width</label>
           <div class="row2">
-            <div><label>No. of Floors</label><input type="number" id="sn_floors" placeholder="e.g. 2" min="1"></div>
-            <div><label>Condition</label><select id="sn_cond"><option value="">Select…</option><option>Excellent</option><option>Good</option><option>Normal</option><option>Poor</option></select></div>
+            <select id="sn_road"><option value="">Select…</option><option>Tar road</option><option>Concrete road</option><option>Mud road</option><option>Interlocked</option></select>
+            <input type="text" id="sn_road_width" placeholder="Width e.g. 9.8 ft">
+          </div>
+          <label style="margin-top:8px;">Road Frontage (ft)</label>
+          <input type="number" id="sn_road_frontage" placeholder="e.g. 32">
+          <div id="sn_bldg_section">
+            <!-- UDS Toggle for Apartments/Shops -->
+            <div id="sn_uds_toggle_row" style="display:none;margin-top:10px;">
+              <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;background:#fff;" onclick="toggleUDS()" id="uds_tog_row">
+                <div style="width:20px;height:20px;border-radius:5px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;" id="uds_box"></div>
+                <div>
+                  <p style="font-size:14px;font-weight:500;">This property has UDS (Undivided Share)</p>
+                  <p style="font-size:11px;color:var(--muted);">Tick for apartments, flats, shops with UDS area</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Normal BUA fields -->
+            <div id="sn_normal_area" style="margin-top:8px;">
+              <div class="row2">
+                <div><label>BUA (Document)</label><input type="number" id="sn_bua_doc" placeholder="sqft"></div>
+                <div><label>BUA (Site) <span class="req">*</span></label><input type="number" id="sn_bua_site" placeholder="sqft"></div>
+              </div>
+            </div>
+
+            <!-- UDS fields — shown only when UDS ticked -->
+            <div id="sn_uds_fields" style="display:none;margin-top:8px;">
+              <div style="background:var(--bbg);border-radius:10px;padding:12px;margin-bottom:8px;">
+                <p style="font-size:12px;font-weight:600;color:var(--blue);margin-bottom:8px;">UDS Property Measurements</p>
+                <div class="row2">
+                  <div><label>UDS Area (cents)</label><input type="number" id="sn_uds_area" placeholder="e.g. 1.25 cents" step="0.01" oninput="calcSiteEst()"></div>
+                  <div><label>Total Land Area (cents)</label><input type="number" id="sn_total_land" placeholder="Total project land"></div>
+                </div>
+                <div class="row2" style="margin-top:8px;">
+                  <div><label>Super Built-up Area (sqft)</label><input type="number" id="sn_sba" placeholder="sqft" oninput="calcSiteEst()"></div>
+                  <div><label>Carpet Area (sqft)</label><input type="number" id="sn_carpet" placeholder="sqft"></div>
+                </div>
+                <label style="margin-top:8px;">Floor / Unit No.</label>
+                <input type="text" id="sn_unit_no" placeholder="e.g. Flat 3B, 3rd Floor">
+                <label style="margin-top:8px;">Composite Rate (Rs./sqft)</label>
+                <input type="number" id="sn_composite_rate" placeholder="e.g. 4500" oninput="calcSiteEst()">
+                <p style="font-size:11px;color:var(--muted);margin-top:4px;">Composite rate = land + construction combined rate per sqft of SBA</p>
+              </div>
+            </div>
+
+            <label>Construction Type</label>
+            <select id="sn_const"><option value="">Select…</option><option>RCC</option><option>Load bearing</option><option>Composite</option><option>Steel framed</option></select>
+            <div class="row2">
+              <div><label>No. of Floors</label><input type="number" id="sn_floors" placeholder="e.g. 2" min="1"></div>
+              <div><label>Condition</label><select id="sn_cond"><option value="">Select…</option><option>Excellent</option><option>Good</option><option>Normal</option><option>Poor</option></select></div>
+            </div>
           </div>
         </div>
 
-        <div class="snh">4. Market Rate & Age of Building</div>
+        <!-- STEP 5 — Location & GPS -->
+        <div class="wiz-step" data-step="5">
+          <button onclick="fetchGPS()" style="width:100%;padding:14px;border-radius:12px;border:2px solid var(--p);background:var(--ptint);color:var(--p);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;">
+            📍 Tap to Fetch GPS Location
+          </button>
+          <p class="hint" id="gps_status" style="text-align:center;margin-bottom:10px;">Auto-fetches when you open a case. Tap above if needed.</p>
+          <div class="row2">
+            <div><label>Latitude</label><input type="text" id="sn_lat" placeholder="Auto-filled"></div>
+            <div><label>Longitude</label><input type="text" id="sn_lon" placeholder="Auto-filled"></div>
+          </div>
+          <div class="snh">Nearby Amenities & Hazards <span style="font-weight:400;text-transform:none;color:var(--muted);">(auto-detected via OpenStreetMap)</span></div>
+          <p class="hint" id="sn_poi_status">Fetch GPS above to auto-check nearby amenities and hazards.</p>
+          <div id="sn_poi_amenities"></div>
+          <div id="sn_poi_hazards"></div>
+        </div>
+
+        <div class="wiz-nav">
+          <button class="wiz-btn-prev" id="wizPrevBtn" onclick="wizPrev()" style="display:none;">← Back</button>
+          <button class="wiz-btn-next" id="wizNextBtn" onclick="wizNext()">Next →</button>
+        </div>
+
+        <div class="snh" id="sn_continue_anchor">4. Market Rate & Age of Building</div>
         <div class="row2">
           <div><label>Age of Building (yrs)</label><input type="number" id="sn_age" placeholder="e.g. 18" min="0"></div>
           <div><label>Prevailing Market Rate</label><input type="text" id="sn_mkt_range" placeholder="e.g. 3-4L/cent"></div>
@@ -629,21 +735,6 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
           <div class="vrow"><span class="vlbl">Building Value</span><span class="vval" id="se_bldg">—</span></div>
           <div class="vrow vtot"><span class="vlbl">Engineer's Estimated Total</span><span class="vval" id="se_tot">—</span></div>
         </div>
-
-        <div class="snh">6. GPS Coordinates <span class="req">*</span></div>
-        <button onclick="fetchGPS()" style="width:100%;padding:14px;border-radius:12px;border:2px solid var(--p);background:var(--ptint);color:var(--p);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;">
-          📍 Tap to Fetch GPS Location
-        </button>
-        <p class="hint" id="gps_status" style="text-align:center;margin-bottom:10px;">Auto-fetches when you open a case. Tap above if needed.</p>
-        <div class="row2">
-          <div><label>Latitude</label><input type="text" id="sn_lat" placeholder="Auto-filled"></div>
-          <div><label>Longitude</label><input type="text" id="sn_lon" placeholder="Auto-filled"></div>
-        </div>
-
-        <div class="snh">Nearby Amenities & Hazards <span style="font-weight:400;text-transform:none;color:var(--muted);">(auto-detected via OpenStreetMap)</span></div>
-        <p class="hint" id="sn_poi_status">Fetch GPS above to auto-check nearby amenities and hazards.</p>
-        <div id="sn_poi_amenities"></div>
-        <div id="sn_poi_hazards"></div>
 
         <div id="sn_aucb_section" style="display:none;">
           <div class="snh">🏦 AUCB Bank-Specific Details</div>
@@ -2617,6 +2708,15 @@ function clearSiteNotes(){
   // Reset sections
   document.getElementById('sn_residential_section').style.display='none';
   document.getElementById('sn_commercial_section').style.display='none';
+  // Reset wizard chips/conditional rows and jump back to step 1
+  ['sn_owner_present','sn_bnd_disc_flag'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.querySelectorAll('.wiz-chip').forEach(c=>c.classList.remove('sel'));
+  const vcr=document.getElementById('sn_visit_contact_row'); if(vcr) vcr.style.display='none';
+  const bdr=document.getElementById('sn_bnd_disc_row'); if(bdr) bdr.style.display='none';
+  const apt=document.getElementById('sn_apt_fields'); if(apt) apt.style.display='none';
+  wizGoTo(1);
 }
 
 function clearReportForm(){
@@ -2696,6 +2796,16 @@ function gSN(){
     bedrooms:pf('sn_bedrooms'),
     comm_rent_sqft:pf('sn_comm_rent_sqft'),
     comm_area:pf('sn_comm_area'),
+    owner_present:g('sn_owner_present'),
+    visit_contact_number:g('sn_visit_contact'),
+    weather:g('sn_weather'),
+    property_category:g('sn_prop_category'),
+    apt_project_name:g('sn_apt_project'),
+    apt_developer:g('sn_apt_developer'),
+    uds_consideration:pf('sn_uds_consideration'),
+    boundary_discrepancy:g('sn_bnd_disc_flag')==='yes'?(g('sn_bnd_disc_text')||'Discrepancy noted'):'None',
+    extent_unit:g('sn_extent_unit'),
+    road_frontage:pf('sn_road_frontage'),
     property_address:g('sn_property_addr'),
     landmark:g('sn_landmark'),
     house_board_name:g('sn_house_board'),
@@ -2752,6 +2862,10 @@ function fillSN(d){
     sn_res_type:'res_type',sn_res_rent:'res_rent',
     sn_bedrooms:'bedrooms',
     sn_comm_rent_sqft:'comm_rent_sqft',sn_comm_area:'comm_area',
+    sn_visit_contact:'visit_contact_number',sn_weather:'weather',
+    sn_prop_category:'property_category',sn_apt_project:'apt_project_name',
+    sn_apt_developer:'apt_developer',sn_uds_consideration:'uds_consideration',
+    sn_extent_unit:'extent_unit',sn_road_frontage:'road_frontage',
     sn_property_addr:'property_address',sn_landmark:'landmark',
     sn_house_board:'house_board_name',sn_occupancy:'occupancy',
     sn_actual_usage:'actual_usage',sn_occupant_name:'occupant_name',
@@ -2773,6 +2887,13 @@ function fillSN(d){
   calcSiteEst();
   onPropTypeChange();
   if(d.docs_available) setCheckedDocs(d.docs_available);
+  wizSetChip('sn_owner_chips','sn_owner_present',d.owner_present||'');
+  onOwnerPresentChange(d.owner_present||'');
+  const hasDisc=!!(d.boundary_discrepancy&&d.boundary_discrepancy!=='None');
+  wizSetChip('sn_bnd_disc_chips','sn_bnd_disc_flag',d.boundary_discrepancy?(hasDisc?'yes':'no'):'');
+  if(hasDisc) document.getElementById('sn_bnd_disc_text').value=d.boundary_discrepancy;
+  onBndDiscChange(hasDisc?'yes':'no');
+  wizGoTo(1);
 }
 
 async function saveSiteNotesDraft(){
@@ -4759,6 +4880,64 @@ function onPropTypeChange(){
   if(bldgSec) bldgSec.style.display=isVacant?'none':'block';
   const udsToggle=document.getElementById('sn_uds_toggle_row');
   if(udsToggle) udsToggle.style.display=isUDSType?'block':'none';
+  const aptFields=document.getElementById('sn_apt_fields');
+  if(aptFields) aptFields.style.display=isUDSType?'block':'none';
+}
+
+// ── SITE NOTE WIZARD ──
+const WIZ_STEPS=[
+  {title:'Case & Visit Details',hint:'Quick details before you start the inspection'},
+  {title:'Property Type & Identification',hint:'Confirm what the property is and how it is described in documents'},
+  {title:'Boundary Demarcation',hint:'Check boundaries against deed, sketch and physical site'},
+  {title:'Land & Building Measurements',hint:'Record extent, road access and building details'},
+  {title:'Location & GPS',hint:'Fetch GPS and confirm nearby amenities/hazards'}
+];
+let wizStep=1;
+function wizGoTo(n){
+  wizStep=n;
+  document.querySelectorAll('.wiz-step').forEach(el=>el.classList.toggle('active',+el.dataset.step===n));
+  const s=WIZ_STEPS[n-1];
+  const titleEl=document.getElementById('wizStepTitle'),hintEl=document.getElementById('wizStepHint');
+  if(titleEl) titleEl.textContent=s.title;
+  if(hintEl) hintEl.textContent=s.hint;
+  const ringLabel=document.getElementById('wizRingLabel');
+  if(ringLabel) ringLabel.textContent=n+'/5';
+  const fill=document.getElementById('wizProgFill');
+  if(fill) fill.style.width=(n/5*100)+'%';
+  const ring=document.getElementById('wizRingFill');
+  if(ring) ring.style.strokeDashoffset=(157-(157*n/5));
+  const prevBtn=document.getElementById('wizPrevBtn');
+  if(prevBtn) prevBtn.style.display=n>1?'inline-block':'none';
+  const nextBtn=document.getElementById('wizNextBtn');
+  if(nextBtn) nextBtn.textContent=n<5?'Next →':'Done ✓';
+  const card=document.getElementById('sn_card');
+  if(card) card.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function wizNext(){
+  if(wizStep<5) wizGoTo(wizStep+1);
+  else {
+    toast('Site note steps complete — continue filling the details below ✓','ok');
+    document.getElementById('sn_continue_anchor')?.scrollIntoView({behavior:'smooth'});
+  }
+}
+function wizPrev(){ if(wizStep>1) wizGoTo(wizStep-1); }
+function wizSetChip(rowId,hiddenId,value){
+  const row=document.getElementById(rowId),hid=document.getElementById(hiddenId);
+  if(!row||!hid) return;
+  hid.value=value;
+  row.querySelectorAll('.wiz-chip').forEach(c=>c.classList.toggle('sel',c.dataset.val===value));
+}
+function wizChipClick(rowId,hiddenId,val,onchange){
+  wizSetChip(rowId,hiddenId,val);
+  if(onchange) onchange(val);
+}
+function onOwnerPresentChange(v){
+  const row=document.getElementById('sn_visit_contact_row');
+  if(row) row.style.display=v==='no'?'block':'none';
+}
+function onBndDiscChange(v){
+  const row=document.getElementById('sn_bnd_disc_row');
+  if(row) row.style.display=v==='yes'?'block':'none';
 }
 
 // ═══════════════════════════════════════════
