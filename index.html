@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>DC Valuation & Advisory</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4A1A6B">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -271,6 +275,14 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
       </div>
     </div>
     <div class="navtabs" id="navtabs"></div>
+  </div>
+
+  <div id="pushBanner" style="display:none;align-items:center;gap:10px;justify-content:space-between;background:var(--ptint);padding:10px 16px;font-size:12.5px;color:var(--p);">
+    <span>🔔 Turn on notifications to get alerted the moment a case is assigned to you.</span>
+    <span style="display:flex;gap:8px;flex-shrink:0;">
+      <button onclick="enablePushNotifications()" style="background:var(--p);color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Enable</button>
+      <button onclick="dismissPushBanner()" style="background:none;border:none;color:var(--p);font-size:16px;cursor:pointer;padding:0 4px;">×</button>
+    </span>
   </div>
 
   <!-- TAB: Cases -->
@@ -1646,6 +1658,91 @@ function initApp(){
     const sc=document.getElementById('d_overdue');
     // Keep overdue visible but adjust label
   }
+  initPush();
+}
+
+// ═══════════════════════════════════════════
+// PUSH NOTIFICATIONS
+// ═══════════════════════════════════════════
+const VAPID_PUBLIC_KEY='BP1ptwmucm3rq1-C0aibSa75-f2aT_QSOf-RmtkvRXEmYodzxvy30xcpxPGcoQMgOZaJ3Cl60r8eL1PSSwxkHew';
+
+function urlBase64ToUint8Array(base64String){
+  const padding='='.repeat((4-base64String.length%4)%4);
+  const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
+  const rawData=atob(base64);
+  const outputArray=new Uint8Array(rawData.length);
+  for(let i=0;i<rawData.length;i++) outputArray[i]=rawData.charCodeAt(i);
+  return outputArray;
+}
+
+async function initPush(){
+  if(!CU||CU.isExternal) return;
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)) return;
+  try{
+    const reg=await navigator.serviceWorker.register('sw.js');
+    if(Notification.permission==='granted'){
+      await ensurePushSubscription(reg);
+      hidePushBanner();
+    } else if(Notification.permission==='default'&&localStorage.getItem('pushBannerDismissed')!=='1'){
+      showPushBanner();
+    }
+  }catch(e){}
+}
+
+async function ensurePushSubscription(reg){
+  try{
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub){
+      sub=await reg.pushManager.subscribe({
+        userVisibleOnly:true,
+        applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    const j=sub.toJSON();
+    await dbUpsert('push_subscriptions',{
+      user_id:CU.id,user_name:CU.name,
+      endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth
+    },'endpoint');
+  }catch(e){}
+}
+
+function showPushBanner(){
+  const b=document.getElementById('pushBanner');
+  if(b) b.style.display='flex';
+}
+function hidePushBanner(){
+  const b=document.getElementById('pushBanner');
+  if(b) b.style.display='none';
+}
+function dismissPushBanner(){
+  localStorage.setItem('pushBannerDismissed','1');
+  hidePushBanner();
+}
+
+async function enablePushNotifications(){
+  try{
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted'){
+      toast('Notifications not enabled — you can turn them on later from your browser settings','err');
+      dismissPushBanner();
+      return;
+    }
+    const reg=await navigator.serviceWorker.ready;
+    await ensurePushSubscription(reg);
+    hidePushBanner();
+    toast('Notifications enabled ✓','ok');
+  }catch(e){toast('Could not enable notifications: '+e.message,'err');}
+}
+
+async function sendAssignPush(userNames,title,body){
+  if(!userNames||!userNames.length) return;
+  try{
+    await fetch(`${SB_URL}/functions/v1/send-push`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY,'apikey':SB_KEY},
+      body:JSON.stringify({userNames,title,body,url:'./'})
+    });
+  }catch(e){}
 }
 
 function buildNav(){
@@ -2040,6 +2137,8 @@ async function saveAssign(){
   if(!eng&&!typ){toast('Select engineer or typist','err');return;}
   const c=CASES.find(x=>x.case_id===id);
   const t=trk(id);
+  const engChanged=eng&&eng!==(t?.engineer_name||'');
+  const typChanged=typ&&typ!==(t?.typist_name||'');
   try{
     const tData={
       case_ref:id,case_id:c.id,
@@ -2052,6 +2151,10 @@ async function saveAssign(){
     await dbUpsert('tracking',tData,'case_ref');
     await dbUpdate('cases',{case_id:id},{status:'assigned',priority:currentPriority});
     toast('Assignment saved ✓','ok');
+    const notifyNames=[...new Set([engChanged?eng:null,typChanged?typ:null].filter(Boolean))].filter(n=>!n.startsWith('[External]'));
+    if(notifyNames.length){
+      sendAssignPush(notifyNames,'New case assigned',`${c.case_name||'New case'} — ${c.property_location||'location not set'} — ${c.client_phone||'no phone'}`);
+    }
     setPriority('normal');
     document.getElementById('asgn_note').value='';
     loadData();
