@@ -1033,6 +1033,16 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
       <div class="ctitle">🏢 DC Overall (All Staff)</div>
       <div class="kgrid" id="d_overall"></div>
     </div>
+    <div class="card" id="todaySummaryCard">
+      <div class="ctitle">📋 Today's Summary</div>
+      <p class="hint" id="todaySummaryCount" style="margin-bottom:8px;"></p>
+      <div class="twrap">
+        <table class="tbl">
+          <thead><tr><th>Bank</th><th>Case</th><th>Engineer</th><th>Typist</th><th>Today</th><th>TAT</th></tr></thead>
+          <tbody id="todaySummaryList"></tbody>
+        </table>
+      </div>
+    </div>
     <div class="card" id="todayCard">
       <div class="ctitle">Today's Activity</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px;">
@@ -2231,7 +2241,7 @@ function inboxResolveAssignee(it){
 }
 
 function inboxIsClean(it){
-  return it.kind==='new'&&!it.needs_review&&!!it.property_location&&!!it.application_id&&!!inboxResolveAssignee(it);
+  return it.kind==='new'&&!it.needs_review&&!!it.property_location&&!!inboxResolveAssignee(it);
 }
 
 function inboxAssigneeOptions(sel){
@@ -2255,6 +2265,7 @@ function inboxCard(it){
     <span class="badge b-received">${ix(it.application_id||'no id')}</span></div>
     <div class="cc-meta">Received ${ix(when)} · ${ix(it.sender||'')}</div>
     ${flag}${notes}${files}
+    ${fld('appid','Application ID (optional)',it.application_id)}
     ${fld('loc','Property location',it.property_location)}
     ${fld('phone','Client phone',it.client_phone)}
     ${fld('prod','Loan product',it.loan_product)}
@@ -2292,16 +2303,15 @@ async function approveInbox(id,batch){
   if(!it) return {ok:false,msg:'Case not found'};
   if(inboxWorking.has(id)) return {ok:false,msg:'Already working on this case'};
   const val=k=>{const e=document.getElementById(`ib_${k}_${id}`);return e?e.value.trim():'';};
-  const loc=val('loc'),phone=val('phone'),prod=val('prod');
+  const loc=val('loc'),phone=val('phone'),prod=val('prod'),appId=val('appid');
   const asg=(document.getElementById('ib_asg_'+id)||{}).value||'';
   const fail=msg=>{ if(!batch) toast(msg,'err'); return {ok:false,msg}; };
   if(!loc) return fail('Add the property location first');
-  if(!it.application_id) return fail('This mail has no application ID — add it in the Cases tab instead');
   const bank=BANKS.find(b=>b.name.trim().toLowerCase()===(it.bank_name||'').trim().toLowerCase());
   if(!bank) return fail(`Bank "${it.bank_name}" is not in your bank list`);
   inboxWorking.add(id);
   try{
-    const dup=CASES.find(c=>c.application_id===it.application_id&&c.bank_name===bank.name);
+    const dup=appId?CASES.find(c=>c.application_id===appId&&c.bank_name===bank.name):null;
     if(dup){
       await dbUpdate('case_inbox',{id},{status:'duplicate',linked_case_ref:dup.case_id,decided_by:CU.name,decided_at:new Date().toISOString()});
       INBOX=INBOX.filter(x=>x.id!==id);
@@ -2318,7 +2328,7 @@ async function approveInbox(id,batch){
       received_date:dp.date,received_time:dp.time,
       initiated_at:it.received_at||null,gmail_thread_id:it.gmail_thread_id||null,
       bank_id:bank.id,bank_name:bank.name,loan_product:prod||null,
-      case_name:it.case_name,application_id:it.application_id,
+      case_name:it.case_name,application_id:appId||null,
       property_location:loc,client_phone:phone||null,notes:note
     });
     const row=rows&&rows[0];
@@ -4139,6 +4149,7 @@ function renderDash(){
   } else pCard.style.display='none';
 
   // Today's activity
+  renderTodaySummary();
   renderTodayList();
 
   // Build staff filter buttons dynamically
@@ -4759,6 +4770,41 @@ function setDayFilter(f){
   dayFilter = f;
   document.querySelectorAll('[data-day]').forEach(b=>b.classList.toggle('on',b.dataset.day===f));
   renderTodayList();
+}
+
+function renderTodaySummary(){
+  const el=document.getElementById('todaySummaryList');
+  const countEl=document.getElementById('todaySummaryCount');
+  if(!el) return;
+  const today=new Date().toISOString().split('T')[0];
+  const refs=new Set();
+  TRACKING.forEach(t=>{
+    if(t.scheduled_date===today) refs.add(t.case_ref);
+    if(t.visit_date===today&&t.visit_complete) refs.add(t.case_ref);
+    if(t.submit_date===today&&t.report_complete) refs.add(t.case_ref);
+  });
+  const rows=[...refs].map(ref=>{
+    const c=CASES.find(x=>x.case_id===ref);
+    const t=trk(ref);
+    if(!c||!t) return null;
+    const badges=[];
+    if(t.scheduled_date===today) badges.push(`<span class="badge" style="background:var(--abg);color:#92600A;white-space:nowrap;">📅 ${t.scheduled_time||''}</span>`);
+    if(t.visit_date===today&&t.visit_complete) badges.push(`<span class="badge" style="background:var(--gbg);color:var(--green);white-space:nowrap;">✅ ${t.visit_time||''}</span>`);
+    if(t.submit_date===today&&t.report_complete) badges.push(`<span class="badge" style="background:var(--gbg);color:var(--green);white-space:nowrap;">📄 ${t.submit_time||''}</span>`);
+    const tat=t.report_complete?calcTAT(c,t):null;
+    return {c,t,badges,tat};
+  }).filter(Boolean);
+  rows.sort((a,b)=>(a.t.scheduled_time||a.t.visit_time||a.t.submit_time||'').localeCompare(b.t.scheduled_time||b.t.visit_time||b.t.submit_time||''));
+
+  countEl.textContent=rows.length?`${rows.length} case${rows.length===1?'':'s'} touched today`:'';
+  el.innerHTML=rows.length?rows.map(r=>`<tr>
+    <td>${r.c.bank_name}</td>
+    <td>${r.c.case_name||'Unnamed'}</td>
+    <td>${r.t.engineer_name||'—'}</td>
+    <td>${r.t.typist_name||'—'}</td>
+    <td>${r.badges.join(' ')||'—'}</td>
+    <td style="font-weight:600;color:${r.tat&&r.tat>48?'var(--red)':'var(--blue)'}">${fmtTAT(r.tat)}</td>
+  </tr>`).join(''):'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px;">No activity today yet</td></tr>';
 }
 
 function renderTodayList(){
