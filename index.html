@@ -873,7 +873,7 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
 
         <div class="wiz-nav">
           <button class="wiz-btn-prev" id="wizPrevBtn" onclick="wizPrev()" style="display:none;">← Back</button>
-          <button class="wiz-btn-next" id="wizNextBtn" onclick="wizNext()">Next →</button>
+          <button class="wiz-btn-next" id="wizNextBtn" onclick="wizSaveAndNext()">Save & Next →</button>
         </div>
       </div>
 
@@ -5033,6 +5033,25 @@ function wizNext(){
   let idx=steps.findIndex(el=>el.dataset.step===wizStepId);
   if(idx<0) idx=0;
   if(idx<steps.length-1) wizGoTo(steps[idx+1].dataset.step);
+}
+async function wizAutoSave(){
+  if(!snCaseId) return;
+  try{
+    const c=CASES.find(x=>x.case_id===snCaseId);
+    if(!c) return;
+    const sn=gSN();
+    const payload={...sn,case_ref:snCaseId,case_id:c.id,engineer_name:CU.name};
+    const existing=await dbGetOne('site_notes',{case_ref:snCaseId});
+    if(existing) await dbUpdate('site_notes',{case_ref:snCaseId},sn);
+    else await dbInsert('site_notes',payload);
+    currentSN=sn;
+  }catch(e){
+    toast('Could not save this step — check your connection','err');
+  }
+}
+async function wizSaveAndNext(){
+  await wizAutoSave();
+  wizNext();
 }
 function wizPrev(){
   const steps=wizVisibleEls();
