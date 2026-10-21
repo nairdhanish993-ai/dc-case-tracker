@@ -2378,6 +2378,20 @@ function inboxAssigneeOptions(sel){
   return o;
 }
 
+function inboxTypistOptions(){
+  const typs=USERS.filter(u=>u.can_type&&u.active);
+  let o='<option value="">— Not assigned yet —</option>';
+  if(typs.length) o+='<optgroup label="Internal Typists">'+typs.map(u=>`<option value="${ix(u.name)}">${ix(u.name)}</option>`).join('')+'</optgroup>';
+  if(EXTV.length) o+='<optgroup label="External Valuers">'+EXTV.map(x=>`<option value="[External] ${ix(x.name)}">${ix(x.name)} (External)</option>`).join('')+'</optgroup>';
+  return o;
+}
+
+// IST wall-clock value for a datetime-local input
+function inboxLocalInput(iso){
+  const d=inboxDateParts(iso);
+  return d.date+'T'+d.time.slice(0,5);
+}
+
 function inboxCard(it){
   const when=new Date(it.received_at).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
   const sel=inboxResolveAssignee(it);
@@ -2395,9 +2409,13 @@ function inboxCard(it){
     ${fld('loc','Property location',it.property_location)}
     ${fld('phone','Client phone',it.client_phone)}
     ${fld('prod','Loan product',it.loan_product)}
-    <label style="margin-top:8px;">Assign to</label>
+    <label style="margin-top:8px;">Case time (IST) — TAT starts from this</label>
+    <input type="datetime-local" id="ib_time_${it.id}" value="${inboxLocalInput(it.received_at)}">
+    <label style="margin-top:8px;">Assign site visit to</label>
     <select id="ib_asg_${it.id}">${inboxAssigneeOptions(sel)}</select>
     ${sug}
+    <label style="margin-top:8px;">Assign report to (typist)</label>
+    <select id="ib_typ_${it.id}">${inboxTypistOptions()}</select>
     <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-top:12px;">
       <button class="btn bp" style="margin-top:0;padding:12px;" onclick="approveInbox('${it.id}')">Approve &amp; create</button>
       <button class="btn bs" style="margin-top:0;padding:12px;" onclick="askRejectInbox('${it.id}')">Reject</button>
@@ -2446,25 +2464,29 @@ async function approveInbox(id,batch){
       return {ok:false,msg:'duplicate',dup:true};
     }
     const [asgType,asgName]=asg?asg.split('|'):['',''];
-    const dp=inboxDateParts(it.received_at);
+    const typ=(document.getElementById('ib_typ_'+id)||{}).value||'';
+    const tv=(document.getElementById('ib_time_'+id)||{}).value||'';
+    let initIso=it.received_at;
+    if(tv){const d=new Date(tv+':00+05:30'); if(!isNaN(d)) initIso=d.toISOString();}
+    const dp=inboxDateParts(initIso);
     const caseRef=genId();
     const note=[it.notes,'Source: email from '+(it.sender||'unknown')].filter(Boolean).join(' | ');
     const rows=await dbInsert('cases',{
-      case_id:caseRef,staff_name:CU.name,status:asg?'assigned':'received',
+      case_id:caseRef,staff_name:CU.name,status:(asg||typ)?'assigned':'received',
       received_date:dp.date,received_time:dp.time,
-      initiated_at:it.received_at||null,gmail_thread_id:it.gmail_thread_id||null,
+      initiated_at:initIso||null,gmail_thread_id:it.gmail_thread_id||null,
       bank_id:bank.id,bank_name:bank.name,loan_product:prod||null,
       case_name:it.case_name,application_id:appId||null,
       property_location:loc,client_phone:phone||null,notes:note
     });
     const row=rows&&rows[0];
     let assignFailed=false;
-    if(asg&&row){
+    if((asg||typ)&&row){
       try{
         await dbUpsert('tracking',{
           case_ref:caseRef,case_id:row.id,
-          engineer_name:asgType==='external'?'[External] '+asgName:asgName,
-          typist_name:'',visit_complete:false,report_complete:false
+          engineer_name:asg?(asgType==='external'?'[External] '+asgName:asgName):'',
+          typist_name:typ,visit_complete:false,report_complete:false
         },'case_ref');
       }catch(e){assignFailed=true;}
     }
@@ -2479,7 +2501,7 @@ async function approveInbox(id,batch){
       renderInbox();
       if(assignFailed) toast('Case created, but the assignment failed — assign it in the Assign tab','err');
       else if(asgType==='external') toast(`Case created and given to ${asgName} — add the fee in the External tab`,'ok');
-      else toast(asg?`Case created and assigned to ${asgName} ✓`:'Case created ✓ (not assigned yet)','ok');
+      else toast((asg||typ)?`Case created and assigned ✓`:'Case created ✓ (not assigned yet)','ok');
     }
     return {ok:true,external:asgType==='external',assignFailed};
   }catch(e){
