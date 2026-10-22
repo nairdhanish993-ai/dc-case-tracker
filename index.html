@@ -1885,6 +1885,10 @@ function canSeeInbox(){
   return CU.role==='admin'||CU.name==='Anulal'||CU.name==='Sruthy';
 }
 
+function canAssign(){
+  return CU.role==='admin'||CU.name==='Sreenath'||CU.name==='Anulal'||CU.name==='Sruthy';
+}
+
 function buildNav(){
   const tabs=[];
   if(CU.isExternal){
@@ -1902,7 +1906,7 @@ function buildNav(){
   else tabs.push({id:'mydash',label:'🏠 My Day'});
   if(canSeeInbox()) tabs.push({id:'inbox',label:'📥 Incoming<span id="inboxBadge"></span>'});
   if(CU.can_add_cases||CU.role==='admin') tabs.push({id:'cases',label:'📋 Cases'});
-  if(CU.role==='admin'||CU.name==='Sreenath') tabs.push({id:'assign',label:'👥 Assign'});
+  if(canAssign()) tabs.push({id:'assign',label:'👥 Assign'});
   if(CU.role==='admin') tabs.push({id:'ext',label:'🤝 External'});
   if(CU.can_visit||CU.can_type||CU.role==='admin') tabs.push({id:'work',label:'🚗 My Work'});
   if(CU.role==='admin'){
