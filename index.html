@@ -1770,9 +1770,9 @@ function initApp(){
   loadData();
   initCaseForm();
   initWorkTab();
-  if(CU.role==='admin'){
+  if(canSeeInbox()){
     loadInbox();
-    if(!window._inboxTimer) window._inboxTimer=setInterval(()=>{ if(CU&&CU.role==='admin') loadInbox(true); },60000);
+    if(!window._inboxTimer) window._inboxTimer=setInterval(()=>{ if(CU&&canSeeInbox()) loadInbox(true); },60000);
   }
   // Hide admin-only dashboard elements for non-admin
   if(CU.role!=='admin'){
@@ -1881,6 +1881,10 @@ async function sendAssignPush(userNames,title,body){
   }catch(e){}
 }
 
+function canSeeInbox(){
+  return CU.role==='admin'||CU.name==='Anulal'||CU.name==='Sruthy';
+}
+
 function buildNav(){
   const tabs=[];
   if(CU.isExternal){
@@ -1896,7 +1900,7 @@ function buildNav(){
   // dashboard, everyone else gets a focused personal "My Day" view.
   if(CU.role==='admin') tabs.push({id:'dash',label:'📊 Dashboard'});
   else tabs.push({id:'mydash',label:'🏠 My Day'});
-  if(CU.role==='admin') tabs.push({id:'inbox',label:'📥 Incoming<span id="inboxBadge"></span>'});
+  if(canSeeInbox()) tabs.push({id:'inbox',label:'📥 Incoming<span id="inboxBadge"></span>'});
   if(CU.can_add_cases||CU.role==='admin') tabs.push({id:'cases',label:'📋 Cases'});
   if(CU.role==='admin'||CU.name==='Sreenath') tabs.push({id:'assign',label:'👥 Assign'});
   if(CU.role==='admin') tabs.push({id:'ext',label:'🤝 External'});
