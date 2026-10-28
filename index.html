@@ -2079,16 +2079,42 @@ function genId(){
 }
 
 let editingCaseId=null;
+let dupCaseOverride=false;
+
+function findDuplicateCase(name,loc){
+  const n=name.trim().toLowerCase(),l=loc.trim().toLowerCase();
+  if(!n||!l) return null;
+  return CASES.find(c=>c.case_id!==editingCaseId&&
+    (c.case_name||'').trim().toLowerCase()===n&&
+    (c.property_location||'').trim().toLowerCase()===l);
+}
 
 async function addCase(){
   const date=g('c_date'),time=g('c_time'),bankId=g('c_bank'),
-    name=g('c_name').trim(),appid=g('c_appid').trim();
+    name=g('c_name').trim(),appid=g('c_appid').trim(),loc=g('c_loc').trim();
   if(!date){toast('Date required','err');return;}
   if(!time){toast('Time required','err');return;}
   if(!bankId){toast('Select bank','err');return;}
   if(!name){toast('Borrower name required','err');return;}
   if(!appid){toast('Application ID required','err');return;}
-  if(!g('c_loc').trim()){toast('Property location required','err');return;}
+  if(!loc){toast('Property location required','err');return;}
+  if(!editingCaseId&&!dupCaseOverride){
+    const dup=findDuplicateCase(name,loc);
+    if(dup){
+      document.getElementById('modal_title').textContent='Possible Duplicate Case';
+      document.getElementById('modal_msg').textContent=
+        `A case for "${dup.case_name}" at "${dup.property_location}" already exists (${dup.bank_name}, received ${dup.received_date}${dup.application_id?', App ID '+dup.application_id:''}). Create this one anyway?`;
+      document.getElementById('modal_ok').textContent='Create Anyway';
+      document.getElementById('modal_ok').onclick=()=>{
+        closeModal();
+        dupCaseOverride=true;
+        addCase();
+      };
+      document.getElementById('modal').classList.add('open');
+      return;
+    }
+  }
+  dupCaseOverride=false;
   const bank=BANKS.find(b=>b.id===bankId);
   const btn=document.getElementById('addCaseBtn');
   const isEdit=!!editingCaseId;
@@ -2156,6 +2182,7 @@ function resetCaseForm(){
   ['c_bank','c_product','c_name','c_appid','c_loc','c_dist','c_notes'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value='';
   });
+  dupCaseOverride=false;
   initCaseForm();
 }
 
@@ -2211,7 +2238,10 @@ async function doDelete(caseId){
   }catch(e){toast('Delete error: '+e.message,'err');}
 }
 
-function closeModal(){document.getElementById('modal').classList.remove('open');}
+function closeModal(){
+  document.getElementById('modal').classList.remove('open');
+  document.getElementById('modal_ok').textContent='Confirm';
+}
 
 // ═══════════════════════════════════════════
 // ASSIGN TAB
