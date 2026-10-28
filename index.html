@@ -510,10 +510,6 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
           </div>
           <label>Local Body (Panchayat/Municipality/Corporation)</label>
           <input type="text" id="sn_localbody">
-          <div class="row2" style="margin-top:8px;">
-            <div><label>Broker / Agent Name</label><input type="text" id="sn_broker_name" placeholder="Name or NA"></div>
-            <div><label>Broker Phone</label><input type="tel" id="sn_broker_phone" placeholder="Phone or NA"></div>
-          </div>
 
           <div class="snh" style="margin-top:16px;">GPS Location <span class="req">*</span></div>
           <button onclick="fetchGPS()" style="width:100%;padding:14px;border-radius:12px;border:2px solid var(--p);background:var(--ptint);color:var(--p);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;">
@@ -796,13 +792,18 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
             <div><label>Age of Building (yrs)</label><input type="number" id="sn_age" placeholder="e.g. 18" min="0"></div>
             <div><label>Prevailing Market Rate</label><input type="text" id="sn_mkt_range" placeholder="e.g. 3-4L/cent"></div>
           </div>
-          <label>Comparable Sale 1 <span class="req">*</span></label>
+          <div class="snh" style="margin-top:16px;">Land Comparables <span style="font-weight:400;text-transform:none;color:var(--muted);">(optional — usually added after a broker inquiry)</span></div>
+          <div class="row2">
+            <div><label>Broker / Agent Name</label><input type="text" id="sn_broker_name" placeholder="Name or NA"></div>
+            <div><label>Broker Phone</label><input type="tel" id="sn_broker_phone" placeholder="Phone or NA"></div>
+          </div>
+          <label style="margin-top:10px;">Comparable Sale 1</label>
           <input type="text" id="sn_comp1" placeholder="Location, area, date">
           <div class="row2" style="margin-top:6px;">
             <div><label>Rate</label><input type="number" id="sn_comp1_rate" placeholder="e.g. 300000"></div>
             <div><label>Unit</label><select id="sn_comp1_unit"><option value="">Select…</option><option>Per Cent</option><option>Per Sqft</option></select></div>
           </div>
-          <label style="margin-top:10px;">Comparable Sale 2 <span class="req">*</span></label>
+          <label style="margin-top:10px;">Comparable Sale 2</label>
           <input type="text" id="sn_comp2" placeholder="Location, area, date">
           <div class="row2" style="margin-top:6px;">
             <div><label>Rate</label><input type="number" id="sn_comp2_rate" placeholder="e.g. 280000"></div>
@@ -3115,7 +3116,6 @@ async function saveSiteNotes(){
   const areaSite=g('sn_area_site');
   if(!lat||!lon){toast('GPS coordinates required','err');return;}
   if(!areaSite){toast('Land area at site required','err');return;}
-  if(!g('sn_comp1')||!g('sn_comp2')){toast('At least 2 land comparables are required before submitting','err');wizGoTo('rates');return;}
   if(!lr||!lc){toast('Land rate and area required','err');wizGoTo('rates');return;}
   const c=CASES.find(x=>x.case_id===snCaseId);
   const sn=gSN();
@@ -5221,8 +5221,10 @@ const WIZ_REQUIRED={
     return g('sn_bua_site')?null:{msg:'Add at least one floor with its BUA (Site) area',id:'addFloorBtn'};
   },
   rates:()=>{
-    if(!g('sn_comp1')) return {msg:'At least 2 land comparables are required — add Comparable Sale 1',id:'sn_comp1'};
-    if(!g('sn_comp2')) return {msg:'At least 2 land comparables are required — add Comparable Sale 2',id:'sn_comp2'};
+    // Land comparables/broker contact are optional — usually only
+    // available after a post-visit broker inquiry — so they're never
+    // required here. Only the adopted land rate itself (the actual
+    // valuation output) gates completion.
     if(!pf('sn_land_rate')) return {msg:'Land Rate (Rs./cent) is required',id:'sn_land_rate'};
     if(!pf('sn_land_cents')) return {msg:'Land Area (cents) is required',id:'sn_land_cents'};
     return null;
