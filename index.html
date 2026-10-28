@@ -879,7 +879,8 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
 
         <div class="wiz-nav">
           <button class="wiz-btn-prev" id="wizPrevBtn" onclick="wizPrev()" style="display:none;">← Back</button>
-          <button class="wiz-btn-next" id="wizNextBtn" onclick="wizSaveAndNext()">Save & Next →</button>
+          <button type="button" onclick="saveSiteNotesDraft()" title="Save Draft" style="width:48px;flex-shrink:0;border-radius:12px;border:2px solid var(--p);background:var(--ptint);color:var(--p);font-size:18px;cursor:pointer;">💾</button>
+          <button class="wiz-btn-next" id="wizNextBtn" onclick="wizNext()">Next →</button>
         </div>
       </div>
 
@@ -2750,11 +2751,14 @@ async function onVisitPick(){
   // signal that should unlock Step 3 / count as visit completion.
   visitSNExists=!!(sn&&sn.land_rate&&sn.land_cents&&sn.area_site);
   sitePhotos=[];renderPhotos();
-  // Recompute the wizard's step count/labels now that snCaseId (and the
-  // bank-dependent AUCB steps) and any loaded site note's property type
-  // are both final — clearSiteNotes() reset to 'case' earlier using the
-  // previous case's conditions, which can be stale (e.g. wrong bank).
-  wizGoTo('case');
+  // Recompute the wizard's ring/total/labels now that snCaseId (and the
+  // bank-dependent AUCB steps) are final — clearSiteNotes() reset to
+  // 'case' earlier using the previous case's conditions, which can be
+  // stale (e.g. wrong bank). Re-resolve whatever step fillSN() already
+  // resumed to (or 'case' for a brand-new note) rather than forcing
+  // 'case', so a draft reopened mid-flow doesn't get bounced back to
+  // step 1.
+  wizGoTo(wizStepId);
   refreshVisitSteps(id,t);
   // Auto-fetch GPS if not already filled
   if(!document.getElementById('sn_lat').value) {
@@ -3078,7 +3082,11 @@ function fillSN(d){
   onBndDiscChange(hasDisc?'yes':'no');
   wizSetChip('sn_plan_matches_chips','sn_plan_matches',d.plan_matches_site||'');
   updateRentPerSqft();
-  wizGoTo('case');
+  // Resume where this draft was left off, instead of always resetting to
+  // step 1 — e.g. an engineer who filled everything on site and is only
+  // missing the broker-sourced land rate should land directly back on
+  // Rates & Remarks, not have to click through the whole form again.
+  wizGoTo(wizResumeStep());
 }
 
 async function saveSiteNotesDraft(){
@@ -3106,8 +3114,9 @@ async function saveSiteNotes(){
   const lr=pf('sn_land_rate'),lc=pf('sn_land_cents');
   const areaSite=g('sn_area_site');
   if(!lat||!lon){toast('GPS coordinates required','err');return;}
-  if(!lr||!lc){toast('Land rate and area required in section 5','err');return;}
-  if(!areaSite){toast('Land area at site required in section 3','err');return;}
+  if(!areaSite){toast('Land area at site required','err');return;}
+  if(!g('sn_comp1')||!g('sn_comp2')){toast('At least 2 land comparables are required before submitting','err');wizGoTo('rates');return;}
+  if(!lr||!lc){toast('Land rate and area required','err');wizGoTo('rates');return;}
   const c=CASES.find(x=>x.case_id===snCaseId);
   const sn=gSN();
   const payload={...sn,case_ref:snCaseId,case_id:c.id,engineer_name:CU.name};
@@ -5286,47 +5295,19 @@ function wizValidateStep(stepId){
   const fn=WIZ_REQUIRED[stepId];
   return fn?fn():null;
 }
-async function wizAutoSaveAttempt(){
-  const c=CASES.find(x=>x.case_id===snCaseId);
-  if(!c) return;
-  const sn=gSN();
-  const payload={...sn,case_ref:snCaseId,case_id:c.id,engineer_name:CU.name};
-  const existing=await dbGetOne('site_notes',{case_ref:snCaseId});
-  if(existing) await dbUpdate('site_notes',{case_ref:snCaseId},sn);
-  else await dbInsert('site_notes',payload);
-  currentSN=sn;
-}
-async function wizAutoSave(){
-  if(!snCaseId) return;
-  try{
-    await wizAutoSaveAttempt();
-  }catch(e){
-    // Field connectivity is often patchy — retry once before giving up,
-    // and don't block the engineer from continuing to fill the form
-    // either way (wizNext() still runs after this returns).
-    try{
-      await wizAutoSaveAttempt();
-    }catch(e2){
-      toast('This step is not synced yet (poor connection) — keep going, it will retry on the next Save & Next','err');
-    }
+// Next/Back are pure local navigation — no network call, so a weak
+// mobile connection in the field can never turn clicking Next into an
+// error. Required fields are only enforced at two deliberate moments:
+// Save Draft (GPS only — see saveSiteNotesDraft) and the final Submit &
+// Complete Visit (full checklist — see saveSiteNotes). This also means
+// comparables/land rate, which usually only arrive after a broker
+// inquiry post-visit, never block getting to Save Draft.
+function wizResumeStep(){
+  for(const stepId of WIZ_ORDER){
+    if(wizStepSkip(stepId)) continue;
+    if(wizValidateStep(stepId)) return stepId;
   }
-}
-async function wizSaveAndNext(){
-  const stepEl=document.querySelector(`#sn_card .wiz-step[data-step="${wizStepId}"]`);
-  if(stepEl) stepEl.querySelectorAll('.err').forEach(el=>el.classList.remove('err'));
-  const err=wizValidateStep(wizStepId);
-  if(err){
-    toast(err.msg,'err');
-    const el=document.getElementById(err.id);
-    if(el){
-      el.classList.add('err');
-      el.scrollIntoView({behavior:'smooth',block:'center'});
-      el.focus({preventScroll:true});
-    }
-    return;
-  }
-  await wizAutoSave();
-  wizNext();
+  return WIZ_ORDER[WIZ_ORDER.length-1];
 }
 function wizSetChip(rowId,hiddenId,value){
   const row=document.getElementById(rowId),hid=document.getElementById(hiddenId);
