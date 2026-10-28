@@ -490,6 +490,15 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
             <label>Contact Number of Person Met at Site</label>
             <input type="tel" id="sn_visit_contact" placeholder="Phone number">
           </div>
+          <label style="margin-top:12px;">Person Met at Site (Name & Contact)</label>
+          <input type="text" id="sn_contact_person" placeholder="e.g. Ramesh, 9876543210">
+          <label style="margin-top:8px;">Relation with Client</label>
+          <select id="sn_relation_client">
+            <option value="">Select…</option>
+            <option>Owner / Applicant</option><option>Spouse</option><option>Family Member</option>
+            <option>Tenant</option><option>Watchman / Caretaker</option><option>Neighbor</option>
+            <option>Builder / Developer Representative</option><option>Broker / Agent</option><option>Other</option>
+          </select>
           <label style="margin-top:12px;">Weather at Time of Visit</label>
           <select id="sn_weather">
             <option value="">Select…</option>
@@ -576,7 +585,7 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
               <option>4 BHK</option><option>Independent House</option><option>Apartment</option><option>Villa</option>
             </select>
             <div class="row2">
-              <div><label>Approximate Monthly Rent (Rs.)</label><input type="number" id="sn_res_rent" placeholder="e.g. 12000"></div>
+              <div><label>Approximate Monthly Rent (Rs.)</label><input type="number" id="sn_res_rent" placeholder="e.g. 12000" oninput="updateRentPerSqft()"></div>
               <div><label>No. of Bedrooms</label><input type="number" id="sn_bedrooms" placeholder="e.g. 3" min="1"></div>
             </div>
           </div>
@@ -622,7 +631,6 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
             <div class="snh">🏦 AUCB — Occupant</div>
             <label>Name of Person Occupying the Property</label><input type="text" id="sn_occupant_name" placeholder="—">
             <label>If Rented — Tenant Name & Rent</label><input type="text" id="sn_tenant_details" placeholder="e.g. Ramesh — Rs. 8,000/month">
-            <label>Name & Contact of Person Met at Site</label><input type="text" id="sn_contact_person" placeholder="Name, phone number">
           </div>
         </div>
 
@@ -672,16 +680,29 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
             <option>Cents</option><option>Acres</option><option>Sqft</option><option>Ares</option><option>Hectares</option>
           </select>
           <div class="row2" style="margin-top:8px;">
-            <div><label>Land Area (Document)</label><input type="text" id="sn_area_doc" placeholder="e.g. 9.59 cents"></div>
-            <div><label>Land Area (Site) <span class="req">*</span></label><input type="text" id="sn_area_site" placeholder="e.g. 9.59 cents"></div>
+            <div><label>Land Area (Document)</label><input type="text" id="sn_area_doc" placeholder="e.g. 9.59 cents" oninput="autoAdoptLeast()"></div>
+            <div><label>Land Area (Site) <span class="req">*</span></label><input type="text" id="sn_area_site" placeholder="e.g. 9.59 cents" oninput="autoAdoptLeast()"></div>
           </div>
+          <p class="hint" id="sn_land_adopt_hint" style="margin-top:4px;"></p>
           <label style="margin-top:8px;">Road Type & Width</label>
           <div class="row2">
             <select id="sn_road"><option value="">Select…</option><option>Tar road</option><option>Concrete road</option><option>Mud road</option><option>Interlocked</option></select>
             <input type="text" id="sn_road_width" placeholder="Width e.g. 9.8 ft">
           </div>
-          <label style="margin-top:8px;">Road Frontage (ft)</label>
-          <input type="number" id="sn_road_frontage" placeholder="e.g. 32">
+          <div class="row2" style="margin-top:8px;">
+            <div><label>Road Ownership</label>
+              <select id="sn_road_ownership"><option value="">Select…</option><option>Private</option><option>Public</option></select>
+            </div>
+            <div><label>Road Frontage (ft)</label><input type="number" id="sn_road_frontage" placeholder="e.g. 32"></div>
+          </div>
+          <label style="margin-top:8px;">Vehicle Access</label>
+          <select id="sn_access_type">
+            <option value="">Select…</option>
+            <option>Four-wheeler access</option>
+            <option>Two-wheeler access only</option>
+            <option>Pathway only (no vehicle access)</option>
+            <option>Land-locked</option>
+          </select>
         </div>
 
         <!-- STEP 5 — Building (skipped if property category is vacant land) -->
@@ -699,10 +720,13 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
 
           <!-- Normal BUA fields -->
           <div id="sn_normal_area" style="margin-top:8px;">
-            <div class="row2">
-              <div><label>BUA (Document)</label><input type="number" id="sn_bua_doc" placeholder="sqft"></div>
-              <div><label>BUA (Site) <span class="req">*</span></label><input type="number" id="sn_bua_site" placeholder="sqft"></div>
-            </div>
+            <label>BUA as per Plan / Documents (sqft)</label>
+            <input type="number" id="sn_bua_doc" placeholder="sqft" oninput="autoAdoptBuildingLeast()">
+            <label style="margin-top:10px;">BUA as per Site — Floor-wise (sqft) <span class="req">*</span></label>
+            <div id="sn_floor_rows"></div>
+            <button type="button" onclick="addFloorRow()" style="margin-top:6px;padding:9px 14px;border-radius:9px;border:1.5px dashed var(--p);background:var(--ptint);color:var(--p);font-weight:600;font-size:13px;cursor:pointer;">+ Add Floor</button>
+            <input type="hidden" id="sn_bua_site">
+            <p class="hint" id="sn_bldg_area_hint" style="margin-top:8px;"></p>
           </div>
 
           <!-- UDS fields — shown only when UDS ticked -->
@@ -726,10 +750,16 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
           </div>
 
           <label>Construction Type</label>
-          <select id="sn_const"><option value="">Select…</option><option>RCC</option><option>Load bearing</option><option>Composite</option><option>Steel framed</option></select>
+          <select id="sn_const"><option value="">Select…</option><option>RCC</option><option>Load bearing</option><option>Composite</option><option>Steel framed</option><option>Sheet</option></select>
           <div class="row2">
             <div><label>No. of Floors</label><input type="number" id="sn_floors" placeholder="e.g. 2" min="1"></div>
             <div><label>Condition</label><select id="sn_cond"><option value="">Select…</option><option>Excellent</option><option>Good</option><option>Normal</option><option>Poor</option></select></div>
+          </div>
+          <label style="margin-top:10px;">Does the Plan Match Site Condition?</label>
+          <input type="hidden" id="sn_plan_matches" value="">
+          <div class="wiz-chip-row" id="sn_plan_matches_chips">
+            <button type="button" class="wiz-chip" data-val="yes" onclick="wizSetChip('sn_plan_matches_chips','sn_plan_matches','yes')">Yes</button>
+            <button type="button" class="wiz-chip" data-val="no" onclick="wizSetChip('sn_plan_matches_chips','sn_plan_matches','no')">No</button>
           </div>
 
           <div id="sn_aucb_bldg" style="display:none;margin-top:16px;">
@@ -766,10 +796,18 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
             <div><label>Age of Building (yrs)</label><input type="number" id="sn_age" placeholder="e.g. 18" min="0"></div>
             <div><label>Prevailing Market Rate</label><input type="text" id="sn_mkt_range" placeholder="e.g. 3-4L/cent"></div>
           </div>
-          <label>Comparable Sale 1</label>
-          <input type="text" id="sn_comp1" placeholder="Location, area, rate, date">
-          <label>Comparable Sale 2</label>
-          <input type="text" id="sn_comp2" placeholder="Location, area, rate, date">
+          <label>Comparable Sale 1 <span class="req">*</span></label>
+          <input type="text" id="sn_comp1" placeholder="Location, area, date">
+          <div class="row2" style="margin-top:6px;">
+            <div><label>Rate</label><input type="number" id="sn_comp1_rate" placeholder="e.g. 300000"></div>
+            <div><label>Unit</label><select id="sn_comp1_unit"><option value="">Select…</option><option>Per Cent</option><option>Per Sqft</option></select></div>
+          </div>
+          <label style="margin-top:10px;">Comparable Sale 2 <span class="req">*</span></label>
+          <input type="text" id="sn_comp2" placeholder="Location, area, date">
+          <div class="row2" style="margin-top:6px;">
+            <div><label>Rate</label><input type="number" id="sn_comp2_rate" placeholder="e.g. 280000"></div>
+            <div><label>Unit</label><select id="sn_comp2_unit"><option value="">Select…</option><option>Per Cent</option><option>Per Sqft</option></select></div>
+          </div>
 
           <div class="snh" style="margin-top:16px;">Adopted Rate (Engineer's Estimate)</div>
           <div class="row2">
@@ -785,6 +823,7 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
             <div class="vrow"><span class="vlbl">Building Value</span><span class="vval" id="se_bldg">—</span></div>
             <div class="vrow vtot"><span class="vlbl">Total Valuation (auto-calculated)</span><span class="vval" id="se_tot">—</span></div>
           </div>
+          <p class="hint" id="sn_rent_per_sqft_hint" style="margin-top:10px;"></p>
 
           <label style="margin-top:16px;">General Remarks & Concerns</label>
           <textarea id="sn_remarks" placeholder="Any concerns, special features, encroachments, CRZ, flooding risk, demolition risk, conditions of approval…" style="min-height:90px;"></textarea>
@@ -2622,9 +2661,9 @@ function populateVisitPicker(){
   const v=el.value;
   let cases=CASES;
   if(CU.isExternal){
-    cases=CASES.filter(c=>{const t=trk(c.case_id);return t&&t.engineer_name==='[External] '+CU.name;});
+    cases=CASES.filter(c=>{const t=trk(c.case_id);return t&&t.engineer_name==='[External] '+CU.name&&!t.visit_complete;});
   } else if(CU.role!=='admin'){
-    cases=CASES.filter(c=>{const t=trk(c.case_id);return t&&t.engineer_name&&t.engineer_name.toLowerCase()===CU.name.toLowerCase();});
+    cases=CASES.filter(c=>{const t=trk(c.case_id);return t&&t.engineer_name&&t.engineer_name.toLowerCase()===CU.name.toLowerCase()&&!t.visit_complete;});
   }
   el.innerHTML='<option value="">Select case…</option>'+cases.map(c=>{
     const t=trk(c.case_id);
@@ -2680,6 +2719,7 @@ async function onVisitPick(){
   }
   sumEl.innerHTML=`<b>${c.bank_name}</b> · ${c.case_name||'—'}<br>
     App ID: ${c.application_id||'—'} · Location: ${c.property_location||'—'}<br>
+    Loan Product: <b>${c.loan_product||'—'}</b><br>
     Received: <b>${c.received_date} ${c.received_time||''}</b>${feeLine}`;
   sumEl.style.display='block';
   document.getElementById('v_date').value=t?.visit_date||'';
@@ -2827,13 +2867,18 @@ function clearSiteNotes(){
   document.getElementById('sn_residential_section').style.display='none';
   document.getElementById('sn_commercial_section').style.display='none';
   // Reset wizard chips/conditional rows and jump back to step 1
-  ['sn_owner_present','sn_bnd_disc_flag'].forEach(id=>{
+  ['sn_owner_present','sn_bnd_disc_flag','sn_plan_matches'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
   document.querySelectorAll('.wiz-chip').forEach(c=>c.classList.remove('sel'));
   const vcr=document.getElementById('sn_visit_contact_row'); if(vcr) vcr.style.display='none';
   const bdr=document.getElementById('sn_bnd_disc_row'); if(bdr) bdr.style.display='none';
   const apt=document.getElementById('sn_apt_fields'); if(apt) apt.style.display='none';
+  floorAreas=[];
+  renderFloorRows();
+  const rentHint=document.getElementById('sn_rent_per_sqft_hint'); if(rentHint) rentHint.textContent='';
+  const landHint=document.getElementById('sn_land_adopt_hint'); if(landHint) landHint.textContent='';
+  const bldgHint=document.getElementById('sn_bldg_area_hint'); if(bldgHint) bldgHint.textContent='';
   wizGoTo('case');
 }
 
@@ -2901,6 +2946,8 @@ function gSN(){
     const_type:g('sn_const'),floors:pf('sn_floors'),condition:g('sn_cond'),
     age:pf('sn_age'),mkt_range:g('sn_mkt_range'),
     comparable1:g('sn_comp1'),comparable2:g('sn_comp2'),
+    comparable1_rate:pf('sn_comp1_rate'),comparable1_rate_unit:g('sn_comp1_unit'),
+    comparable2_rate:pf('sn_comp2_rate'),comparable2_rate_unit:g('sn_comp2_unit'),
     land_rate:pf('sn_land_rate'),land_cents:pf('sn_land_cents'),
     bldg_rate:pf('sn_bldg_rate'),bldg_area:pf('sn_bldg_area'),
     lat:g('sn_lat'),lon:g('sn_lon'),
@@ -2947,7 +2994,13 @@ function gSN(){
     sensitive_area:g('sn_sensitive_area'),
     fencing_done:g('sn_fencing'),
     marketability:g('sn_marketability'),
-    surround_dev:g('sn_surround_dev')
+    surround_dev:g('sn_surround_dev'),
+    relation_with_client:g('sn_relation_client'),
+    road_ownership:g('sn_road_ownership'),
+    access_type:g('sn_access_type'),
+    floor_areas:floorAreas,
+    plan_matches_site:g('sn_plan_matches'),
+    res_rent_per_sqft:(pf('sn_res_rent')&&pf('sn_bldg_area'))?+(pf('sn_res_rent')/pf('sn_bldg_area')).toFixed(2):null
   };
 }
 
@@ -2972,6 +3025,8 @@ function fillSN(d){
     sn_const:'const_type',sn_floors:'floors',sn_cond:'condition',
     sn_age:'age',sn_mkt_range:'mkt_range',
     sn_comp1:'comparable1',sn_comp2:'comparable2',
+    sn_comp1_rate:'comparable1_rate',sn_comp1_unit:'comparable1_rate_unit',
+    sn_comp2_rate:'comparable2_rate',sn_comp2_unit:'comparable2_rate_unit',
     sn_land_rate:'land_rate',sn_land_cents:'land_cents',
     sn_bldg_rate:'bldg_rate',sn_bldg_area:'bldg_area',
     sn_lat:'lat',sn_lon:'lon',sn_remarks:'remarks',
@@ -2995,12 +3050,16 @@ function fillSN(d){
     sn_demolition_risk:'demolition_risk',sn_amenities:'amenities',
     sn_area_ksmart:'area_ksmart',sn_sensitive_area:'sensitive_area',
     sn_fencing:'fencing_done',sn_marketability:'marketability',
-    sn_surround_dev:'surround_dev'
+    sn_surround_dev:'surround_dev',
+    sn_relation_client:'relation_with_client',
+    sn_road_ownership:'road_ownership',sn_access_type:'access_type'
   };
   Object.entries(map).forEach(([elId,field])=>{
     const el=document.getElementById(elId);
     if(el&&d[field]!=null) el.value=d[field];
   });
+  floorAreas=Array.isArray(d.floor_areas)&&d.floor_areas.length?d.floor_areas:[];
+  renderFloorRows();
   if(d.uds_mode&&!isUDS) toggleUDS();
   calcSiteEst();
   onPropTypeChange();
@@ -3011,6 +3070,8 @@ function fillSN(d){
   wizSetChip('sn_bnd_disc_chips','sn_bnd_disc_flag',d.boundary_discrepancy?(hasDisc?'yes':'no'):'');
   if(hasDisc) document.getElementById('sn_bnd_disc_text').value=d.boundary_discrepancy;
   onBndDiscChange(hasDisc?'yes':'no');
+  wizSetChip('sn_plan_matches_chips','sn_plan_matches',d.plan_matches_site||'');
+  updateRentPerSqft();
   wizGoTo('case');
 }
 
@@ -3083,6 +3144,7 @@ async function saveSiteNotes(){
           lat:sn.lat,lon:sn.lon,prop_type:sn.prop_type,
           bank_name:c2?.bank_name,
           res_type:sn.res_type||null,res_rent:sn.res_rent||null,
+          res_rent_per_sqft:sn.res_rent_per_sqft||null,
           comm_rent_sqft:sn.comm_rent_sqft||null,comm_area:sn.comm_area||null,
           mkt_range:sn.mkt_range,
           broker_name:sn.broker_name||null,
@@ -4988,6 +5050,80 @@ function calcSiteEst(){
     document.getElementById('se_bldg').textContent='₹ '+Math.round(bv).toLocaleString('en-IN');
     document.getElementById('se_tot').textContent='₹ '+Math.round(tot).toLocaleString('en-IN');
   }else box.style.display='none';
+  updateRentPerSqft();
+}
+
+// ── Floor-wise building area (As per Site) ──
+let floorAreas=[]; // [{label, sqft}]
+
+function renderFloorRows(){
+  const el=document.getElementById('sn_floor_rows');
+  if(!el) return;
+  el.innerHTML=floorAreas.map((f,i)=>`
+    <div class="row2" style="margin-top:6px;align-items:flex-start;">
+      <input type="text" value="${(f.label||'').replace(/"/g,'&quot;')}" placeholder="e.g. Ground Floor" oninput="updateFloorRow(${i},'label',this.value)">
+      <div style="display:flex;gap:6px;">
+        <input type="number" value="${f.sqft??''}" placeholder="sqft" oninput="updateFloorRow(${i},'sqft',this.value)" style="flex:1;">
+        <button type="button" onclick="removeFloorRow(${i})" style="width:44px;flex-shrink:0;border-radius:10px;border:1.5px solid var(--border);background:#fff;color:var(--red);font-size:18px;cursor:pointer;">×</button>
+      </div>
+    </div>`).join('');
+  updateFloorTotal();
+}
+function addFloorRow(){
+  const n=floorAreas.length;
+  const defaultLabel=n===0?'Ground Floor':n===1?'First Floor':n===2?'Second Floor':`Floor ${n+1}`;
+  floorAreas.push({label:defaultLabel,sqft:null});
+  renderFloorRows();
+}
+function updateFloorRow(i,field,val){
+  if(!floorAreas[i]) return;
+  floorAreas[i][field]=field==='sqft'?(parseFloat(val)||null):val;
+  updateFloorTotal();
+}
+function removeFloorRow(i){
+  floorAreas.splice(i,1);
+  renderFloorRows();
+}
+function updateFloorTotal(){
+  const total=floorAreas.reduce((s,f)=>s+(parseFloat(f.sqft)||0),0);
+  const buaSite=document.getElementById('sn_bua_site');
+  if(buaSite) buaSite.value=total||'';
+  autoAdoptBuildingLeast();
+}
+
+// ── Auto-adopt the lesser of document vs site measurements ──
+function autoAdoptLeast(){
+  const doc=parseFloat(g('sn_area_doc'));
+  const site=parseFloat(g('sn_area_site'));
+  const hintEl=document.getElementById('sn_land_adopt_hint');
+  if(isNaN(doc)&&isNaN(site)){ if(hintEl) hintEl.textContent=''; return; }
+  const adopted=(!isNaN(doc)&&!isNaN(site))?Math.min(doc,site):(!isNaN(doc)?doc:site);
+  document.getElementById('sn_land_cents').value=adopted;
+  if(hintEl) hintEl.textContent=`Adopted for valuation (lower of document/site): ${adopted} ${g('sn_extent_unit')||'cents'}`;
+  calcSiteEst();
+}
+function autoAdoptBuildingLeast(){
+  const doc=parseFloat(g('sn_bua_doc'));
+  const site=parseFloat(g('sn_bua_site'));
+  const hintEl=document.getElementById('sn_bldg_area_hint');
+  if(isNaN(doc)&&isNaN(site)){ if(hintEl) hintEl.textContent=''; return; }
+  const adopted=(!isNaN(doc)&&!isNaN(site))?Math.min(doc,site):(!isNaN(doc)?doc:site);
+  const bldgArea=document.getElementById('sn_bldg_area');
+  if(bldgArea) bldgArea.value=adopted;
+  if(hintEl) hintEl.textContent=`Adopted for valuation (lower of plan/site): ${adopted.toLocaleString('en-IN')} sqft`;
+  calcSiteEst();
+}
+function updateRentPerSqft(){
+  const hintEl=document.getElementById('sn_rent_per_sqft_hint');
+  if(!hintEl) return;
+  const rent=pf('sn_res_rent');
+  const area=pf('sn_bldg_area');
+  if(rent&&area){
+    const perSqft=rent/area;
+    hintEl.textContent=`💰 Residential rent ≈ ₹${perSqft.toFixed(2)}/sqft/month (₹${rent.toLocaleString('en-IN')}/month ÷ ${area.toLocaleString('en-IN')} sqft adopted) — saved to the rental database`;
+  }else{
+    hintEl.textContent='';
+  }
 }
 
 // Show UDS toggle for apartment/shop types
@@ -5033,6 +5169,8 @@ const WIZ_REQUIRED={
     return g('sn_bua_site')?null:{msg:'BUA (Site) is required',id:'sn_bua_site'};
   },
   rates:()=>{
+    if(!g('sn_comp1')) return {msg:'At least 2 land comparables are required — add Comparable Sale 1',id:'sn_comp1'};
+    if(!g('sn_comp2')) return {msg:'At least 2 land comparables are required — add Comparable Sale 2',id:'sn_comp2'};
     if(!pf('sn_land_rate')) return {msg:'Land Rate (Rs./cent) is required',id:'sn_land_rate'};
     if(!pf('sn_land_cents')) return {msg:'Land Area (cents) is required',id:'sn_land_cents'};
     return null;
