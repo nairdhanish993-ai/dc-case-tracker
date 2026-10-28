@@ -1641,7 +1641,9 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
     <p style="font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:20px;" id="successMsg">Saved successfully.</p>
     <div id="successShareActions" style="display:none;margin-bottom:10px;">
       <button onclick="downloadGeneratedSNPDF()" id="successPdfBtn" style="width:100%;padding:13px;border:2px solid var(--p);border-radius:12px;background:var(--ptint);color:var(--p);font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;margin-bottom:8px;">📄 Download PDF</button>
-      <button onclick="shareGeneratedSNPDF()" id="successWhatsappBtn" style="width:100%;padding:13px;border:none;border-radius:12px;background:#25D366;color:#fff;font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;margin-bottom:8px;display:none;">📱 Share via WhatsApp</button>
+      <button onclick="shareGeneratedSNPDF()" id="successWhatsappBtn" style="width:100%;padding:13px;border:none;border-radius:12px;background:#25D366;color:#fff;font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;margin-bottom:8px;display:none;">📱 Share PDF via WhatsApp</button>
+      <button onclick="downloadGeneratedSNWord()" id="successWordBtn" style="width:100%;padding:13px;border:2px solid var(--blue);border-radius:12px;background:#fff;color:var(--blue);font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;margin-bottom:8px;">📝 Download Word</button>
+      <button onclick="shareGeneratedSNWord()" id="successWhatsappWordBtn" style="width:100%;padding:13px;border:none;border-radius:12px;background:#25D366;color:#fff;font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;margin-bottom:8px;display:none;">📱 Share Word via WhatsApp</button>
       <p class="hint" id="successPdfStatus" style="text-align:center;margin-bottom:4px;"></p>
     </div>
     <button onclick="closeSuccess()" style="width:100%;padding:14px;border:none;border-radius:12px;background:var(--p);color:#fff;font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;">Continue</button>
@@ -5533,8 +5535,10 @@ function showSiteNoteSubmitSuccess(c,sn){
   snPdfCaseAndNotes={c,sn};
   snPdfBlobCache=null;
   document.getElementById('successPdfStatus').textContent='';
-  const canShareFiles=!!(navigator.canShare&&navigator.canShare({files:[new File([],'test.pdf',{type:'application/pdf'})]}));
-  document.getElementById('successWhatsappBtn').style.display=canShareFiles?'block':'none';
+  const canSharePdf=!!(navigator.canShare&&navigator.canShare({files:[new File([],'test.pdf',{type:'application/pdf'})]}));
+  const canShareWord=!!(navigator.canShare&&navigator.canShare({files:[new File([],'test.doc',{type:'application/msword'})]}));
+  document.getElementById('successWhatsappBtn').style.display=canSharePdf?'block':'none';
+  document.getElementById('successWhatsappWordBtn').style.display=canShareWord?'block':'none';
   document.getElementById('successShareActions').style.display='block';
 }
 
@@ -5628,6 +5632,55 @@ async function shareGeneratedSNPDF(){
     }else{
       statusEl.textContent='Sharing not supported on this device — downloading instead.';
       await downloadGeneratedSNPDF();
+    }
+  }catch(e){
+    if(e.name!=='AbortError') statusEl.textContent='Could not share: '+e.message;
+    else statusEl.textContent='';
+  }
+}
+
+// Word export already embeds every site photo as a base64 <img> inside
+// the document (see buildSNWord), which a backend can pull out with a
+// simple HTML/regex pass — no PDF parsing needed. Reuses that same
+// builder so the shared file matches the "Download Word" export.
+function buildGeneratedSNWordBlob(c,sn){
+  const content=buildSNWord(c,sn);
+  return new Blob([content],{type:'application/msword'});
+}
+
+async function downloadGeneratedSNWord(){
+  if(!snPdfCaseAndNotes) return;
+  const statusEl=document.getElementById('successPdfStatus');
+  try{
+    const {c,sn}=snPdfCaseAndNotes;
+    const blob=buildGeneratedSNWordBlob(c,sn);
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`SiteNotes_${(c.case_name||'draft').replace(/\s+/g,'_')}_${c.received_date||'draft'}.doc`;
+    a.click();
+    URL.revokeObjectURL(url);
+    statusEl.textContent='Downloaded ✓';
+  }catch(e){
+    statusEl.textContent='Could not generate Word file: '+e.message;
+  }
+}
+
+async function shareGeneratedSNWord(){
+  if(!snPdfCaseAndNotes) return;
+  const statusEl=document.getElementById('successPdfStatus');
+  statusEl.textContent='Preparing Word file to share…';
+  try{
+    const {c,sn}=snPdfCaseAndNotes;
+    const blob=buildGeneratedSNWordBlob(c,sn);
+    const fileName=`SiteNotes_${(c.case_name||'draft').replace(/\s+/g,'_')}_${c.received_date||'draft'}.doc`;
+    const file=new File([blob],fileName,{type:'application/msword'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:'Site Notes — '+(c.case_name||''),text:'Site technical notes for '+(c.case_name||'')+' ('+(c.bank_name||'')+')'});
+      statusEl.textContent='';
+    }else{
+      statusEl.textContent='Sharing not supported on this device — downloading instead.';
+      await downloadGeneratedSNWord();
     }
   }catch(e){
     if(e.name!=='AbortError') statusEl.textContent='Could not share: '+e.message;
