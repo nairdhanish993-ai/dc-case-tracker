@@ -521,8 +521,8 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
           </button>
           <p class="hint" id="gps_status" style="text-align:center;margin-bottom:10px;">Auto-fetches when you open a case. Tap above if needed.</p>
           <div class="row2">
-            <div><label>Latitude</label><input type="text" id="sn_lat" placeholder="Auto-filled"></div>
-            <div><label>Longitude</label><input type="text" id="sn_lon" placeholder="Auto-filled"></div>
+            <div><label>Latitude</label><input type="text" id="sn_lat" placeholder="Auto-filled" onchange="onManualLatLon()"></div>
+            <div><label>Longitude</label><input type="text" id="sn_lon" placeholder="Auto-filled" onchange="onManualLatLon()"></div>
           </div>
           <p class="hint" id="sn_poi_status" style="margin-top:10px;">Fetch GPS above to auto-check nearby amenities and hazards.</p>
           <div id="sn_poi_amenities"></div>
@@ -724,7 +724,7 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
             <input type="number" id="sn_bua_doc" placeholder="sqft" oninput="autoAdoptBuildingLeast()">
             <label style="margin-top:10px;">BUA as per Site — Floor-wise (sqft) <span class="req">*</span></label>
             <div id="sn_floor_rows"></div>
-            <button type="button" onclick="addFloorRow()" style="margin-top:6px;padding:9px 14px;border-radius:9px;border:1.5px dashed var(--p);background:var(--ptint);color:var(--p);font-weight:600;font-size:13px;cursor:pointer;">+ Add Floor</button>
+            <button type="button" id="addFloorBtn" onclick="addFloorRow()" style="margin-top:6px;padding:9px 14px;border-radius:9px;border:1.5px dashed var(--p);background:var(--ptint);color:var(--p);font-weight:600;font-size:13px;cursor:pointer;">+ Add Floor</button>
             <input type="hidden" id="sn_bua_site">
             <p class="hint" id="sn_bldg_area_hint" style="margin-top:8px;"></p>
           </div>
@@ -2743,6 +2743,7 @@ async function onVisitPick(){
   try{
     sn=await dbGetOne('site_notes',{case_ref:id});
     if(sn) fillSN(sn);
+    else { floorAreas=[{label:'Ground Floor',sqft:null}]; renderFloorRows(); }
   }catch(e){}
   // A row can exist as a draft (GPS only) - only treat it as "submitted"
   // once it has everything saveSiteNotes() requires, since that's the
@@ -3058,7 +3059,12 @@ function fillSN(d){
     const el=document.getElementById(elId);
     if(el&&d[field]!=null) el.value=d[field];
   });
-  floorAreas=Array.isArray(d.floor_areas)&&d.floor_areas.length?d.floor_areas:[];
+  // Restore floor-wise areas. A draft saved before this feature existed has
+  // a flat bua_site but no floor_areas — carry that number forward as a
+  // single "Ground Floor" row instead of silently zeroing it out.
+  if(Array.isArray(d.floor_areas)&&d.floor_areas.length) floorAreas=d.floor_areas;
+  else if(d.bua_site) floorAreas=[{label:'Ground Floor',sqft:d.bua_site}];
+  else floorAreas=[{label:'Ground Floor',sqft:null}];
   renderFloorRows();
   if(d.uds_mode&&!isUDS) toggleUDS();
   calcSiteEst();
@@ -3230,6 +3236,11 @@ function autoFetchGPS(){
   );
 }
 
+function onManualLatLon(){
+  const lat=parseFloat(g('sn_lat')),lon=parseFloat(g('sn_lon'));
+  if(!isNaN(lat)&&!isNaN(lon)) fetchNearbyPOI(lat,lon);
+}
+
 function haversineMeters(lat1,lon1,lat2,lon2){
   const R=6371000,toRad=d=>d*Math.PI/180;
   const dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1);
@@ -3255,10 +3266,23 @@ async function fetchNearbyPOI(lat,lon){
     node["landuse"="quarry"](around:2500,${lat},${lon});
     way["landuse"="quarry"](around:2500,${lat},${lon});
   );out center 25;`;
+  // The free overpass-api.de instance is occasionally overloaded/down —
+  // fall back to a mirror instead of failing outright.
+  const OVERPASS_ENDPOINTS=[
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter'
+  ];
   try{
-    const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(query)});
-    if(!r.ok) throw new Error('Overpass request failed');
-    const data=await r.json();
+    let data=null,lastErr=null;
+    for(const endpoint of OVERPASS_ENDPOINTS){
+      try{
+        const r=await fetch(endpoint,{method:'POST',body:'data='+encodeURIComponent(query)});
+        if(!r.ok) throw new Error('Overpass request failed ('+r.status+')');
+        data=await r.json();
+        break;
+      }catch(e){ lastErr=e; }
+    }
+    if(!data) throw lastErr||new Error('All Overpass endpoints failed');
     const items=(data.elements||[]).map(el=>{
       const elat=el.lat??el.center?.lat, elon=el.lon??el.center?.lon;
       if(elat==null||elon==null) return null;
@@ -3332,6 +3356,93 @@ function downloadSiteNotesWord(){
   toast('Site Notes Word downloaded ✓','ok');
 }
 
+// Shared content builder for both PDF and Word exports, covering every
+// field currently captured by the wizard — kept as one function so the
+// two export formats can't silently drift out of sync with each other
+// (that's exactly what left them both stale after the wizard was
+// restructured to 7 steps with several new fields).
+function buildSNContentHTML(c,sn){
+  const money=n=>'₹ '+Math.round(n||0).toLocaleString('en-IN');
+  const landVal=(sn.land_rate||0)*(sn.land_cents||0);
+  const bldgVal=(sn.bldg_rate||0)*(sn.bldg_area||0);
+  const totalVal=landVal+bldgVal;
+  const floors=Array.isArray(sn.floor_areas)?sn.floor_areas.filter(f=>f&&(f.label||f.sqft)):[];
+  const floorRows=floors.length?floors.map(f=>`<tr><td>${f.label||'—'}</td><td>${(f.sqft??'—')} sqft</td></tr>`).join(''):'<tr><td colspan="2">—</td></tr>';
+  const hasAUCBStructure=sn.structure_type||sn.foundation_type||sn.roof||sn.walls||sn.flooring||sn.setback||sn.sb_front;
+  const hasAUCBOther=sn.demolition_risk||sn.amenities||sn.area_ksmart||sn.sensitive_area||sn.fencing_done||sn.marketability;
+  let html='';
+  html+=`<h3>1. Case & Location</h3>
+  <table>
+  <tr><td>Owner Present at Site</td><td>${sn.owner_present||'—'}</td><td>Weather</td><td>${sn.weather||'—'}</td></tr>
+  <tr><td>Person Met at Site</td><td>${sn.contact_person_site||'—'}</td><td>Relation with Client</td><td>${sn.relation_with_client||'—'}</td></tr>
+  <tr><td>Taluk</td><td>${sn.taluk||'—'}</td><td>District</td><td>${sn.district||'—'}</td></tr>
+  <tr><td>Local Body</td><td>${sn.local_body||'—'}</td><td>Broker</td><td>${sn.broker_name||'—'}${sn.broker_phone?' ('+sn.broker_phone+')':''}</td></tr>
+  <tr><td>GPS Coordinates</td><td colspan="3">Lat ${sn.lat||'—'}, Lon ${sn.lon||'—'}</td></tr>
+  </table>
+  ${sn.surround_dev?`<p>Nearby Amenities / Hazards: ${sn.surround_dev}</p>`:''}
+  ${(sn.property_address||sn.landmark||sn.house_board_name)?`<p>AUCB Address: ${sn.property_address||'—'}${sn.landmark?' | Landmark: '+sn.landmark:''}${sn.house_board_name?' | Board: '+sn.house_board_name:''}${sn.occupancy?' | Occupancy: '+sn.occupancy:''}${sn.actual_usage?' | Use: '+sn.actual_usage:''}</p>`:''}
+
+  <h3>2. Property Type & Identification</h3>
+  <table>
+  <tr><td>Property Category</td><td>${sn.property_category||'—'}</td><td>Property Type</td><td>${sn.prop_type||'—'}</td></tr>
+  ${sn.apt_project_name?`<tr><td>Apartment/Project</td><td>${sn.apt_project_name}</td><td>Developer</td><td>${sn.apt_developer||'—'}</td></tr>`:''}
+  </table>
+  <table><tr><th>Particulars</th><th>As per Site</th><th>Title Deed</th><th>Location Sketch</th></tr>
+  <tr><td>Owner Name</td><td>${sn.id_owner_site||'—'}</td><td>${sn.id_owner_deed||'—'}</td><td>${sn.id_owner_sketch||'—'}</td></tr>
+  <tr><td>Survey No.</td><td>${sn.id_survey_site||'—'}</td><td>${sn.id_survey_deed||'—'}</td><td>${sn.id_survey_sketch||'—'}</td></tr>
+  <tr><td>Door No.</td><td>${sn.id_door||'—'}</td><td>${sn.id_door_deed||'—'}</td><td>${sn.id_door_sketch||'—'}</td></tr>
+  <tr><td>Village</td><td>${sn.id_village_site||'—'}</td><td>${sn.id_village_deed||'—'}</td><td>${sn.id_village_sketch||'—'}</td></tr></table>
+  <p>Documents Verified: ${(sn.docs_available&&sn.docs_available.length)?sn.docs_available.join(', '):'—'}</p>
+  ${sn.pending_docs?`<p>Pending Documents: ${sn.pending_docs}</p>`:''}
+  ${(sn.res_type||sn.res_rent)?`<p>Residential Type: ${sn.res_type||'—'} | Bedrooms: ${sn.bedrooms||'—'} | Monthly Rent: ${sn.res_rent?money(sn.res_rent):'—'}${sn.res_rent_per_sqft?' (≈ ₹'+sn.res_rent_per_sqft+'/sqft/month)':''}</p>`:''}
+  ${sn.comm_rent_sqft?`<p>Commercial Rent: ₹${sn.comm_rent_sqft}/sqft/month | Rentable Area: ${sn.comm_area||'—'} sqft</p>`:''}
+  ${(sn.occupant_name||sn.tenant_details)?`<p>AUCB Occupant: ${sn.occupant_name||'—'}${sn.tenant_details?' | Tenant: '+sn.tenant_details:''}</p>`:''}
+
+  <h3>3. Boundaries</h3>
+  <table><tr><th>Direction</th><th>Title Deed</th><th>Location Sketch</th><th>Physical Visit</th></tr>
+  <tr><td>North</td><td>${sn.bnd_n_deed||'—'}</td><td>${sn.bnd_n_sketch||'—'}</td><td>${sn.bnd_n_site||'—'}</td></tr>
+  <tr><td>South</td><td>${sn.bnd_s_deed||'—'}</td><td>${sn.bnd_s_sketch||'—'}</td><td>${sn.bnd_s_site||'—'}</td></tr>
+  <tr><td>East</td><td>${sn.bnd_e_deed||'—'}</td><td>${sn.bnd_e_sketch||'—'}</td><td>${sn.bnd_e_site||'—'}</td></tr>
+  <tr><td>West</td><td>${sn.bnd_w_deed||'—'}</td><td>${sn.bnd_w_sketch||'—'}</td><td>${sn.bnd_w_site||'—'}</td></tr></table>
+  <p>Demarcation: ${sn.demarcation||'—'} | Shape: ${sn.shape||'—'} | Discrepancy: ${sn.boundary_discrepancy||'None'}</p>
+
+  <h3>4. Area & Access</h3>
+  <table>
+  <tr><td>Extent Unit</td><td>${sn.extent_unit||'—'}</td><td>Land Area (Document)</td><td>${sn.area_doc||'—'}</td></tr>
+  <tr><td>Land Area (Site)</td><td>${sn.area_site||'—'}</td><td>Road Type / Width</td><td>${sn.road_type||'—'} / ${sn.road_width||'—'}</td></tr>
+  <tr><td>Road Ownership</td><td>${sn.road_ownership||'—'}</td><td>Road Frontage</td><td>${sn.road_frontage||'—'} ft</td></tr>
+  <tr><td>Vehicle Access</td><td colspan="3">${sn.access_type||'—'}</td></tr>
+  </table>
+
+  <h3>5. Building</h3>
+  <table><tr><th>Floor (as per Site)</th><th>Area</th></tr>${floorRows}</table>
+  <table>
+  <tr><td>BUA (Document)</td><td>${sn.bua_doc||'—'} sqft</td><td>BUA (Site, total)</td><td>${sn.bua_site||'—'} sqft</td></tr>
+  <tr><td>Construction Type</td><td>${sn.const_type||'—'}</td><td>No. of Floors</td><td>${sn.floors||'—'}</td></tr>
+  <tr><td>Condition</td><td>${sn.condition||'—'}</td><td>Age of Building</td><td>${sn.age||'—'} yrs</td></tr>
+  <tr><td>Plan Matches Site Condition?</td><td colspan="3">${sn.plan_matches_site?sn.plan_matches_site.toUpperCase():'—'}</td></tr>
+  </table>
+  ${sn.uds_mode?`<p>UDS Area: ${sn.uds_area||'—'} cents | Total Land: ${sn.total_land||'—'} cents | SBA: ${sn.sba||'—'} sqft | Carpet: ${sn.carpet_area||'—'} sqft | Unit: ${sn.unit_no||'—'} | Composite Rate: ${sn.composite_rate?money(sn.composite_rate):'—'}</p>`:''}
+  ${hasAUCBStructure?`<p>AUCB Structure: ${sn.structure_type||'—'} | Foundation: ${sn.foundation_type||'—'} | Roofing: ${sn.roof||'—'} | Masonry: ${sn.walls||'—'} | Flooring: ${sn.flooring||'—'} | Setback: ${sn.sb_front||'—'} | Stage: ${sn.construction_stage_pct||'—'}%</p>`:''}
+
+  <h3>6. Rates & Remarks</h3>
+  <p>Prevailing Market Rate: ${sn.mkt_range||'—'}</p>
+  <table><tr><th>Comparable</th><th>Details</th><th>Rate</th><th>Unit</th></tr>
+  <tr><td>Sale 1</td><td>${sn.comparable1||'—'}</td><td>${sn.comparable1_rate?money(sn.comparable1_rate):'—'}</td><td>${sn.comparable1_rate_unit||'—'}</td></tr>
+  <tr><td>Sale 2</td><td>${sn.comparable2||'—'}</td><td>${sn.comparable2_rate?money(sn.comparable2_rate):'—'}</td><td>${sn.comparable2_rate_unit||'—'}</td></tr>
+  </table>
+  <table>
+  <tr><td>Land Rate</td><td>${money(sn.land_rate)}/cent</td><td>Land Area</td><td>${sn.land_cents||'—'} cents</td></tr>
+  <tr><td>Land Value</td><td colspan="3"><b>${money(landVal)}</b></td></tr>
+  <tr><td>Building Rate</td><td>${money(sn.bldg_rate)}/sqft</td><td>BUA for Valuation</td><td>${sn.bldg_area||'—'} sqft</td></tr>
+  <tr><td>Building Value</td><td colspan="3"><b>${money(bldgVal)}</b></td></tr>
+  <tr><td><b>Total Valuation (auto-calculated)</b></td><td colspan="3"><b>${money(totalVal)}</b></td></tr>
+  </table>
+  ${hasAUCBOther?`<p>AUCB Other: Demolition Risk: ${sn.demolition_risk||'—'} | Amenities: ${sn.amenities||'—'} | K-Smart Area: ${sn.area_ksmart||'—'} | Sensitive Area: ${sn.sensitive_area||'—'} | Fencing: ${sn.fencing_done||'—'} | Marketability: ${sn.marketability||'—'}</p>`:''}
+  <p>General Remarks: ${sn.remarks||'No remarks entered.'}</p>`;
+  return html;
+}
+
 function buildSNWord(c,sn){
   const photoHTML=sitePhotos.length>0?`<h3>Photos</h3><table><tr>${sitePhotos.map((p,i)=>`<td style="border:none;padding:4px;"><img src="${p.data}" style="width:260px;max-width:100%;"></td>`+((i%2===1)?'</tr><tr>':'')).join('')}</tr></table>`:'';
   return `<html><head><meta charset="utf-8">
@@ -3339,47 +3450,8 @@ function buildSNWord(c,sn){
   </head><body>
   <h1>DC VALUATION & ADVISORY</h1>
   <h2>SITE TECHNICAL NOTES</h2>
-  <p style="text-align:center;font-size:10pt;">Case: <b>${c.case_name||'—'}</b> | Bank: <b>${c.bank_name||'—'}</b> | App ID: <b>${c.application_id||'—'}</b> | Date: <b>${c.received_date||'—'}</b></p>
-  <h3>1. Property Identification</h3>
-  <table><tr><th>Particulars</th><th>As per Site</th><th>Title Deed</th><th>Location Sketch</th></tr>
-  <tr><td>Owner Name</td><td>${sn.id_owner_site||'—'}</td><td>${sn.id_owner_deed||'—'}</td><td>${sn.id_owner_sketch||'—'}</td></tr>
-  <tr><td>Survey No.</td><td>${sn.id_survey_site||'—'}</td><td>${sn.id_survey_deed||'—'}</td><td>${sn.id_survey_sketch||'—'}</td></tr>
-  <tr><td>Door No.</td><td>${sn.id_door||'—'}</td><td>${sn.id_door_deed||'—'}</td><td>${sn.id_door_sketch||'—'}</td></tr>
-  <tr><td>Village</td><td>${sn.id_village_site||'—'}</td><td>${sn.id_village_deed||'—'}</td><td>${sn.id_village_sketch||'—'}</td></tr></table>
-  <p style="font-size:10pt;">Taluk: <b>${sn.taluk||'—'}</b> &nbsp;|&nbsp; District: <b>${sn.district||'—'}</b> &nbsp;|&nbsp; Local Body: <b>${sn.local_body||'—'}</b></p>
-  <h3>2. Boundary Demarcation</h3>
-  <table><tr><th>Direction</th><th>As per Title Deed</th><th>Location Sketch</th><th>Physical Visit</th></tr>
-  <tr><td>North</td><td>${sn.bnd_n_deed||'—'}</td><td>${sn.bnd_n_sketch||'—'}</td><td>${sn.bnd_n_site||'—'}</td></tr>
-  <tr><td>South</td><td>${sn.bnd_s_deed||'—'}</td><td>${sn.bnd_s_sketch||'—'}</td><td>${sn.bnd_s_site||'—'}</td></tr>
-  <tr><td>East</td><td>${sn.bnd_e_deed||'—'}</td><td>${sn.bnd_e_sketch||'—'}</td><td>${sn.bnd_e_site||'—'}</td></tr>
-  <tr><td>West</td><td>${sn.bnd_w_deed||'—'}</td><td>${sn.bnd_w_sketch||'—'}</td><td>${sn.bnd_w_site||'—'}</td></tr></table>
-  <p style="font-size:10pt;">Demarcation: <b>${sn.demarcation||'—'}</b> &nbsp;|&nbsp; Shape: <b>${sn.shape||'—'}</b></p>
-  <h3>3. Land & Building Measurements</h3>
-  <table>
-  <tr><td>Land Area (Document)</td><td>${sn.area_doc||'—'}</td><td>Land Area (Site)</td><td>${sn.area_site||'—'}</td></tr>
-  <tr><td>Road Type</td><td>${sn.road_type||'—'}</td><td>Road Width</td><td>${sn.road_width||'—'}</td></tr>
-  <tr><td>BUA (Document)</td><td>${sn.bua_doc||'—'} sqft</td><td>BUA (Site)</td><td>${sn.bua_site||'—'} sqft</td></tr>
-  <tr><td>Construction Type</td><td>${sn.const_type||'—'}</td><td>No. of Floors</td><td>${sn.floors||'—'}</td></tr>
-  <tr><td>Overall Condition</td><td>${sn.condition||'—'}</td><td>Age of Building</td><td>${sn.age||'—'} years</td></tr>
-  </table>
-  <h3>4. Market Rate & Age of Building</h3>
-  <table>
-  <tr><td>Prevailing Market Rate</td><td>${sn.mkt_range||'—'}</td><td>Age of Building</td><td>${sn.age||'—'} years</td></tr>
-  <tr><td>Comparable Sale 1</td><td colspan="3">${sn.comparable1||'—'}</td></tr>
-  <tr><td>Comparable Sale 2</td><td colspan="3">${sn.comparable2||'—'}</td></tr>
-  </table>
-  <h3>5. Adopted Rate (Engineer's Estimate)</h3>
-  <table>
-  <tr><td>Land Rate</td><td>Rs. ${(sn.land_rate||0).toLocaleString('en-IN')}/cent</td><td>Land Area</td><td>${sn.land_cents||'—'} cents</td></tr>
-  <tr><td>Land Value</td><td colspan="3"><b>Rs. ${Math.round((sn.land_rate||0)*(sn.land_cents||0)).toLocaleString('en-IN')}</b></td></tr>
-  <tr><td>Building Rate</td><td>Rs. ${(sn.bldg_rate||0).toLocaleString('en-IN')}/sqft</td><td>BUA for Valuation</td><td>${sn.bldg_area||'—'} sqft</td></tr>
-  <tr><td>Building Value</td><td colspan="3"><b>Rs. ${Math.round((sn.bldg_rate||0)*(sn.bldg_area||0)).toLocaleString('en-IN')}</b></td></tr>
-  <tr><td><b>Estimated Total</b></td><td colspan="3"><b>Rs. ${Math.round((sn.land_rate||0)*(sn.land_cents||0)+(sn.bldg_rate||0)*(sn.bldg_area||0)).toLocaleString('en-IN')}</b></td></tr>
-  </table>
-  <h3>6. GPS Coordinates</h3>
-  <table><tr><td>Latitude</td><td>${sn.lat||'—'}</td><td>Longitude</td><td>${sn.lon||'—'}</td></tr></table>
-  <h3>7. General Remarks & Concerns</h3>
-  <p style="line-height:1.8;">${sn.remarks||'No remarks entered.'}</p>
+  <p style="text-align:center;font-size:10pt;">Case: <b>${c.case_name||'—'}</b> | Bank: <b>${c.bank_name||'—'}</b> | App ID: <b>${c.application_id||'—'}</b> | Loan Product: <b>${c.loan_product||'—'}</b> | Date: <b>${c.received_date||'—'}</b></p>
+  ${buildSNContentHTML(c,sn)}
   ${photoHTML}
   <br><br>
   <table style="border:none;"><tr style="border:none;">
@@ -3395,39 +3467,8 @@ function buildSNPDF(c,sn){
   <style>body{font-family:Arial;font-size:10pt;padding:20px;}h1,h2{text-align:center;}h3{font-size:10pt;background:#E8E8E8;padding:4px 8px;margin:12px 0 6px;}table{width:100%;border-collapse:collapse;font-size:9.5pt;}th,td{border:1px solid #bbb;padding:4px 6px;}th{background:#E8E8E8;font-weight:bold;text-align:left;}td:first-child{font-weight:bold;width:30%;}.footer{margin-top:30px;display:flex;justify-content:space-between;font-size:9pt;}@media print{body{padding:10px;}}</style>
   </head><body>
   <h1>DC VALUATION & ADVISORY</h1><h2>SITE TECHNICAL NOTES</h2>
-  <p style="text-align:center;font-size:9pt;margin-bottom:12px;">Case: <b>${c.case_name||'—'}</b> | Bank: <b>${c.bank_name||'—'}</b> | App ID: <b>${c.application_id||'—'}</b> | Date: <b>${c.received_date||'—'}</b></p>
-  <h3>1. Property Identification</h3>
-  <table><tr><th>Particulars</th><th>As per Site</th><th>Title Deed</th><th>Location Sketch</th></tr>
-  <tr><td>Owner Name</td><td>${sn.id_owner_site||'—'}</td><td>${sn.id_owner_deed||'—'}</td><td>${sn.id_owner_sketch||'—'}</td></tr>
-  <tr><td>Survey No.</td><td>${sn.id_survey_site||'—'}</td><td>${sn.id_survey_deed||'—'}</td><td>${sn.id_survey_sketch||'—'}</td></tr>
-  <tr><td>Door No.</td><td>${sn.id_door||'—'}</td><td>${sn.id_door_deed||'—'}</td><td>${sn.id_door_sketch||'—'}</td></tr>
-  <tr><td>Village</td><td>${sn.id_village_site||'—'}</td><td>${sn.id_village_deed||'—'}</td><td>${sn.id_village_sketch||'—'}</td></tr></table>
-  <p style="margin-top:6px;font-size:9pt;">Taluk: <b>${sn.taluk||'—'}</b> | District: <b>${sn.district||'—'}</b> | Local Body: <b>${sn.local_body||'—'}</b></p>
-  <h3>2. Boundary Demarcation</h3>
-  <table><tr><th>Direction</th><th>Title Deed</th><th>Location Sketch</th><th>Physical Visit</th></tr>
-  <tr><td>North</td><td>${sn.bnd_n_deed||'—'}</td><td>${sn.bnd_n_sketch||'—'}</td><td>${sn.bnd_n_site||'—'}</td></tr>
-  <tr><td>South</td><td>${sn.bnd_s_deed||'—'}</td><td>${sn.bnd_s_sketch||'—'}</td><td>${sn.bnd_s_site||'—'}</td></tr>
-  <tr><td>East</td><td>${sn.bnd_e_deed||'—'}</td><td>${sn.bnd_e_sketch||'—'}</td><td>${sn.bnd_e_site||'—'}</td></tr>
-  <tr><td>West</td><td>${sn.bnd_w_deed||'—'}</td><td>${sn.bnd_w_sketch||'—'}</td><td>${sn.bnd_w_site||'—'}</td></tr></table>
-  <p style="margin-top:6px;font-size:9pt;">Demarcation: <b>${sn.demarcation||'—'}</b> | Shape: <b>${sn.shape||'—'}</b></p>
-  <h3>3. Land & Building Measurements</h3>
-  <table><tr><td>Land Area (Doc)</td><td>${sn.area_doc||'—'}</td><td>Land Area (Site)</td><td>${sn.area_site||'—'}</td></tr>
-  <tr><td>Road Type</td><td>${sn.road_type||'—'}</td><td>Road Width</td><td>${sn.road_width||'—'}</td></tr>
-  <tr><td>BUA (Doc)</td><td>${sn.bua_doc||'—'} sqft</td><td>BUA (Site)</td><td>${sn.bua_site||'—'} sqft</td></tr>
-  <tr><td>Construction</td><td>${sn.const_type||'—'}</td><td>Floors</td><td>${sn.floors||'—'}</td></tr>
-  <tr><td>Condition</td><td>${sn.condition||'—'}</td><td>Age</td><td>${sn.age||'—'} yrs</td></tr></table>
-  <h3>4. Market Rate & Comparables</h3>
-  <p>Market Rate Range: <b>${sn.mkt_range||'—'}</b></p>
-  <p>Comparable 1: ${sn.comparable1||'—'}</p>
-  <p>Comparable 2: ${sn.comparable2||'—'}</p>
-  <h3>5. Adopted Rate (Engineer's Estimate)</h3>
-  <table><tr><td>Land Rate</td><td>Rs. ${(sn.land_rate||0).toLocaleString('en-IN')}/cent</td><td>Land Area</td><td>${sn.land_cents||'—'} cents</td></tr>
-  <tr><td>Building Rate</td><td>Rs. ${(sn.bldg_rate||0).toLocaleString('en-IN')}/sqft</td><td>BUA</td><td>${sn.bldg_area||'—'} sqft</td></tr>
-  <tr><td colspan="2"><b>Estimated Total</b></td><td colspan="2"><b>Rs. ${Math.round((sn.land_rate||0)*(sn.land_cents||0)+(sn.bldg_rate||0)*(sn.bldg_area||0)).toLocaleString('en-IN')}</b></td></tr></table>
-  <h3>6. GPS Coordinates</h3>
-  <p>Latitude: <b>${sn.lat||'—'}</b> | Longitude: <b>${sn.lon||'—'}</b></p>
-  <h3>7. Remarks & Concerns</h3>
-  <p style="line-height:1.6;">${sn.remarks||'—'}</p>
+  <p style="text-align:center;font-size:9pt;margin-bottom:12px;">Case: <b>${c.case_name||'—'}</b> | Bank: <b>${c.bank_name||'—'}</b> | App ID: <b>${c.application_id||'—'}</b> | Loan Product: <b>${c.loan_product||'—'}</b> | Date: <b>${c.received_date||'—'}</b></p>
+  ${buildSNContentHTML(c,sn)}
   ${photos}
   <div class="footer"><span>Engineer: <b>${CU?.name||'—'}</b></span><span>DC Valuation & Advisory | Dhanish Nair | IBBI/RV/04/2022/14602</span></div>
   <scr`+'ipt>window.onload=function(){window.print()}</scr'+'ipt></body></html>';
@@ -5166,7 +5207,9 @@ const WIZ_REQUIRED={
   area_access:()=>g('sn_area_site')?null:{msg:'Land Area (Site) is required',id:'sn_area_site'},
   building:()=>{
     if(isUDS) return null; // UDS fields substitute for BUA when ticked
-    return g('sn_bua_site')?null:{msg:'BUA (Site) is required',id:'sn_bua_site'};
+    // sn_bua_site is a hidden field auto-summed from the floor rows — point
+    // the error at the visible "+ Add Floor" button, not the hidden input.
+    return g('sn_bua_site')?null:{msg:'Add at least one floor with its BUA (Site) area',id:'addFloorBtn'};
   },
   rates:()=>{
     if(!g('sn_comp1')) return {msg:'At least 2 land comparables are required — add Comparable Sale 1',id:'sn_comp1'};
@@ -5243,19 +5286,29 @@ function wizValidateStep(stepId){
   const fn=WIZ_REQUIRED[stepId];
   return fn?fn():null;
 }
+async function wizAutoSaveAttempt(){
+  const c=CASES.find(x=>x.case_id===snCaseId);
+  if(!c) return;
+  const sn=gSN();
+  const payload={...sn,case_ref:snCaseId,case_id:c.id,engineer_name:CU.name};
+  const existing=await dbGetOne('site_notes',{case_ref:snCaseId});
+  if(existing) await dbUpdate('site_notes',{case_ref:snCaseId},sn);
+  else await dbInsert('site_notes',payload);
+  currentSN=sn;
+}
 async function wizAutoSave(){
   if(!snCaseId) return;
   try{
-    const c=CASES.find(x=>x.case_id===snCaseId);
-    if(!c) return;
-    const sn=gSN();
-    const payload={...sn,case_ref:snCaseId,case_id:c.id,engineer_name:CU.name};
-    const existing=await dbGetOne('site_notes',{case_ref:snCaseId});
-    if(existing) await dbUpdate('site_notes',{case_ref:snCaseId},sn);
-    else await dbInsert('site_notes',payload);
-    currentSN=sn;
+    await wizAutoSaveAttempt();
   }catch(e){
-    toast('Could not save this step — check your connection','err');
+    // Field connectivity is often patchy — retry once before giving up,
+    // and don't block the engineer from continuing to fill the form
+    // either way (wizNext() still runs after this returns).
+    try{
+      await wizAutoSaveAttempt();
+    }catch(e2){
+      toast('This step is not synced yet (poor connection) — keep going, it will retry on the next Save & Next','err');
+    }
   }
 }
 async function wizSaveAndNext(){
