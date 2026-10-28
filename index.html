@@ -2949,8 +2949,8 @@ function gSN(){
     uds_area:pf('sn_uds_area'),total_land:pf('sn_total_land'),
     sba:pf('sn_sba'),carpet_area:pf('sn_carpet'),
     unit_no:g('sn_unit_no'),composite_rate:pf('sn_composite_rate'),
-    const_type:g('sn_const'),floors:pf('sn_floors'),condition:g('sn_cond'),
-    age:pf('sn_age'),mkt_range:g('sn_mkt_range'),
+    const_type:g('sn_const'),floors:pfi('sn_floors'),condition:g('sn_cond'),
+    age:pfi('sn_age'),mkt_range:g('sn_mkt_range'),
     comparable1:g('sn_comp1'),comparable2:g('sn_comp2'),
     comparable1_rate:pf('sn_comp1_rate'),comparable1_rate_unit:g('sn_comp1_unit'),
     comparable2_rate:pf('sn_comp2_rate'),comparable2_rate_unit:g('sn_comp2_unit'),
@@ -2964,7 +2964,7 @@ function gSN(){
     pending_docs:g('sn_pending_docs'),
     res_type:g('sn_res_type'),
     res_rent:pf('sn_res_rent'),
-    bedrooms:pf('sn_bedrooms'),
+    bedrooms:pfi('sn_bedrooms'),
     comm_rent_sqft:pf('sn_comm_rent_sqft'),
     comm_area:pf('sn_comm_area'),
     owner_present:g('sn_owner_present'),
@@ -3000,7 +3000,7 @@ function gSN(){
     sensitive_area:g('sn_sensitive_area'),
     fencing_done:g('sn_fencing'),
     marketability:g('sn_marketability'),
-    surround_dev:g('sn_surround_dev'),
+    surround_notes:g('sn_surround_dev'),
     relation_with_client:g('sn_relation_client'),
     road_ownership:g('sn_road_ownership'),
     access_type:g('sn_access_type'),
@@ -3056,7 +3056,7 @@ function fillSN(d){
     sn_demolition_risk:'demolition_risk',sn_amenities:'amenities',
     sn_area_ksmart:'area_ksmart',sn_sensitive_area:'sensitive_area',
     sn_fencing:'fencing_done',sn_marketability:'marketability',
-    sn_surround_dev:'surround_dev',
+    sn_surround_dev:'surround_notes',
     sn_relation_client:'relation_with_client',
     sn_road_ownership:'road_ownership',sn_access_type:'access_type'
   };
@@ -3388,7 +3388,7 @@ function buildSNContentHTML(c,sn){
   <tr><td>Local Body</td><td>${sn.local_body||'—'}</td><td>Broker</td><td>${sn.broker_name||'—'}${sn.broker_phone?' ('+sn.broker_phone+')':''}</td></tr>
   <tr><td>GPS Coordinates</td><td colspan="3">Lat ${sn.lat||'—'}, Lon ${sn.lon||'—'}</td></tr>
   </table>
-  ${sn.surround_dev?`<p>Nearby Amenities / Hazards: ${sn.surround_dev}</p>`:''}
+  ${sn.surround_notes?`<p>Nearby Amenities / Hazards: ${sn.surround_notes}</p>`:''}
   ${(sn.property_address||sn.landmark||sn.house_board_name)?`<p>AUCB Address: ${sn.property_address||'—'}${sn.landmark?' | Landmark: '+sn.landmark:''}${sn.house_board_name?' | Board: '+sn.house_board_name:''}${sn.occupancy?' | Occupancy: '+sn.occupancy:''}${sn.actual_usage?' | Use: '+sn.actual_usage:''}</p>`:''}
 
   <h3>2. Property Type & Identification</h3>
@@ -4017,7 +4017,7 @@ function buildRptWord(d){
 function ynOrDash(v){return v||'—';}
 
 function aucbCivilAmenities(sn){
-  return sn.surround_dev||'Not recorded — verify on site.';
+  return sn.surround_notes||'Not recorded — verify on site.';
 }
 
 function buildAUCBHTML(d){
@@ -5473,6 +5473,7 @@ function renderStaffCaseList(name){
 // ═══════════════════════════════════════════
 function g(id){const e=document.getElementById(id);return e?e.value:'';}
 function pf(id){return parseFloat(g(id))||null;}
+function pfi(id){const v=parseFloat(g(id));return v?Math.round(v):null;}
 
 function toast(msg,type=''){
   const t=document.getElementById('toast');
