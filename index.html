@@ -250,8 +250,6 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
 .wiz-progress{height:3px;background:var(--ptint);border-radius:2px;margin-bottom:16px;overflow:hidden;}
 .wiz-progress-fill{height:100%;background:var(--p);transition:width 0.3s;}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
 </head>
 <body>
 
@@ -482,7 +480,11 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
 
         <!-- STEP 1 — Case & Location -->
         <div class="wiz-step active" data-step="case" data-title="Case & Location" data-hint="Visit basics, locality and GPS">
-          <label>Owner Present at Site?</label>
+          <div class="row2">
+            <div><label>Visit Date</label><input type="date" id="sn_visit_date"></div>
+            <div><label>Visit Time</label><input type="time" id="sn_visit_time"></div>
+          </div>
+          <label style="margin-top:12px;">Owner Present at Site?</label>
           <input type="hidden" id="sn_owner_present" value="">
           <div class="wiz-chip-row" id="sn_owner_chips">
             <button type="button" class="wiz-chip" data-val="yes" onclick="wizChipClick('sn_owner_chips','sn_owner_present','yes',onOwnerPresentChange)">Yes</button>
@@ -500,11 +502,6 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
             <option>Owner / Applicant</option><option>Spouse</option><option>Family Member</option>
             <option>Tenant</option><option>Watchman / Caretaker</option><option>Neighbor</option>
             <option>Builder / Developer Representative</option><option>Broker / Agent</option><option>Other</option>
-          </select>
-          <label style="margin-top:12px;">Weather at Time of Visit</label>
-          <select id="sn_weather">
-            <option value="">Select…</option>
-            <option>Clear / Sunny</option><option>Cloudy</option><option>Light Rain</option><option>Heavy Rain</option><option>Humid</option>
           </select>
           <div class="row2" style="margin-top:12px;">
             <div><label>Taluk</label><input type="text" id="sn_taluk"></div>
@@ -2734,6 +2731,9 @@ async function onVisitPick(){
   sumEl.style.display='block';
   document.getElementById('v_date').value=t?.visit_date||'';
   document.getElementById('v_time').value=t?.visit_time||'';
+  const now=new Date();
+  document.getElementById('sn_visit_date').value=t?.visit_date||now.toISOString().slice(0,10);
+  document.getElementById('sn_visit_time').value=t?.visit_time||now.toTimeString().slice(0,5);
   document.getElementById('v_sched_date').value=t?.scheduled_date||'';
   document.getElementById('v_sched_time').value=t?.scheduled_time||'';
   document.getElementById('v_sched_status').value=t?.schedule_status||'scheduled';
@@ -2977,7 +2977,6 @@ function gSN(){
     comm_area:pf('sn_comm_area'),
     owner_present:g('sn_owner_present'),
     visit_contact_number:g('sn_visit_contact'),
-    weather:g('sn_weather'),
     property_category:g('sn_prop_category'),
     apt_project_name:g('sn_apt_project'),
     apt_developer:g('sn_apt_developer'),
@@ -3049,7 +3048,7 @@ function fillSN(d){
     sn_res_type:'res_type',sn_res_rent:'res_rent',
     sn_bedrooms:'bedrooms',
     sn_comm_rent_sqft:'comm_rent_sqft',sn_comm_area:'comm_area',
-    sn_visit_contact:'visit_contact_number',sn_weather:'weather',
+    sn_visit_contact:'visit_contact_number',
     sn_prop_category:'property_category',sn_apt_project:'apt_project_name',
     sn_apt_developer:'apt_developer',sn_uds_consideration:'uds_consideration',
     sn_extent_unit:'extent_unit',sn_road_frontage:'road_frontage',
@@ -3187,8 +3186,8 @@ async function saveSiteNotes(){
         case_ref:snCaseId,case_id:c.id,
         engineer_name:t?.engineer_name||CU.name,
         typist_name:t?.typist_name||'',
-        visit_date:t?.visit_date||now.toISOString().slice(0,10),
-        visit_time:t?.visit_time||now.toTimeString().slice(0,5),
+        visit_date:g('sn_visit_date')||t?.visit_date||now.toISOString().slice(0,10),
+        visit_time:g('sn_visit_time')||t?.visit_time||now.toTimeString().slice(0,5),
         visit_complete:true,visit_completed_at:now.toISOString(),
         submit_date:t?.submit_date||null,submit_time:t?.submit_time||null,
         report_complete:t?.report_complete||false
@@ -3390,7 +3389,8 @@ function buildSNContentHTML(c,sn){
   let html='';
   html+=`<h3>1. Case & Location</h3>
   <table>
-  <tr><td>Owner Present at Site</td><td>${sn.owner_present||'—'}</td><td>Weather</td><td>${sn.weather||'—'}</td></tr>
+  <tr><td>Visit Date</td><td>${g('sn_visit_date')||c.received_date||'—'}</td><td>Visit Time</td><td>${g('sn_visit_time')||'—'}</td></tr>
+  <tr><td>Owner Present at Site</td><td colspan="3">${sn.owner_present||'—'}</td></tr>
   <tr><td>Person Met at Site</td><td>${sn.contact_person_site||'—'}</td><td>Relation with Client</td><td>${sn.relation_with_client||'—'}</td></tr>
   <tr><td>Taluk</td><td>${sn.taluk||'—'}</td><td>District</td><td>${sn.district||'—'}</td></tr>
   <tr><td>Local Body</td><td>${sn.local_body||'—'}</td><td>Broker</td><td>${sn.broker_name||'—'}${sn.broker_phone?' ('+sn.broker_phone+')':''}</td></tr>
@@ -5530,13 +5530,40 @@ function closeSuccess(){
 let snPdfCaseAndNotes=null; // {c,sn} captured at submit time, used by the Download/Share buttons
 let snPdfBlobCache=null; // avoid regenerating the PDF twice if they tap both buttons
 
+// html2canvas/jsPDF/html-docx-js are only ever needed right after a site
+// note is submitted, so they're loaded on demand here instead of on every
+// page load (they used to be ~550KB of eager <script> tags in <head>,
+// downloaded by every user on every visit whether or not they ever
+// submitted a site note that session).
+const _libLoadPromises={};
+function loadScriptOnce(key,src){
+  if(_libLoadPromises[key]) return _libLoadPromises[key];
+  _libLoadPromises[key]=new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src=src;
+    s.onload=resolve;
+    s.onerror=()=>{delete _libLoadPromises[key];reject(new Error('Failed to load '+key));};
+    document.head.appendChild(s);
+  });
+  return _libLoadPromises[key];
+}
+function loadPdfLibs(){
+  return Promise.all([
+    typeof html2canvas!=='undefined'?null:loadScriptOnce('html2canvas','https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'),
+    typeof window.jspdf!=='undefined'?null:loadScriptOnce('jspdf','https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js')
+  ]);
+}
+function loadDocxConverter(){
+  return typeof htmlDocx!=='undefined'?Promise.resolve():loadScriptOnce('htmldocx','https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.js');
+}
+
 function showSiteNoteSubmitSuccess(c,sn){
   showSuccess('👍','Site Note Submitted!','Visit marked complete. Download the report or share it straight to WhatsApp.');
   snPdfCaseAndNotes={c,sn};
   snPdfBlobCache=null;
   document.getElementById('successPdfStatus').textContent='';
   const canSharePdf=!!(navigator.canShare&&navigator.canShare({files:[new File([],'test.pdf',{type:'application/pdf'})]}));
-  const canShareWord=!!(navigator.canShare&&navigator.canShare({files:[new File([],'test.doc',{type:'application/msword'})]}));
+  const canShareWord=!!(navigator.canShare&&navigator.canShare({files:[new File([],'test.docx',{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'})]}));
   document.getElementById('successWhatsappBtn').style.display=canSharePdf?'block':'none';
   document.getElementById('successWhatsappWordBtn').style.display=canShareWord?'block':'none';
   document.getElementById('successShareActions').style.display='block';
@@ -5549,9 +5576,7 @@ function showSiteNoteSubmitSuccess(c,sn){
 // browser's print dialog.
 async function generateSNPDFBlob(c,sn){
   if(snPdfBlobCache) return snPdfBlobCache;
-  if(typeof html2canvas==='undefined'||typeof window.jspdf==='undefined'){
-    throw new Error('PDF generator is still loading — try again in a moment');
-  }
+  await loadPdfLibs();
   const wrap=document.createElement('div');
   wrap.style.cssText='position:fixed;left:-10000px;top:0;width:780px;background:#fff;padding:24px;font-family:Arial;font-size:13px;color:#111;';
   wrap.innerHTML=`
@@ -5639,25 +5664,31 @@ async function shareGeneratedSNPDF(){
   }
 }
 
-// Word export already embeds every site photo as a base64 <img> inside
-// the document (see buildSNWord), which a backend can pull out with a
-// simple HTML/regex pass — no PDF parsing needed. Reuses that same
-// builder so the shared file matches the "Download Word" export.
-function buildGeneratedSNWordBlob(c,sn){
+// The in-wizard "Download Word" button (buildSNWord/downloadSiteNotesWord)
+// saves literal HTML text typed as .doc, which desktop Word opens fine but
+// which isn't a real OOXML file — WhatsApp's share pipeline and most mobile
+// viewers inspect the actual file bytes and reject or mangle it. This post-
+// submit share path instead wraps the same HTML content with html-docx-js,
+// which packages it inside a genuine .docx (OOXML zip) container so the
+// bytes WhatsApp sees match a real Word document.
+const DOCX_MIME='application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+async function buildGeneratedSNWordBlob(c,sn){
+  await loadDocxConverter();
   const content=buildSNWord(c,sn);
-  return new Blob([content],{type:'application/msword'});
+  return htmlDocx.asBlob(content);
 }
 
 async function downloadGeneratedSNWord(){
   if(!snPdfCaseAndNotes) return;
   const statusEl=document.getElementById('successPdfStatus');
+  statusEl.textContent='Generating Word file…';
   try{
     const {c,sn}=snPdfCaseAndNotes;
-    const blob=buildGeneratedSNWordBlob(c,sn);
+    const blob=await buildGeneratedSNWordBlob(c,sn);
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
     a.href=url;
-    a.download=`SiteNotes_${(c.case_name||'draft').replace(/\s+/g,'_')}_${c.received_date||'draft'}.doc`;
+    a.download=`SiteNotes_${(c.case_name||'draft').replace(/\s+/g,'_')}_${c.received_date||'draft'}.docx`;
     a.click();
     URL.revokeObjectURL(url);
     statusEl.textContent='Downloaded ✓';
@@ -5672,9 +5703,9 @@ async function shareGeneratedSNWord(){
   statusEl.textContent='Preparing Word file to share…';
   try{
     const {c,sn}=snPdfCaseAndNotes;
-    const blob=buildGeneratedSNWordBlob(c,sn);
-    const fileName=`SiteNotes_${(c.case_name||'draft').replace(/\s+/g,'_')}_${c.received_date||'draft'}.doc`;
-    const file=new File([blob],fileName,{type:'application/msword'});
+    const blob=await buildGeneratedSNWordBlob(c,sn);
+    const fileName=`SiteNotes_${(c.case_name||'draft').replace(/\s+/g,'_')}_${c.received_date||'draft'}.docx`;
+    const file=new File([blob],fileName,{type:DOCX_MIME});
     if(navigator.canShare&&navigator.canShare({files:[file]})){
       await navigator.share({files:[file],title:'Site Notes — '+(c.case_name||''),text:'Site technical notes for '+(c.case_name||'')+' ('+(c.bank_name||'')+')'});
       statusEl.textContent='';
