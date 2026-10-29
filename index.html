@@ -1123,7 +1123,7 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
   <div class="page" id="pg-mydash">
     <div class="dpill" id="md_greeting">My Day</div>
 
-    <div class="card">
+    <div class="card" id="md_top_card">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div>
           <div style="font-size:32px;font-weight:700;color:var(--p);line-height:1;" id="md_month_count">0</div>
@@ -1138,6 +1138,15 @@ textarea{resize:none;min-height:70px;font-size:14px;line-height:1.5;}
         <span style="font-size:12px;color:var(--muted);">🏢 Total cases at DC this month</span>
         <span style="font-size:16px;font-weight:700;color:var(--p);" id="md_dc_month_count">0</span>
       </div>
+    </div>
+
+    <!-- External valuers get their own month-selectable performance card
+         instead of md_top_card (which includes the DC-wide monthly case
+         count — internal-only data that an external valuer shouldn't see). -->
+    <div class="card" id="md_ext_perf_card" style="display:none;">
+      <div class="ctitle">📊 My Performance</div>
+      <select id="md_ext_month" onchange="renderExtPerf()" style="margin-bottom:12px;"></select>
+      <div class="kgrid" id="md_ext_kpi"></div>
     </div>
 
     <div class="card" id="md_needs_schedule_card" style="display:none;border-left:4px solid var(--red);">
@@ -4261,6 +4270,16 @@ function renderMyDash(){
   const timeGreet=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
   document.getElementById('md_greeting').textContent=`${timeGreet}, ${CU.name} 👋`;
 
+  // External valuers see their own month-selectable performance card
+  // instead of md_top_card — "total cases at DC this month" is
+  // internal/admin-only data.
+  document.getElementById('md_top_card').style.display=CU.isExternal?'none':'block';
+  document.getElementById('md_ext_perf_card').style.display=CU.isExternal?'block':'none';
+  if(CU.isExternal){
+    populateExtMonthSelect();
+    renderExtPerf();
+  }
+
   const myCases=CASES.filter(c=>{
     const t=trk(c.case_id);
     if(!t) return false;
@@ -4331,6 +4350,55 @@ function renderMDList(cardId,listId,items,rowFn){
   if(!items.length){card.style.display='none';return;}
   card.style.display='block';
   document.getElementById(listId).innerHTML=items.map(rowFn).join('');
+}
+
+// TAT for an external valuer's own work is how long the site VISIT took
+// from case receipt — calcTAT() instead measures time to report submission,
+// which isn't something external valuers do, so it's always null for them.
+function calcVisitTAT(c,t){
+  if(!t?.visit_complete||!t?.visit_date) return null;
+  const recv=c.initiated_at?new Date(c.initiated_at):new Date(c.received_date+'T'+(c.received_time||'09:00'));
+  const vis=new Date(t.visit_date+'T'+(t.visit_time||'09:00'));
+  const h=(vis-recv)/3600000;
+  return isNaN(h)||h<0?null:h;
+}
+
+function fmtMonthLabel(key){
+  const [y,m]=key.split('-');
+  return new Date(+y,+m-1,1).toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+}
+
+function myExtCases(){
+  return CASES.filter(c=>{const t=trk(c.case_id);return t&&t.engineer_name==='[External] '+CU.name;});
+}
+
+function populateExtMonthSelect(){
+  const sel=document.getElementById('md_ext_month');
+  const months=new Set(myExtCases().map(c=>(c.received_date||'').slice(0,7)).filter(Boolean));
+  const now=new Date();
+  const curMonthKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  months.add(curMonthKey);
+  const sorted=[...months].sort().reverse();
+  const prevVal=sel.value;
+  sel.innerHTML='<option value="all">All Time</option>'+sorted.map(m=>`<option value="${m}">${fmtMonthLabel(m)}</option>`).join('');
+  sel.value=sorted.includes(prevVal)?prevVal:curMonthKey;
+}
+
+function renderExtPerf(){
+  if(!CU||!CU.isExternal) return;
+  const monthSel=g('md_ext_month')||'all';
+  const myCases=myExtCases();
+  const scoped=monthSel==='all'?myCases:myCases.filter(c=>(c.received_date||'').slice(0,7)===monthSel);
+  const allotted=scoped.length;
+  const scheduled=scoped.filter(c=>trk(c.case_id)?.scheduled_date).length;
+  const completed=scoped.filter(c=>trk(c.case_id)?.visit_complete).length;
+  const tatVals=scoped.map(c=>calcVisitTAT(c,trk(c.case_id))).filter(v=>v!==null);
+  const avgTAT=tatVals.length?tatVals.reduce((a,b)=>a+b,0)/tatVals.length:null;
+  document.getElementById('md_ext_kpi').innerHTML=`
+    <div class="kbox"><div class="kval">${allotted}</div><div class="klbl">Cases Allotted</div></div>
+    <div class="kbox"><div class="kval">${scheduled}</div><div class="klbl">Visits Scheduled</div></div>
+    <div class="kbox kg"><div class="kval">${completed}</div><div class="klbl">Visits Completed</div></div>
+    <div class="kbox"><div class="kval">${fmtTAT(avgTAT)}</div><div class="klbl">Avg TAT</div></div>`;
 }
 
 function goToMyCase(caseId,mode){
