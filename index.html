@@ -2862,12 +2862,24 @@ async function saveVisit(){
 
 // ── SITE NOTES ──
 function clearSiteNotes(){
-  // Clear all text inputs and selects in site notes card
+  // Clear all text inputs and selects in site notes card. Several inputs
+  // (the identification and boundary tables) are plain <input id="..."> with
+  // no type="text" attribute at all — a bare <input> defaults to text, but
+  // the attribute selector only matches an attribute actually present in
+  // the HTML, so input[type="text"] silently skipped them and let a
+  // previous case's values bleed into the next one. Match every input
+  // except the ones that genuinely shouldn't be reset by value='' (hidden
+  // state inputs, handled explicitly below, and file inputs, which can't
+  // be cleared this way).
   const card = document.getElementById('sn_card');
   if(!card) return;
-  card.querySelectorAll('input[type="text"],input[type="number"],input[type="tel"],textarea,select').forEach(el=>{
+  card.querySelectorAll('input:not([type="hidden"]):not([type="file"]),textarea,select').forEach(el=>{
     el.value='';
   });
+  // Reset UDS mode too — fillSN() only turns it ON for a case that needs
+  // it, never OFF, so it would otherwise carry over from an apartment/shop
+  // case into a plain one and leave the wrong fields showing.
+  if(isUDS) toggleUDS();
   // Clear document checkboxes
   document.querySelectorAll('#docsAvailGrid .doc-check').forEach(el=>{
     el.classList.remove('doc-checked');
